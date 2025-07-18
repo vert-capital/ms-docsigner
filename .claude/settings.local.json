@@ -9,7 +9,8 @@
       "Bash(make test:*)",
       "Bash(docker-compose build:*)",
       "Bash(docker-compose:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
