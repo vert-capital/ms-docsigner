@@ -11,12 +11,12 @@ func TestNewEnvelope(t *testing.T) {
 	t.Run("should create envelope with valid data", func(t *testing.T) {
 		// Arrange
 		validEnvelope := EntityEnvelope{
-			Name:             "Test Envelope",
-			Description:      "Test description",
-			DocumentsIDs:     []int{1, 2},
-			SignatoryEmails:  []string{"test@example.com", "user@example.com"},
-			Message:          "Please sign this document",
-			AutoClose:        true,
+			Name:            "Test Envelope",
+			Description:     "Test description",
+			DocumentsIDs:    []int{1, 2},
+			SignatoryEmails: []string{"test@example.com", "user@example.com"},
+			Message:         "Please sign this document",
+			AutoClose:       true,
 		}
 
 		// Act
