@@ -20,7 +20,9 @@
       "WebFetch(domain:developers.clicksign.com)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(mockgen:*)"
+      "Bash(mockgen:*)",
+      "Bash(rm:*)",
+      "Bash(go vet:*)"
     ],
     "deny": []
   }

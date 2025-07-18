@@ -6,6 +6,7 @@ import (
 	"app/api/handlers"
 	"app/config"
 	"app/infrastructure/postgres"
+	custom_logger "app/pkg/logger"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,6 @@ import (
 	"gorm.io/gorm"
 
 	_ "app/docs"
-
-	custom_logger "app/pkg/logger"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -45,8 +44,13 @@ func setupRouter(conn *gorm.DB) *gin.Engine {
 
 	r.Use(gin.Recovery())
 
+	// Configurar logger
+	logger := custom_logger.NewLogrusLogger(config.EnvironmentVariables.LogLevel)
+
 	handlers.MountSamplesHandlers(r)
 	handlers.MountUsersHandlers(r, conn)
+	handlers.MountDocumentHandlers(r, conn)
+	handlers.MountEnvelopeHandlers(r, conn, logger)
 
 	return r
 }

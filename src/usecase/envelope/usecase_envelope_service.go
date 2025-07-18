@@ -48,9 +48,9 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	err := envelope.Validate()
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_name":   envelope.Name,
-			"correlation_id":  correlationID,
+			"error":          err.Error(),
+			"envelope_name":  envelope.Name,
+			"correlation_id": correlationID,
 		}).Error("Envelope validation failed")
 		return nil, fmt.Errorf("envelope validation failed: %w", err)
 	}
@@ -58,9 +58,9 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	// Validações específicas de negócio
 	if err := u.validateBusinessRules(envelope); err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_name":   envelope.Name,
-			"correlation_id":  correlationID,
+			"error":          err.Error(),
+			"envelope_name":  envelope.Name,
+			"correlation_id": correlationID,
 		}).Error("Business rule validation failed")
 		return nil, fmt.Errorf("business rule validation failed: %w", err)
 	}
@@ -69,38 +69,38 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	err = u.repositoryEnvelope.Create(envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_name":   envelope.Name,
-			"correlation_id":  correlationID,
+			"error":          err.Error(),
+			"envelope_name":  envelope.Name,
+			"correlation_id": correlationID,
 		}).Error("Failed to create envelope locally")
 		return nil, fmt.Errorf("failed to create envelope locally: %w", err)
 	}
 
 	u.logger.WithFields(logrus.Fields{
-		"envelope_id":     envelope.ID,
-		"envelope_name":   envelope.Name,
-		"correlation_id":  correlationID,
+		"envelope_id":    envelope.ID,
+		"envelope_name":  envelope.Name,
+		"correlation_id": correlationID,
 	}).Info("Envelope created locally, now creating in Clicksign")
 
 	// Criar envelope no Clicksign
 	clicksignKey, err := u.envelopeService.CreateEnvelope(ctx, envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_id":     envelope.ID,
-			"envelope_name":   envelope.Name,
-			"correlation_id":  correlationID,
+			"error":          err.Error(),
+			"envelope_id":    envelope.ID,
+			"envelope_name":  envelope.Name,
+			"correlation_id": correlationID,
 		}).Error("Failed to create envelope in Clicksign")
-		
+
 		// Tentar reverter criação local (best effort)
 		if deleteErr := u.repositoryEnvelope.Delete(envelope); deleteErr != nil {
 			u.logger.WithFields(logrus.Fields{
-				"error":           deleteErr.Error(),
-				"envelope_id":     envelope.ID,
-				"correlation_id":  correlationID,
+				"error":          deleteErr.Error(),
+				"envelope_id":    envelope.ID,
+				"correlation_id": correlationID,
 			}).Error("Failed to rollback local envelope creation")
 		}
-		
+
 		return nil, fmt.Errorf("failed to create envelope in Clicksign: %w", err)
 	}
 
@@ -109,19 +109,19 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	err = u.repositoryEnvelope.Update(envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_id":     envelope.ID,
-			"clicksign_key":   clicksignKey,
-			"correlation_id":  correlationID,
+			"error":          err.Error(),
+			"envelope_id":    envelope.ID,
+			"clicksign_key":  clicksignKey,
+			"correlation_id": correlationID,
 		}).Error("Failed to update envelope with Clicksign key")
 		return nil, fmt.Errorf("failed to update envelope with Clicksign key: %w", err)
 	}
 
 	u.logger.WithFields(logrus.Fields{
-		"envelope_id":     envelope.ID,
-		"envelope_name":   envelope.Name,
-		"clicksign_key":   clicksignKey,
-		"correlation_id":  correlationID,
+		"envelope_id":    envelope.ID,
+		"envelope_name":  envelope.Name,
+		"clicksign_key":  clicksignKey,
+		"correlation_id": correlationID,
 	}).Info("Envelope created successfully")
 
 	return envelope, nil

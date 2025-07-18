@@ -250,11 +250,11 @@ func (s *EnvelopeService) ActivateEnvelope(ctx context.Context, clicksignKey str
 
 func (s *EnvelopeService) mapEntityToCreateRequest(envelope *entity.EntityEnvelope) *dto.EnvelopeCreateRequest {
 	req := &dto.EnvelopeCreateRequest{
-		Name:            envelope.Name,
-		Locale:          "pt-BR",
-		AutoClose:       envelope.AutoClose,
-		RemindInterval:  envelope.RemindInterval,
-		DeadlineAt:      envelope.DeadlineAt,
+		Name:           envelope.Name,
+		Locale:         "pt-BR",
+		AutoClose:      envelope.AutoClose,
+		RemindInterval: envelope.RemindInterval,
+		DeadlineAt:     envelope.DeadlineAt,
 	}
 
 	if envelope.Message != "" {

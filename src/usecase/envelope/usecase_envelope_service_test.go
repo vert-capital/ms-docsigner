@@ -29,17 +29,17 @@ func TestUsecaseEnvelopeService_CreateEnvelope(t *testing.T) {
 	t.Run("should create envelope successfully", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:               1,
-			Name:             "Test Envelope",
-			Description:      "Test description",
-			Status:           "draft",
-			DocumentsIDs:     []int{1, 2},
-			SignatoryEmails:  []string{"test@example.com"},
-			Message:          "Please sign",
-			RemindInterval:   3,
-			AutoClose:        true,
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
+			ID:              1,
+			Name:            "Test Envelope",
+			Description:     "Test description",
+			Status:          "draft",
+			DocumentsIDs:    []int{1, 2},
+			SignatoryEmails: []string{"test@example.com"},
+			Message:         "Please sign",
+			RemindInterval:  3,
+			AutoClose:       true,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
 		}
 
 		// Mock expectations

@@ -4,12 +4,12 @@ import "time"
 
 // EnvelopeCreateRequest representa a estrutura para criação de envelope na API do Clicksign
 type EnvelopeCreateRequest struct {
-	Name            string     `json:"name"`
-	Locale          string     `json:"locale,omitempty"`
-	AutoClose       bool       `json:"auto_close,omitempty"`
-	RemindInterval  int        `json:"remind_interval,omitempty"`
-	DeadlineAt      *time.Time `json:"deadline_at,omitempty"`
-	DefaultSubject  string     `json:"default_subject,omitempty"`
+	Name           string     `json:"name"`
+	Locale         string     `json:"locale,omitempty"`
+	AutoClose      bool       `json:"auto_close,omitempty"`
+	RemindInterval int        `json:"remind_interval,omitempty"`
+	DeadlineAt     *time.Time `json:"deadline_at,omitempty"`
+	DefaultSubject string     `json:"default_subject,omitempty"`
 }
 
 // EnvelopeCreateResponse representa a resposta da API do Clicksign para criação de envelope
@@ -28,12 +28,12 @@ type EnvelopeCreateResponse struct {
 
 // EnvelopeUpdateRequest representa a estrutura para atualização de envelope na API do Clicksign
 type EnvelopeUpdateRequest struct {
-	Name            *string    `json:"name,omitempty"`
-	Status          *string    `json:"status,omitempty"`
-	AutoClose       *bool      `json:"auto_close,omitempty"`
-	RemindInterval  *int       `json:"remind_interval,omitempty"`
-	DeadlineAt      *time.Time `json:"deadline_at,omitempty"`
-	DefaultSubject  *string    `json:"default_subject,omitempty"`
+	Name           *string    `json:"name,omitempty"`
+	Status         *string    `json:"status,omitempty"`
+	AutoClose      *bool      `json:"auto_close,omitempty"`
+	RemindInterval *int       `json:"remind_interval,omitempty"`
+	DeadlineAt     *time.Time `json:"deadline_at,omitempty"`
+	DefaultSubject *string    `json:"default_subject,omitempty"`
 }
 
 // EnvelopeGetResponse representa a resposta da API do Clicksign para consulta de envelope
@@ -55,10 +55,10 @@ type EnvelopeGetResponse struct {
 // ClicksignErrorResponse representa a estrutura de erro da API do Clicksign
 type ClicksignErrorResponse struct {
 	Error struct {
-		Type        string                 `json:"type"`
-		Message     string                 `json:"message"`
-		Details     map[string]interface{} `json:"details,omitempty"`
-		Code        string                 `json:"code,omitempty"`
-		StatusCode  int                    `json:"status_code,omitempty"`
+		Type       string                 `json:"type"`
+		Message    string                 `json:"message"`
+		Details    map[string]interface{} `json:"details,omitempty"`
+		Code       string                 `json:"code,omitempty"`
+		StatusCode int                    `json:"status_code,omitempty"`
 	} `json:"error"`
 }

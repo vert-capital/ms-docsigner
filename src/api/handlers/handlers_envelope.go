@@ -7,10 +7,12 @@ import (
 
 	"app/api/handlers/dtos"
 	"app/entity"
+	"app/infrastructure/repository"
 	"app/usecase/envelope"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type EnvelopeHandlers struct {
@@ -288,17 +290,17 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 
 func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateRequestDTO) *entity.EntityEnvelope {
 	envelope := &entity.EntityEnvelope{
-		Name:             dto.Name,
-		Description:      dto.Description,
-		DocumentsIDs:     dto.DocumentsIDs,
-		SignatoryEmails:  dto.SignatoryEmails,
-		Message:          dto.Message,
-		DeadlineAt:       dto.DeadlineAt,
-		RemindInterval:   dto.RemindInterval,
-		AutoClose:        dto.AutoClose,
-		Status:           "draft",
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		Name:            dto.Name,
+		Description:     dto.Description,
+		DocumentsIDs:    dto.DocumentsIDs,
+		SignatoryEmails: dto.SignatoryEmails,
+		Message:         dto.Message,
+		DeadlineAt:      dto.DeadlineAt,
+		RemindInterval:  dto.RemindInterval,
+		AutoClose:       dto.AutoClose,
+		Status:          "draft",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	if envelope.RemindInterval == 0 {
@@ -310,19 +312,19 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope) *dtos.EnvelopeResponseDTO {
 	return &dtos.EnvelopeResponseDTO{
-		ID:               envelope.ID,
-		Name:             envelope.Name,
-		Description:      envelope.Description,
-		Status:           envelope.Status,
-		ClicksignKey:     envelope.ClicksignKey,
-		DocumentsIDs:     envelope.DocumentsIDs,
-		SignatoryEmails:  envelope.SignatoryEmails,
-		Message:          envelope.Message,
-		DeadlineAt:       envelope.DeadlineAt,
-		RemindInterval:   envelope.RemindInterval,
-		AutoClose:        envelope.AutoClose,
-		CreatedAt:        envelope.CreatedAt,
-		UpdatedAt:        envelope.UpdatedAt,
+		ID:              envelope.ID,
+		Name:            envelope.Name,
+		Description:     envelope.Description,
+		Status:          envelope.Status,
+		ClicksignKey:    envelope.ClicksignKey,
+		DocumentsIDs:    envelope.DocumentsIDs,
+		SignatoryEmails: envelope.SignatoryEmails,
+		Message:         envelope.Message,
+		DeadlineAt:      envelope.DeadlineAt,
+		RemindInterval:  envelope.RemindInterval,
+		AutoClose:       envelope.AutoClose,
+		CreatedAt:       envelope.CreatedAt,
+		UpdatedAt:       envelope.UpdatedAt,
 	}
 }
 
@@ -372,4 +374,23 @@ func (h *EnvelopeHandlers) getValidationErrorMessage(fieldError validator.FieldE
 	default:
 		return "This field is invalid"
 	}
+}
+
+func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
+	envelopeHandlers := NewEnvelopeHandler(
+		envelope.NewUsecaseEnvelopeService(
+			repository.NewRepositoryEnvelope(conn),
+			nil, // clicksignClient será configurado depois
+			logger,
+		),
+		logger,
+	)
+
+	group := gin.Group("/api/v1/envelopes")
+	SetAuthMiddleware(conn, group)
+
+	group.POST("/", envelopeHandlers.CreateEnvelopeHandler)
+	group.GET("/:id", envelopeHandlers.GetEnvelopeHandler)
+	group.GET("/", envelopeHandlers.GetEnvelopesHandler)
+	group.POST("/:id/activate", envelopeHandlers.ActivateEnvelopeHandler)
 }
