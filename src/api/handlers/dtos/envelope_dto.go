@@ -10,7 +10,7 @@ type EnvelopeCreateRequestDTO struct {
 	SignatoryEmails []string   `json:"signatory_emails" binding:"required,min=1"`
 	Message         string     `json:"message,omitempty" binding:"max=500"`
 	DeadlineAt      *time.Time `json:"deadline_at,omitempty"`
-	RemindInterval  int        `json:"remind_interval,omitempty" binding:"min=1,max=30"`
+	RemindInterval  int        `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
 	AutoClose       bool       `json:"auto_close,omitempty"`
 }
 

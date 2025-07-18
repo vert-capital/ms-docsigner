@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"app/api/handlers/dtos"
+	"app/config"
 	"app/entity"
+	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
 	"app/usecase/envelope"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -348,7 +352,7 @@ func (h *EnvelopeHandlers) extractValidationErrors(err error) []dtos.ValidationE
 			validationErrors = append(validationErrors, dtos.ValidationErrorDetail{
 				Field:   fieldError.Field(),
 				Message: h.getValidationErrorMessage(fieldError),
-				Value:   fieldError.Value().(string),
+				Value:   fmt.Sprintf("%v", fieldError.Value()),
 			})
 		}
 	} else {
@@ -377,10 +381,12 @@ func (h *EnvelopeHandlers) getValidationErrorMessage(fieldError validator.FieldE
 }
 
 func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
+	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
+
 	envelopeHandlers := NewEnvelopeHandler(
 		envelope.NewUsecaseEnvelopeService(
 			repository.NewRepositoryEnvelope(conn),
-			nil, // clicksignClient será configurado depois
+			clicksignClient,
 			logger,
 		),
 		logger,
