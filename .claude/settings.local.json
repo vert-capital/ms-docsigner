@@ -14,7 +14,10 @@
       "Bash(go mod:*)",
       "Bash(go generate:*)",
       "Bash(go install:*)",
-      "Bash(go fmt:*)"
+      "Bash(go fmt:*)",
+      "WebFetch(domain:developers.clicksign.com)",
+      "WebFetch(domain:developers.clicksign.com)",
+      "WebFetch(domain:developers.clicksign.com)"
     ],
     "deny": []
   }
