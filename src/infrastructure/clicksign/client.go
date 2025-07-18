@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"app/config"
 	"app/usecase/clicksign"
+	"github.com/sirupsen/logrus"
 )
 
 // ClicksignError representa tipos específicos de erros do Clicksign
@@ -40,10 +40,10 @@ const (
 )
 
 type ClicksignClient struct {
-	httpClient   *http.Client
-	baseURL      string
-	apiKey       string
-	logger       *logrus.Logger
+	httpClient    *http.Client
+	baseURL       string
+	apiKey        string
+	logger        *logrus.Logger
 	retryAttempts int
 }
 
@@ -83,7 +83,7 @@ func (c *ClicksignClient) Patch(ctx context.Context, endpoint string, body any) 
 
 func (c *ClicksignClient) doRequest(ctx context.Context, method, endpoint string, body any) (*http.Response, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
-	
+
 	var bodyBytes []byte
 	if body != nil {
 		var err error
@@ -109,13 +109,13 @@ func (c *ClicksignClient) doRequest(ctx context.Context, method, endpoint string
 			// Backoff exponencial: 100ms, 200ms, 400ms, 800ms...
 			backoffDuration := time.Duration(100*attempt*attempt) * time.Millisecond
 			c.logger.WithFields(logrus.Fields{
-				"attempt":         attempt,
-				"backoff_ms":      backoffDuration.Milliseconds(),
-				"method":          method,
-				"endpoint":        endpoint,
-				"correlation_id":  ctx.Value("correlation_id"),
+				"attempt":        attempt,
+				"backoff_ms":     backoffDuration.Milliseconds(),
+				"method":         method,
+				"endpoint":       endpoint,
+				"correlation_id": ctx.Value("correlation_id"),
 			}).Info("Retrying HTTP request to Clicksign API")
-			
+
 			select {
 			case <-ctx.Done():
 				return nil, &ClicksignError{
@@ -221,7 +221,7 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 			"duration_ms":    duration.Milliseconds(),
 			"correlation_id": correlationID,
 		}).Error("HTTP request failed")
-		
+
 		// Categorizar tipos de erro
 		errorType := c.categorizeError(err)
 		return nil, &ClicksignError{

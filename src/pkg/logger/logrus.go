@@ -8,13 +8,13 @@ import (
 
 func NewLogrusLogger(level string) *logrus.Logger {
 	logger := logrus.New()
-	
+
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: "2006-01-02T15:04:05Z07:00",
 	})
-	
+
 	logger.SetOutput(os.Stdout)
-	
+
 	switch LogLevel(level) {
 	case DEBUG:
 		logger.SetLevel(logrus.DebugLevel)
@@ -29,6 +29,6 @@ func NewLogrusLogger(level string) *logrus.Logger {
 	default:
 		logger.SetLevel(logrus.InfoLevel)
 	}
-	
+
 	return logger
 }

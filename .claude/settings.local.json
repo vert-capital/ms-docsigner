@@ -11,7 +11,10 @@
       "Bash(docker-compose:*)",
       "Bash(make:*)",
       "Bash(mv:*)",
-      "Bash(go mod:*)"
+      "Bash(go mod:*)",
+      "Bash(go generate:*)",
+      "Bash(go install:*)",
+      "Bash(go fmt:*)"
     ],
     "deny": []
   }

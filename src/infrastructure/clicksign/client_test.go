@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"app/config"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"app/config"
 )
 
 func TestNewClicksignClient(t *testing.T) {
@@ -35,7 +35,7 @@ func TestClicksignClient_Get(t *testing.T) {
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "application/json", r.Header.Get("Accept"))
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "success"}`))
 	}))
@@ -65,7 +65,7 @@ func TestClicksignClient_Post(t *testing.T) {
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		
+
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(`{"message": "created"}`))
 	}))
@@ -95,7 +95,7 @@ func TestClicksignClient_Put(t *testing.T) {
 		assert.Equal(t, "PUT", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "updated"}`))
 	}))
@@ -125,7 +125,7 @@ func TestClicksignClient_Delete(t *testing.T) {
 		assert.Equal(t, "DELETE", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
-		
+
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
@@ -153,7 +153,7 @@ func TestClicksignClient_Patch(t *testing.T) {
 		assert.Equal(t, "PATCH", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "patched"}`))
 	}))
@@ -230,7 +230,7 @@ func TestClicksignClient_Timeout(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	assert.Contains(t, err.Error(), "context deadline exceeded")
-	
+
 	// Verificar se é um ClicksignError do tipo correto
 	if clicksignErr, ok := err.(*ClicksignError); ok {
 		assert.Equal(t, ErrorTypeTimeout, clicksignErr.Type)
@@ -280,7 +280,7 @@ func TestClicksignClient_InvalidJSON(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	assert.Contains(t, err.Error(), "failed to marshal request body")
-	
+
 	// Verificar se é um ClicksignError do tipo correto
 	if clicksignErr, ok := err.(*ClicksignError); ok {
 		assert.Equal(t, ErrorTypeSerialization, clicksignErr.Type)
