@@ -22,7 +22,8 @@
       "Bash(grep:*)",
       "Bash(mockgen:*)",
       "Bash(rm:*)",
-      "Bash(go vet:*)"
+      "Bash(go vet:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": []
   }
