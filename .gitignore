@@ -8,6 +8,7 @@
 *.log
 tmp/
 coverage.html
+!settings.local.json
 
 ### Go ###
 # Binaries for programs and plugins
