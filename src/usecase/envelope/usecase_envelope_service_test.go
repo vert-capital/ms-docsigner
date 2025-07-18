@@ -625,15 +625,45 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 // Helper functions for tests
 
 func mockSuccessResponse() *http.Response {
+	jsonAPIResponse := `{
+		"data": {
+			"type": "envelopes",
+			"id": "test-key-123",
+			"attributes": {
+				"name": "Test Envelope",
+				"status": "draft",
+				"locale": "pt-BR",
+				"auto_close": true,
+				"remind_interval": 3,
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		}
+	}`
 	return &http.Response{
 		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(`{"id": "test-key-123", "status": "draft"}`)),
+		Body:       io.NopCloser(strings.NewReader(jsonAPIResponse)),
 	}
 }
 
 func mockSuccessResponsePatch() *http.Response {
+	jsonAPIResponse := `{
+		"data": {
+			"type": "envelopes",
+			"id": "test-key-123",
+			"attributes": {
+				"name": "Test Envelope",
+				"status": "running",
+				"locale": "pt-BR",
+				"auto_close": true,
+				"remind_interval": 3,
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		}
+	}`
 	return &http.Response{
 		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(`{"id": "test-key-123", "status": "running"}`)),
+		Body:       io.NopCloser(strings.NewReader(jsonAPIResponse)),
 	}
 }

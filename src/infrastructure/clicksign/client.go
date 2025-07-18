@@ -195,8 +195,8 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/vnd.api+json")
+	req.Header.Set("Accept", "application/vnd.api+json")
 
 	correlationID := ctx.Value("correlation_id")
 	if correlationID != nil {
@@ -206,8 +206,9 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 	c.logger.WithFields(logrus.Fields{
 		"method":         method,
 		"url":            url,
+		"content_type":   "application/vnd.api+json",
 		"correlation_id": correlationID,
-	}).Info("Making HTTP request to Clicksign API")
+	}).Info("Making HTTP request to Clicksign API using JSON API format")
 
 	startTime := time.Now()
 	resp, err := c.httpClient.Do(req)

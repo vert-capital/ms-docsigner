@@ -33,8 +33,8 @@ func TestClicksignClient_Get(t *testing.T) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		assert.Equal(t, "application/json", r.Header.Get("Accept"))
+		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Accept"))
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "success"}`))
@@ -64,7 +64,7 @@ func TestClicksignClient_Post(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
 		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Content-Type"))
 
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(`{"message": "created"}`))

@@ -2,7 +2,29 @@ package dto
 
 import "time"
 
-// EnvelopeCreateRequest representa a estrutura para criação de envelope na API do Clicksign
+// EnvelopeCreateRequestWrapper representa a estrutura JSON API para criação de envelope na API do Clicksign
+type EnvelopeCreateRequestWrapper struct {
+	Data EnvelopeCreateData `json:"data"`
+}
+
+// EnvelopeCreateData representa a seção "data" da estrutura JSON API
+type EnvelopeCreateData struct {
+	Type       string                    `json:"type"`
+	Attributes EnvelopeCreateAttributes  `json:"attributes"`
+}
+
+// EnvelopeCreateAttributes representa os atributos do envelope dentro da estrutura JSON API
+type EnvelopeCreateAttributes struct {
+	Name              string     `json:"name"`
+	Locale            string     `json:"locale,omitempty"`
+	AutoClose         bool       `json:"auto_close,omitempty"`
+	RemindInterval    int        `json:"remind_interval,omitempty"`
+	BlockAfterRefusal bool       `json:"block_after_refusal,omitempty"`
+	DeadlineAt        *time.Time `json:"deadline_at,omitempty"`
+	DefaultSubject    string     `json:"default_subject,omitempty"`
+}
+
+// EnvelopeCreateRequest representa a estrutura legada para criação de envelope (mantida para compatibilidade)
 type EnvelopeCreateRequest struct {
 	Name           string     `json:"name"`
 	Locale         string     `json:"locale,omitempty"`
@@ -12,7 +34,32 @@ type EnvelopeCreateRequest struct {
 	DefaultSubject string     `json:"default_subject,omitempty"`
 }
 
-// EnvelopeCreateResponse representa a resposta da API do Clicksign para criação de envelope
+// EnvelopeCreateResponseWrapper representa a estrutura JSON API para resposta de criação de envelope
+type EnvelopeCreateResponseWrapper struct {
+	Data EnvelopeCreateResponseData `json:"data"`
+}
+
+// EnvelopeCreateResponseData representa a seção "data" da resposta JSON API
+type EnvelopeCreateResponseData struct {
+	Type       string                         `json:"type"`
+	ID         string                         `json:"id"`
+	Attributes EnvelopeCreateResponseAttributes `json:"attributes"`
+}
+
+// EnvelopeCreateResponseAttributes representa os atributos do envelope na resposta JSON API
+type EnvelopeCreateResponseAttributes struct {
+	Name           string     `json:"name"`
+	Status         string     `json:"status"`
+	Locale         string     `json:"locale"`
+	AutoClose      bool       `json:"auto_close"`
+	RemindInterval int        `json:"remind_interval"`
+	DeadlineAt     *time.Time `json:"deadline_at"`
+	DefaultSubject string     `json:"default_subject"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// EnvelopeCreateResponse representa a resposta legada da API do Clicksign (mantida para compatibilidade)
 type EnvelopeCreateResponse struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`

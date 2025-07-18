@@ -31,11 +31,20 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 		"envelope_name":   envelope.Name,
 		"documents_count": len(envelope.DocumentsIDs),
 		"signers_count":   len(envelope.SignatoryEmails),
+		"api_format":      "JSON API",
+		"content_type":    "application/vnd.api+json",
 		"correlation_id":  correlationID,
-	}).Info("Creating envelope in Clicksign")
+	}).Info("Creating envelope in Clicksign using JSON API format")
 
 	// Mapear entidade para DTO do Clicksign
 	createRequest := s.mapEntityToCreateRequest(envelope)
+
+	s.logger.WithFields(logrus.Fields{
+		"data_type":        createRequest.Data.Type,
+		"attributes_count": 6, // name, locale, auto_close, remind_interval, block_after_refusal, deadline_at
+		"envelope_name":    createRequest.Data.Attributes.Name,
+		"correlation_id":   correlationID,
+	}).Debug("JSON API request structure prepared")
 
 	// Fazer chamada para API do Clicksign
 	resp, err := s.clicksignClient.Post(ctx, "/api/v3/envelopes", createRequest)
@@ -84,25 +93,34 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
-	// Fazer parse da resposta de sucesso
-	var createResponse dto.EnvelopeCreateResponse
+	// Fazer parse da resposta de sucesso usando estrutura JSON API
+	var createResponse dto.EnvelopeCreateResponseWrapper
 	if err := json.Unmarshal(body, &createResponse); err != nil {
 		s.logger.WithFields(logrus.Fields{
 			"error":          err.Error(),
 			"response_body":  string(body),
+			"expected_format": "JSON API (data.type.attributes)",
 			"correlation_id": correlationID,
-		}).Error("Failed to parse success response from Clicksign")
-		return "", fmt.Errorf("failed to parse response from Clicksign: %w", err)
+		}).Error("Failed to parse JSON API response from Clicksign")
+		return "", fmt.Errorf("failed to parse JSON API response from Clicksign: %w", err)
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"envelope_id":    createResponse.ID,
-		"envelope_name":  createResponse.Name,
-		"status":         createResponse.Status,
-		"correlation_id": correlationID,
-	}).Info("Envelope created successfully in Clicksign")
+		"response_type":    createResponse.Data.Type,
+		"response_id":      createResponse.Data.ID,
+		"attributes_parsed": true,
+		"correlation_id":   correlationID,
+	}).Debug("JSON API response parsed successfully")
 
-	return createResponse.ID, nil
+	s.logger.WithFields(logrus.Fields{
+		"envelope_id":    createResponse.Data.ID,
+		"envelope_name":  createResponse.Data.Attributes.Name,
+		"status":         createResponse.Data.Attributes.Status,
+		"type":           createResponse.Data.Type,
+		"correlation_id": correlationID,
+	}).Info("Envelope created successfully in Clicksign using JSON API format")
+
+	return createResponse.Data.ID, nil
 }
 
 func (s *EnvelopeService) GetEnvelope(ctx context.Context, clicksignKey string) (*dto.EnvelopeGetResponse, error) {
@@ -248,17 +266,23 @@ func (s *EnvelopeService) ActivateEnvelope(ctx context.Context, clicksignKey str
 	return nil
 }
 
-func (s *EnvelopeService) mapEntityToCreateRequest(envelope *entity.EntityEnvelope) *dto.EnvelopeCreateRequest {
-	req := &dto.EnvelopeCreateRequest{
-		Name:           envelope.Name,
-		Locale:         "pt-BR",
-		AutoClose:      envelope.AutoClose,
-		RemindInterval: envelope.RemindInterval,
-		DeadlineAt:     envelope.DeadlineAt,
+func (s *EnvelopeService) mapEntityToCreateRequest(envelope *entity.EntityEnvelope) *dto.EnvelopeCreateRequestWrapper {
+	req := &dto.EnvelopeCreateRequestWrapper{
+		Data: dto.EnvelopeCreateData{
+			Type: "envelopes",
+			Attributes: dto.EnvelopeCreateAttributes{
+				Name:              envelope.Name,
+				Locale:            "pt-BR",
+				AutoClose:         envelope.AutoClose,
+				RemindInterval:    envelope.RemindInterval,
+				BlockAfterRefusal: true,
+				DeadlineAt:        envelope.DeadlineAt,
+			},
+		},
 	}
 
 	if envelope.Message != "" {
-		req.DefaultSubject = envelope.Message
+		req.Data.Attributes.DefaultSubject = envelope.Message
 	}
 
 	return req
