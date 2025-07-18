@@ -25,5 +25,10 @@ type EnvironmentVars struct {
 	DEFAULT_ADMIN_MAIL     string
 	DEFAULT_ADMIN_PASSWORD string
 
+	CLICKSIGN_API_KEY        string
+	CLICKSIGN_BASE_URL       string
+	CLICKSIGN_TIMEOUT        int
+	CLICKSIGN_RETRY_ATTEMPTS int
+
 	ISRELEASE bool
 }

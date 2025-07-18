@@ -41,6 +41,12 @@ func ReadEnvironmentVars() {
 
 	EnvironmentVariables.DEFAULT_ADMIN_MAIL = os.Getenv("DEFAULT_ADMIN_MAIL")
 	EnvironmentVariables.DEFAULT_ADMIN_PASSWORD = os.Getenv("DEFAULT_ADMIN_PASSWORD")
+
+	// Clicksign configuration
+	EnvironmentVariables.CLICKSIGN_API_KEY = os.Getenv("CLICKSIGN_API_KEY")
+	EnvironmentVariables.CLICKSIGN_BASE_URL = getEnvOrDefault("CLICKSIGN_BASE_URL", "https://api.clicksign.com")
+	EnvironmentVariables.CLICKSIGN_TIMEOUT, _ = strconv.Atoi(getEnvOrDefault("CLICKSIGN_TIMEOUT", "30"))
+	EnvironmentVariables.CLICKSIGN_RETRY_ATTEMPTS, _ = strconv.Atoi(getEnvOrDefault("CLICKSIGN_RETRY_ATTEMPTS", "3"))
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
