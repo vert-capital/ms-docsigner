@@ -76,7 +76,7 @@ func (r *RepositoryDocument) GetDocuments(filters entity.EntityDocumentFilters) 
 		query = query.Where("clicksign_key = ?", filters.ClicksignKey)
 	}
 
-	err := query.Find(&documents).Error
+	err := query.Order("created_at DESC").Find(&documents).Error
 	if err != nil {
 		return nil, err
 	}
