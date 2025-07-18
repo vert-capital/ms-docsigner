@@ -1,0 +1,229 @@
+definitions:
+  entity.EntityUser:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_admin:
+        type: boolean
+      name:
+        maxLength: 120
+        minLength: 3
+        type: string
+      password:
+        maxLength: 120
+        minLength: 4
+        type: string
+      updated_at:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+info:
+  contact: {}
+paths:
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: Email
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: Password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      summary: Login
+      tags:
+      - User
+  /api/user/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user
+      tags:
+      - User
+    get:
+      consumes:
+      - application/json
+      description: Get user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user
+      tags:
+      - User
+    put:
+      consumes:
+      - application/json
+      description: Update user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User
+        in: body
+        name: entity.EntityUser
+        required: true
+        schema:
+          $ref: '#/definitions/entity.EntityUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Update user
+      tags:
+      - User
+  /api/user/create:
+    post:
+      consumes:
+      - application/json
+      description: Create user
+      parameters:
+      - description: User
+        in: body
+        name: entity.EntityUser
+        required: true
+        schema:
+          $ref: '#/definitions/entity.EntityUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Create user
+      tags:
+      - User
+  /api/user/list:
+    get:
+      consumes:
+      - application/json
+      description: Get users
+      parameters:
+      - description: Search
+        in: query
+        name: search
+        type: string
+      - description: Active
+        in: query
+        name: active
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Get users
+      tags:
+      - User
+  /api/user/me:
+    get:
+      consumes:
+      - application/json
+      description: Get me
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Get me
+      tags:
+      - User
+  /api/user/password/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update password
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User
+        in: body
+        name: entity.EntityUser
+        required: true
+        schema:
+          $ref: '#/definitions/entity.EntityUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/entity.EntityUser'
+      security:
+      - ApiKeyAuth: []
+      summary: Update password
+      tags:
+      - User
+swagger: "2.0"

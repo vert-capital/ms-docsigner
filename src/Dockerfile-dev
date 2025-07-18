@@ -1,0 +1,34 @@
+FROM golang:1.24-alpine AS base
+
+ENV GO111MODULE="on"
+ENV GOOS="linux"
+ENV CGO_ENABLED=1
+
+# System dependencies
+RUN apk update && apk add --no-cache ca-certificates curl bash gcc libc-dev librdkafka-dev
+RUN go install -tags musl gotest.tools/gotestsum@latest
+RUN go install -tags musl github.com/golang/mock/mockgen@v1.6.0
+RUN go install -tags musl github.com/smartystreets/goconvey@latest
+
+ARG PROJECT_NAME="app"
+ARG VERSION="dev"
+ARG COMMIT="none"
+ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org
+
+FROM base AS dev
+WORKDIR /app
+
+COPY . .
+
+RUN go mod download
+RUN go install -tags musl github.com/go-delve/delve/cmd/dlv@latest
+
+# Hot reloading mod
+RUN go get -tags musl -u github.com/air-verse/air && go install -tags musl github.com/go-delve/delve/cmd/dlv@latest
+RUN go install -tags musl github.com/air-verse/air@latest
+
+EXPOSE 8080
+EXPOSE 2345
+
+ENTRYPOINT ["/go/bin/air"]
