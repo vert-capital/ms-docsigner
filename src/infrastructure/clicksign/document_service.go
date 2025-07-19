@@ -257,7 +257,7 @@ func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocu
 		return nil, fmt.Errorf("failed to read temporary file: %w", err)
 	}
 
-	base64Content := base64.StdEncoding.EncodeToString(fileData)
+	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := s.generateFilename(document)
 
 	createRequest := &dto.DocumentCreateRequestWrapper{
@@ -286,7 +286,7 @@ func (s *DocumentService) prepareFilePathCreateRequest(document *entity.EntityDo
 		return nil, fmt.Errorf("failed to read file from path: %w", err)
 	}
 
-	base64Content := base64.StdEncoding.EncodeToString(fileData)
+	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := filepath.Base(document.FilePath)
 
 	createRequest := &dto.DocumentCreateRequestWrapper{
@@ -315,7 +315,7 @@ func (s *DocumentService) prepareBase64Upload(document *entity.EntityDocument) (
 		return nil, fmt.Errorf("failed to read temporary file: %w", err)
 	}
 
-	base64Content := base64.StdEncoding.EncodeToString(fileData)
+	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := s.generateFilename(document)
 
 	uploadRequest := &dto.DocumentUploadRequestWrapper{
@@ -339,7 +339,7 @@ func (s *DocumentService) prepareFilePathUpload(document *entity.EntityDocument)
 		return nil, fmt.Errorf("failed to read file from path: %w", err)
 	}
 
-	base64Content := base64.StdEncoding.EncodeToString(fileData)
+	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := filepath.Base(document.FilePath)
 
 	uploadRequest := &dto.DocumentUploadRequestWrapper{
@@ -359,4 +359,10 @@ func (s *DocumentService) prepareFilePathUpload(document *entity.EntityDocument)
 func (s *DocumentService) generateFilename(document *entity.EntityDocument) string {
 	extension := utils.GetFileExtensionFromMimeType(document.MimeType)
 	return fmt.Sprintf("%s_%d%s", document.Name, document.ID, extension)
+}
+
+// generateDataURI gera um data URI com o prefixo correto baseado no MIME type
+func (s *DocumentService) generateDataURI(fileData []byte, mimeType string) string {
+	base64Data := base64.StdEncoding.EncodeToString(fileData)
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64Data)
 }
