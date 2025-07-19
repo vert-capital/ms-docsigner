@@ -423,11 +423,23 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 // Helper methods
 
 func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateRequestDTO) (*entity.EntityEnvelope, []*entity.EntityDocument, error) {
+	// Determinar emails dos signatários com base no formato usado
+	var signatoryEmails []string
+	if len(dto.SignatoryEmails) > 0 {
+		// Usando formato antigo com emails diretos
+		signatoryEmails = dto.SignatoryEmails
+	} else if len(dto.Signatories) > 0 {
+		// Usando formato novo com signatários estruturados - extrair emails
+		for _, signatory := range dto.Signatories {
+			signatoryEmails = append(signatoryEmails, signatory.Email)
+		}
+	}
+
 	envelope := &entity.EntityEnvelope{
 		Name:            dto.Name,
 		Description:     dto.Description,
 		DocumentsIDs:    dto.DocumentsIDs,
-		SignatoryEmails: dto.SignatoryEmails,
+		SignatoryEmails: signatoryEmails,
 		Message:         dto.Message,
 		DeadlineAt:      dto.DeadlineAt,
 		RemindInterval:  dto.RemindInterval,
