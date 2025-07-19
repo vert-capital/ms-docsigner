@@ -27,7 +27,8 @@
       "cd:*",
       "go:*",
       "Bash(cd:*)",
-      "Bash(go:*)"
+      "Bash(go:*)",
+      "Bash(swag:*)"
     ],
     "deny": []
   }
