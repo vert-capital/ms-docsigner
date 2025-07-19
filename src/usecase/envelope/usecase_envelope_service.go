@@ -146,17 +146,6 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 		"correlation_id":  correlationID,
 	}).Info("Starting envelope creation with documents")
 
-	// Validar entidade envelope
-	err := envelope.Validate()
-	if err != nil {
-		u.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_name":  envelope.Name,
-			"correlation_id": correlationID,
-		}).Error("Envelope validation failed")
-		return nil, fmt.Errorf("envelope validation failed: %w", err)
-	}
-
 	// Validar documentos
 	if len(documents) == 0 {
 		return nil, fmt.Errorf("envelope must have at least one document")
@@ -197,6 +186,17 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 
 	// Adicionar IDs dos documentos ao envelope
 	envelope.DocumentsIDs = documentIDs
+
+	// Validar entidade envelope (após documentos serem criados)
+	err := envelope.Validate()
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"error":          err.Error(),
+			"envelope_name":  envelope.Name,
+			"correlation_id": correlationID,
+		}).Error("Envelope validation failed")
+		return nil, fmt.Errorf("envelope validation failed: %w", err)
+	}
 
 	// Validações específicas de negócio para envelope com documentos
 	if err := u.validateBusinessRulesWithDocuments(envelope); err != nil {

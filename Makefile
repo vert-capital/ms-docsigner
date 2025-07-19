@@ -33,8 +33,11 @@ _rebuild: show_env
 up: show_env
 	docker-compose ${DOCKER_COMPOSE_FILE} up -d --remove-orphans
 
-log: show_env
+logf: show_env
 	docker-compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200 app
+
+log: show_env
+	docker-compose ${DOCKER_COMPOSE_FILE} logs --tail 80 app
 
 logs: show_env
 	docker-compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200
