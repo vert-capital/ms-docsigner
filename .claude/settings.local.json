@@ -32,7 +32,7 @@
       "Bash(curl:*)",
       "Bash(docker:*)",
       "Bash(curl:*)",
-      "curl:*
+      "curl:*"
     ],
     "deny": []
   }
