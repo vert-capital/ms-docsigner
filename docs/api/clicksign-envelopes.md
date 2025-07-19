@@ -23,13 +23,16 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
 | `description` | string | Não | Descrição do envelope (máx. 1000 caracteres) |
 | `documents_ids` | array[int] | Condicional | IDs dos documentos existentes (mínimo 1) |
 | `documents` | array[object] | Condicional | Documentos base64 para criação simultânea |
-| `signatory_emails` | array[string] | Sim | E-mails dos signatários (mínimo 1) |
+| `signatory_emails` | array[string] | Condicional | E-mails dos signatários (compatibilidade) |
+| `signatories` | array[object] | Condicional | Signatários completos com dados detalhados ⭐ **NOVO** |
 | `message` | string | Não | Mensagem personalizada para signatários |
 | `deadline_at` | string | Não | Prazo para assinatura (ISO 8601) |
 | `remind_interval` | integer | Não | Intervalo de lembrete em dias (padrão: 3) |
 | `auto_close` | boolean | Não | Fechar automaticamente após todas as assinaturas |
 
-**⚠️ IMPORTANTE:** Use **OU** `documents_ids` **OU** `documents`, nunca ambos na mesma requisição.
+**⚠️ IMPORTANTE:** 
+- Use **OU** `documents_ids` **OU** `documents`, nunca ambos na mesma requisição
+- Use **OU** `signatory_emails` **OU** `signatories`, nunca ambos na mesma requisição
 
 #### Objeto `documents` (para criação com base64)
 
@@ -41,6 +44,19 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
 
 **⚠️ FORMATO BASE64:** O campo `file_content_base64` deve conter apenas o conteúdo base64 RAW, **SEM** prefixos como `data:application/pdf;base64,`. O sistema adiciona automaticamente o prefixo correto baseado no tipo MIME detectado.
 
+#### Objeto `signatories` (para criação com dados completos) ⭐ **NOVA FUNCIONALIDADE**
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `name` | string | Sim | Nome completo do signatário (2-255 caracteres) |
+| `email` | string | Sim | E-mail do signatário (formato válido) |
+| `birthday` | string | Não | Data de nascimento (formato YYYY-MM-DD) |
+| `phone_number` | string | Não | Telefone com código do país (ex: +5511999999999) |
+| `has_documentation` | boolean | Não | Se possui documentação (padrão: false) |
+| `refusable` | boolean | Não | Se pode recusar a assinatura (padrão: true) |
+| `group` | integer | Não | Grupo de assinatura para ordem específica |
+| `communicate_events` | object | Não | Configurações de notificação do signatário |
+
 ### Exemplos de Request
 
 #### Opção A: Criação com Documentos Existentes (IDs)
@@ -50,7 +66,21 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
   "name": "Contrato de Prestação de Serviços - Cliente ABC",
   "description": "Contrato de desenvolvimento de software",
   "documents_ids": [1, 2],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda",
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -76,7 +106,21 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
       "file_content_base64": "JVBERi0xLjQKMyAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgNCAwIFINCj4+DQplbmRvYmoNCjQgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs..."
     }
   ],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -96,7 +140,21 @@ A resposta é idêntica para ambos os métodos de criação. Quando usando `docu
   "status": "draft",
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [45, 46],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -173,7 +231,21 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "status": "running",
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1, 2],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -232,7 +304,21 @@ GET /api/v1/envelopes?search=contrato
       "status": "running",
       "clicksign_key": "12345678-1234-1234-1234-123456789012",
       "documents_ids": [1, 2],
-      "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+      "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
       "message": "Favor assinar o contrato conforme acordado.",
       "deadline_at": "2025-08-15T23:59:59Z",
       "remind_interval": 3,
@@ -270,7 +356,21 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "status": "running",
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1, 2],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -285,6 +385,56 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - `401` - Não autorizado
 - `404` - Envelope não encontrado
 - `500` - Erro interno ou falha na ativação
+
+---
+
+## 🆕 Gerenciamento de Signatários
+
+### 1. Criar Signatário
+`POST /api/v1/envelopes/{envelope_id}/signatories`
+
+Adiciona um novo signatário a um envelope existente.
+
+#### Parâmetros da URL
+- `envelope_id` (integer): ID do envelope
+
+#### Parâmetros do Request
+```json
+{
+  "name": "João Silva",
+  "email": "joao.silva@email.com",
+  "phone_number": "+5511987654321",
+  "birthday": "1985-03-15",
+  "has_documentation": true,
+  "refusable": false,
+  "group": 1
+}
+```
+
+### 2. Listar Signatários do Envelope
+`GET /api/v1/envelopes/{envelope_id}/signatories`
+
+Lista todos os signatários de um envelope específico.
+
+### 3. Obter Signatário Específico
+`GET /api/v1/signatories/{id}`
+
+Retorna detalhes de um signatário específico.
+
+### 4. Atualizar Signatário
+`PUT /api/v1/signatories/{id}`
+
+Atualiza informações de um signatário existente.
+
+### 5. Remover Signatário
+`DELETE /api/v1/signatories/{id}`
+
+Remove um signatário do envelope.
+
+### 6. Enviar Signatários para Clicksign
+`POST /api/v1/envelopes/{envelope_id}/send`
+
+Envia todos os signatários do envelope para o Clicksign após a criação.
 
 ---
 
@@ -359,7 +509,21 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
         "description": "Contrato de prestação de serviços"
       }
     ],
-    "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+    "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
     "deadline_at": "2025-08-15T23:59:59Z"
   }'
 ```
@@ -386,7 +550,21 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
   -d '{
     "name": "Envelope - Contrato Cliente ABC",
     "documents_ids": [1],
-    "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+    "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
     "deadline_at": "2025-08-15T23:59:59Z"
   }'
 ```
@@ -481,7 +659,21 @@ GET /api/v1/envelopes/123
   "status": "running",
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato de prestação de serviços conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "created_at": "2025-07-18T10:00:00Z",
@@ -613,7 +805,21 @@ Content-Type: application/json
   "name": "Contrato de Prestação de Serviços - Cliente ABC",
   "description": "Contrato de desenvolvimento de software para o cliente ABC",
   "documents_ids": [1],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato de prestação de serviços conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z"
 }
@@ -636,7 +842,21 @@ Content-Type: application/json
       "file_content_base64": "JVBERi0xLjQKMSAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgMiAwIFINCj4+DQplbmRvYmoNCjIgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs..."
     }
   ],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "has_documentation": false,
+      "refusable": false
+    },
+    {
+      "name": "Cliente ABC Ltda", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511987654321",
+      "has_documentation": true,
+      "refusable": true
+    }
+  ],
   "message": "Favor assinar o contrato de prestação de serviços conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z"
 }

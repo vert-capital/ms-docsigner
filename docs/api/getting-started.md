@@ -148,9 +148,18 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
     "name": "Envelope - Contrato Cliente ABC",
     "description": "Contrato de prestação de serviços para assinatura",
     "documents_ids": [1],
-    "signatory_emails": [
-      "empresa@exemplo.com",
-      "cliente@abc.com"
+    "signatories": [
+      {
+        "name": "Empresa Prestadora",
+        "email": "empresa@exemplo.com",
+        "refusable": false
+      },
+      {
+        "name": "Cliente ABC",
+        "email": "cliente@abc.com",
+        "phone_number": "+5511999999999",
+        "refusable": true
+      }
     ],
     "message": "Favor assinar o contrato conforme acordado.",
     "deadline_at": "2025-08-15T23:59:59Z",
@@ -178,9 +187,18 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
         "file_content_base64": "JVBERi0xLjQKMSAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgMiAwIFINCj4+DQplbmRvYmoNCjIgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs..."
       }
     ],
-    "signatory_emails": [
-      "empresa@exemplo.com",
-      "cliente@abc.com"
+    "signatories": [
+      {
+        "name": "Empresa Prestadora",
+        "email": "empresa@exemplo.com",
+        "refusable": false
+      },
+      {
+        "name": "Cliente ABC",
+        "email": "cliente@abc.com",
+        "phone_number": "+5511999999999",
+        "refusable": true
+      }
     ],
     "message": "Favor assinar o contrato conforme acordado.",
     "deadline_at": "2025-08-15T23:59:59Z",
@@ -200,7 +218,25 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
   "status": "draft",
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1],
-  "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+  "signatories": [
+    {
+      "id": 1,
+      "name": "Empresa Prestadora",
+      "email": "empresa@exemplo.com",
+      "status": "pending",
+      "refusable": false,
+      "created_at": "2025-07-19T10:05:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Cliente ABC", 
+      "email": "cliente@abc.com",
+      "phone_number": "+5511999999999",
+      "status": "pending",
+      "refusable": true,
+      "created_at": "2025-07-19T10:05:00Z"
+    }
+  ],
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
@@ -212,7 +248,58 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
 
 **⚠️ Guarde o `id` do envelope para ativação!**
 
-### Passo 5: Ativar Envelope para Assinatura
+### Passo 5: Gerenciar Signatários (Opcional) ⭐ **NOVA FUNCIONALIDADE**
+
+Se você criou o envelope apenas com `signatory_emails` (método antigo), pode adicionar signatários completos separadamente:
+
+#### Criar Signatários Detalhados
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/signatories \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "name": "João Silva",
+    "email": "joao.silva@cliente.com",
+    "phone_number": "+5511987654321",
+    "birthday": "1985-03-15",
+    "has_documentation": true,
+    "refusable": false,
+    "group": 1
+  }'
+```
+
+#### Listar Signatários do Envelope
+
+```bash
+curl -X GET https://api.ms-docsigner.com/api/v1/envelopes/123/signatories \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Correlation-ID: getting-started-001"
+```
+
+#### Atualizar Signatário
+
+```bash
+curl -X PUT https://api.ms-docsigner.com/api/v1/signatories/1 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "name": "João Silva Santos",
+    "phone_number": "+5511123456789"
+  }'
+```
+
+#### Enviar Signatários para Clicksign
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/send \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Correlation-ID: getting-started-001"
+```
+
+### Passo 6: Ativar Envelope para Assinatura
 
 Ative o envelope para iniciar o processo de assinatura:
 
@@ -241,7 +328,7 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/activate \
 }
 ```
 
-### Passo 6: Monitorar Status do Envelope
+### Passo 7: Monitorar Status do Envelope
 
 Consulte periodicamente o status do envelope:
 
@@ -285,9 +372,19 @@ ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
         "file_content_base64": "JVBERi0xLjMKJeLjz9MKMyAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovT3V0bGluZXMgMiAwIFIKL1BhZ2VzIDEgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9PdXRsaW5lcwovQ291bnQgMAo+PgplbmRvYmoKMSAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMgWzQgMCBSXQo+PgplbmRvYmoKNCAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDEgMCBSCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDUgMCBSCj4+Cj4+Ci9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNSAwIG9iago8PAovVHlwZSAvRm9udAovU3VidHlwZSAvVHlwZTEKL05hbWUgL0YxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvTWFjUm9tYW5FbmNvZGluZwo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVApxCjAgMCAwIHJnCkJUCi9GMSAxMiBUZgoyMCA3MDAgVGQKKENvbnRyYXRvIGRlIFRlc3RlKSBUagpFVApRCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDU1IDAwMDAwIG4gCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDI1MiAwMDAwMCBuIAowMDAwMDAwMDc0IDAwMDAwIG4gCjAwMDAwMDAxOTcgMDAwMDAgbiAKMDAwMDAwMDMwNyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDcKL1Jvb3QgMyAwIFIKPj4Kc3RhcnR4cmVmCjQwMgolJUVPRgo="
       }
     ],
-    "signatory_emails": [
-      "cliente@exemplo.com",
-      "prestador@exemplo.com"
+    "signatories": [
+      {
+        "name": "Cliente Principal",
+        "email": "cliente@exemplo.com",
+        "phone_number": "+5511987654321",
+        "refusable": false
+      },
+      {
+        "name": "Prestador de Serviços",
+        "email": "prestador@exemplo.com",
+        "has_documentation": true,
+        "refusable": true
+      }
     ],
     "message": "Por favor, assinem este contrato de prestação de serviços.",
     "remind_interval": 3,
@@ -317,8 +414,10 @@ echo "🎉 Pronto! Documentos criados no Clicksign e processo de assinatura inic
 1. **Menos requisições HTTP** - Uma chamada em vez de três
 2. **Atômico** - Ou tudo é criado ou nada é criado
 3. **Ideal para frontend** - Upload direto via base64
-4. **Consistência automática** - Documentos são automaticamente associados ao envelope
+4. **Consistência automática** - Documentos e signatários são automaticamente associados ao envelope
 5. **Performance** - Reduz latência e complexidade
+6. **Signatários completos** - Inclui dados detalhados dos signatários desde o início
+7. **Integração direta com Clicksign** - Signatários são automaticamente sincronizados
 
 ---
 
@@ -375,9 +474,21 @@ ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
     \"name\": \"Contrato de Trabalho - João Silva\",
     \"description\": \"Contrato de trabalho para assinatura do funcionário e RH\",
     \"documents_ids\": [$DOCUMENT_ID],
-    \"signatory_emails\": [
-      \"joao.silva@empresa.com\",
-      \"rh@empresa.com\"
+    \"signatories\": [
+      {
+        \"name\": \"João Silva\",
+        \"email\": \"joao.silva@empresa.com\",
+        \"phone_number\": \"+5511987654321\",
+        \"birthday\": \"1990-05-15\",
+        \"has_documentation\": true,
+        \"refusable\": false
+      },
+      {
+        \"name\": \"RH - Maria Santos\",
+        \"email\": \"rh@empresa.com\",
+        \"has_documentation\": false,
+        \"refusable\": false
+      }
     ],
     \"message\": \"Favor assinar o contrato de trabalho. Em caso de dúvidas, entre em contato com o RH.\",
     \"deadline_at\": \"$(date -d '+7 days' -Iseconds)\",

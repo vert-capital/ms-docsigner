@@ -351,6 +351,8 @@ curl -X GET "https://api.ms-docsigner.com/api/v1/documents?status=ready" \
 
 Após criar e preparar documentos, eles podem ser utilizados na criação de envelopes:
 
+### Método Tradicional (Separado)
+
 ```bash
 # 1. Criar documento
 POST /api/v1/documents
@@ -364,9 +366,57 @@ POST /api/v1/envelopes
 {
   "name": "Envelope - Contrato Cliente XYZ",
   "documents_ids": [1],
-  "signatory_emails": ["cliente@xyz.com", "empresa@example.com"]
+  "signatories": [
+    {
+      "name": "Cliente XYZ",
+      "email": "cliente@xyz.com",
+      "phone_number": "+5511999999999",
+      "refusable": true
+    },
+    {
+      "name": "Empresa ABC",
+      "email": "empresa@example.com",
+      "refusable": false
+    }
+  ]
 }
 ```
+
+### Método Integrado ⭐ **NOVA FUNCIONALIDADE**
+
+```bash
+# Criar envelope + documentos + signatários em uma única operação
+POST /api/v1/envelopes
+{
+  "name": "Envelope - Contrato Cliente XYZ",
+  "documents": [
+    {
+      "name": "contrato-xyz.pdf",
+      "file_content_base64": "JVBERi0xLjQK...",
+      "description": "Contrato principal de prestação de serviços"
+    }
+  ],
+  "signatories": [
+    {
+      "name": "Cliente XYZ",
+      "email": "cliente@xyz.com",
+      "phone_number": "+5511999999999",
+      "refusable": true
+    },
+    {
+      "name": "Empresa ABC", 
+      "email": "empresa@example.com",
+      "refusable": false
+    }
+  ]
+}
+```
+
+**Vantagens do método integrado:**
+- Uma única requisição HTTP
+- Operação completamente atômica
+- Ideal para aplicações frontend
+- Reduz latência e complexidade
 
 ---
 
