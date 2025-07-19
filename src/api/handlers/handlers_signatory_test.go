@@ -37,12 +37,12 @@ func setupSignatoryHandlerTest(t *testing.T) (*gin.Engine, *mocks.MockIUsecaseSi
 	signatoryHandler := NewSignatoryHandler(mockUsecaseSignatory, mockUsecaseEnvelope, logger)
 	
 	// Configurar rotas de teste
-	router.POST("/api/v1/envelopes/:envelope_id/signatories", signatoryHandler.CreateSignatoryHandler)
-	router.GET("/api/v1/envelopes/:envelope_id/signatories", signatoryHandler.GetSignatoriesHandler)
+	router.POST("/api/v1/envelopes/:id/signatories", signatoryHandler.CreateSignatoryHandler)
+	router.GET("/api/v1/envelopes/:id/signatories", signatoryHandler.GetSignatoriesHandler)
 	router.GET("/api/v1/signatories/:id", signatoryHandler.GetSignatoryHandler)
 	router.PUT("/api/v1/signatories/:id", signatoryHandler.UpdateSignatoryHandler)
 	router.DELETE("/api/v1/signatories/:id", signatoryHandler.DeleteSignatoryHandler)
-	router.POST("/api/v1/envelopes/:envelope_id/send", signatoryHandler.SendSignatoriesToClicksignHandler)
+	router.POST("/api/v1/envelopes/:id/send", signatoryHandler.SendSignatoriesToClicksignHandler)
 	
 	return router, mockUsecaseSignatory, mockUsecaseEnvelope, ctrl
 }

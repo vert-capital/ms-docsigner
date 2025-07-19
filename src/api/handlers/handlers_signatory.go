@@ -46,20 +46,20 @@ func NewSignatoryHandler(
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param envelope_id path int true "Envelope ID"
+// @Param id path int true "Envelope ID"
 // @Param request body dtos.SignatoryCreateRequestDTO true "Signatory data"
 // @Success 201 {object} dtos.SignatoryResponseDTO
 // @Failure 400 {object} dtos.ValidationErrorResponseDTO
 // @Failure 404 {object} dtos.ErrorResponseDTO
 // @Failure 500 {object} dtos.ErrorResponseDTO
-// @Router /api/v1/envelopes/{envelope_id}/signatories [post]
+// @Router /api/v1/envelopes/{id}/signatories [post]
 func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	envelopeIDStr := c.Param("envelope_id")
+	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
@@ -77,7 +77,7 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 
 	h.Logger.WithFields(logrus.Fields{
 		"correlation_id": correlationID,
-		"endpoint":       "POST /api/v1/envelopes/{envelope_id}/signatories",
+		"endpoint":       "POST /api/v1/envelopes/{id}/signatories",
 		"envelope_id":    envelopeID,
 	}).Info("Creating signatory request received")
 
@@ -175,19 +175,19 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param envelope_id path int true "Envelope ID"
+// @Param id path int true "Envelope ID"
 // @Success 200 {object} dtos.SignatoryListResponseDTO
 // @Failure 400 {object} dtos.ErrorResponseDTO
 // @Failure 404 {object} dtos.ErrorResponseDTO
 // @Failure 500 {object} dtos.ErrorResponseDTO
-// @Router /api/v1/envelopes/{envelope_id}/signatories [get]
+// @Router /api/v1/envelopes/{id}/signatories [get]
 func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	envelopeIDStr := c.Param("envelope_id")
+	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
@@ -205,7 +205,7 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 
 	h.Logger.WithFields(logrus.Fields{
 		"correlation_id": correlationID,
-		"endpoint":       "GET /api/v1/envelopes/{envelope_id}/signatories",
+		"endpoint":       "GET /api/v1/envelopes/{id}/signatories",
 		"envelope_id":    envelopeID,
 	}).Info("Getting signatories request received")
 
@@ -533,19 +533,19 @@ func (h *SignatoryHandlers) DeleteSignatoryHandler(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param envelope_id path int true "Envelope ID"
+// @Param id path int true "Envelope ID"
 // @Success 200 {object} dtos.SignatoryListResponseDTO
 // @Failure 400 {object} dtos.ErrorResponseDTO
 // @Failure 404 {object} dtos.ErrorResponseDTO
 // @Failure 500 {object} dtos.ErrorResponseDTO
-// @Router /api/v1/envelopes/{envelope_id}/send [post]
+// @Router /api/v1/envelopes/{id}/send [post]
 func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	envelopeIDStr := c.Param("envelope_id")
+	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
@@ -563,7 +563,7 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 
 	h.Logger.WithFields(logrus.Fields{
 		"correlation_id": correlationID,
-		"endpoint":       "POST /api/v1/envelopes/{envelope_id}/send",
+		"endpoint":       "POST /api/v1/envelopes/{id}/send",
 		"envelope_id":    envelopeID,
 	}).Info("Sending signatories to Clicksign request received")
 
@@ -820,12 +820,12 @@ func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logge
 		logger,
 	)
 
-	// Rotas para signatários por envelope
+	// Rotas para signatários por envelope (usando :id para consistência com envelope handlers)
 	envelopeGroup := gin.Group("/api/v1/envelopes")
 	SetAuthMiddleware(conn, envelopeGroup)
-	envelopeGroup.POST("/:envelope_id/signatories", signatoryHandlers.CreateSignatoryHandler)
-	envelopeGroup.GET("/:envelope_id/signatories", signatoryHandlers.GetSignatoriesHandler)
-	envelopeGroup.POST("/:envelope_id/send", signatoryHandlers.SendSignatoriesToClicksignHandler)
+	envelopeGroup.POST("/:id/signatories", signatoryHandlers.CreateSignatoryHandler)
+	envelopeGroup.GET("/:id/signatories", signatoryHandlers.GetSignatoriesHandler)
+	envelopeGroup.POST("/:id/send", signatoryHandlers.SendSignatoriesToClicksignHandler)
 
 	// Rotas para signatários individuais
 	signatoryGroup := gin.Group("/api/v1/signatories")
