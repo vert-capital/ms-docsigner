@@ -11,7 +11,7 @@ type EnvelopeCreateRequestDTO struct {
 	Description     string                    `json:"description,omitempty" binding:"max=1000"`
 	DocumentsIDs    []int                     `json:"documents_ids,omitempty"`
 	Documents       []EnvelopeDocumentRequest `json:"documents,omitempty"`
-	SignatoryEmails []string                  `json:"signatory_emails" binding:"required,min=1"`
+	SignatoryEmails []string                  `json:"signatory_emails,omitempty"`
 	Signatories     []EnvelopeSignatoryRequest `json:"signatories,omitempty"`
 	Message         string                    `json:"message,omitempty" binding:"max=500"`
 	DeadlineAt      *time.Time                `json:"deadline_at,omitempty"`
@@ -63,6 +63,16 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 	// Não pode ter ambos ao mesmo tempo
 	if len(dto.DocumentsIDs) > 0 && len(dto.Documents) > 0 {
 		return fmt.Errorf("não é possível fornecer documents_ids e documents ao mesmo tempo")
+	}
+	
+	// Deve ter pelo menos um tipo de signatário (emails ou signatários estruturados)
+	if len(dto.SignatoryEmails) == 0 && len(dto.Signatories) == 0 {
+		return fmt.Errorf("deve fornecer pelo menos um signatário (signatory_emails ou signatories)")
+	}
+	
+	// Não pode ter ambos ao mesmo tempo
+	if len(dto.SignatoryEmails) > 0 && len(dto.Signatories) > 0 {
+		return fmt.Errorf("não é possível fornecer signatory_emails e signatories ao mesmo tempo")
 	}
 	
 	// Validar signatários se fornecidos
