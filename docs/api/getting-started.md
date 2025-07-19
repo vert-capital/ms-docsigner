@@ -133,7 +133,11 @@ curl -X PUT https://api.ms-docsigner.com/api/v1/documents/1 \
 
 ### Passo 4: Criar Envelope
 
-Crie um envelope associando o documento aos signatários:
+Você pode criar envelopes de duas formas:
+
+#### Opção A: Envelope com Documentos Existentes (IDs)
+
+Crie um envelope associando o documento já criado aos signatários:
 
 ```bash
 curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
@@ -154,6 +158,38 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
     "auto_close": true
   }'
 ```
+
+#### Opção B: Envelope com Documentos Base64 (Direto) ⭐ **NOVA FUNCIONALIDADE**
+
+Crie envelope e documentos em uma única operação usando base64:
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "name": "Envelope - Contrato Cliente ABC",
+    "description": "Contrato de prestação de serviços para assinatura",
+    "documents": [
+      {
+        "name": "contrato-cliente-abc.pdf",
+        "description": "Contrato principal de prestação de serviços",
+        "file_content_base64": "JVBERi0xLjQKMSAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgMiAwIFINCj4+DQplbmRvYmoNCjIgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs..."
+      }
+    ],
+    "signatory_emails": [
+      "empresa@exemplo.com",
+      "cliente@abc.com"
+    ],
+    "message": "Favor assinar o contrato conforme acordado.",
+    "deadline_at": "2025-08-15T23:59:59Z",
+    "remind_interval": 3,
+    "auto_close": true
+  }'
+```
+
+**⚠️ IMPORTANTE:** Use **OU** `documents_ids` **OU** `documents`, nunca ambos na mesma requisição.
 
 **Response de Sucesso:**
 ```json
@@ -214,6 +250,75 @@ curl -X GET https://api.ms-docsigner.com/api/v1/envelopes/123 \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "X-Correlation-ID: getting-started-001"
 ```
+
+---
+
+## Fluxo Simplificado com Documentos Base64 ⭐ **NOVO**
+
+### Cenário: Assinatura Rápida em Uma Só Requisição
+
+O novo fluxo permite criar envelope e documentos simultaneamente, ideal para integrações frontend:
+
+```bash
+#!/bin/bash
+
+# Configurações
+API_BASE="https://api.ms-docsigner.com"
+TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+CORRELATION_ID="simplified-workflow-$(date +%s)"
+
+echo "🚀 Iniciando fluxo simplificado de assinatura..."
+
+# Criar envelope com documentos base64 em uma única operação
+echo "📦 Criando envelope com documento base64..."
+ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: $CORRELATION_ID" \
+  -d '{
+    "name": "Contrato de Prestação de Serviços",
+    "description": "Envelope para assinatura do contrato",
+    "documents": [
+      {
+        "name": "contrato.pdf",
+        "description": "Contrato principal de prestação de serviços",
+        "file_content_base64": "JVBERi0xLjMKJeLjz9MKMyAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovT3V0bGluZXMgMiAwIFIKL1BhZ2VzIDEgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9PdXRsaW5lcwovQ291bnQgMAo+PgplbmRvYmoKMSAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMgWzQgMCBSXQo+PgplbmRvYmoKNCAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDEgMCBSCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDUgMCBSCj4+Cj4+Ci9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNSAwIG9iago8PAovVHlwZSAvRm9udAovU3VidHlwZSAvVHlwZTEKL05hbWUgL0YxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvTWFjUm9tYW5FbmNvZGluZwo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVApxCjAgMCAwIHJnCkJUCi9GMSAxMiBUZgoyMCA3MDAgVGQKKENvbnRyYXRvIGRlIFRlc3RlKSBUagpFVApRCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDU1IDAwMDAwIG4gCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDI1MiAwMDAwMCBuIAowMDAwMDAwMDc0IDAwMDAwIG4gCjAwMDAwMDAxOTcgMDAwMDAgbiAKMDAwMDAwMDMwNyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDcKL1Jvb3QgMyAwIFIKPj4Kc3RhcnR4cmVmCjQwMgolJUVPRgo="
+      }
+    ],
+    "signatory_emails": [
+      "cliente@exemplo.com",
+      "prestador@exemplo.com"
+    ],
+    "message": "Por favor, assinem este contrato de prestação de serviços.",
+    "remind_interval": 3,
+    "auto_close": false
+  }')
+
+ENVELOPE_ID=$(echo $ENVELOPE_RESPONSE | jq -r '.id')
+CLICKSIGN_KEY=$(echo $ENVELOPE_RESPONSE | jq -r '.clicksign_key')
+
+echo "✅ Envelope criado com ID: $ENVELOPE_ID"
+echo "🔑 Clicksign Key: $CLICKSIGN_KEY"
+
+# Ativar envelope imediatamente
+echo "🚀 Ativando envelope..."
+ACTIVATE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes/$ENVELOPE_ID/activate" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Correlation-ID: $CORRELATION_ID")
+
+STATUS=$(echo $ACTIVATE_RESPONSE | jq -r '.status')
+echo "✅ Envelope ativado! Status: $STATUS"
+
+echo "🎉 Pronto! Documentos criados no Clicksign e processo de assinatura iniciado."
+```
+
+### Vantagens do Fluxo Simplificado:
+
+1. **Menos requisições HTTP** - Uma chamada em vez de três
+2. **Atômico** - Ou tudo é criado ou nada é criado
+3. **Ideal para frontend** - Upload direto via base64
+4. **Consistência automática** - Documentos são automaticamente associados ao envelope
+5. **Performance** - Reduz latência e complexidade
 
 ---
 
