@@ -1,9 +1,7 @@
 package signatory
 
 import (
-	"errors"
 	"testing"
-	"time"
 
 	"app/entity"
 	"app/mocks"
