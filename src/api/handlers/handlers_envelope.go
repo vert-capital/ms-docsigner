@@ -37,13 +37,13 @@ func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseSignat
 }
 
 // @Summary Create envelope
-// @Description Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories.
+// @Description Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories. The response includes the complete raw data returned by Clicksign API for debugging and analysis purposes.
 // @Tags envelopes
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
 // @Param request body dtos.EnvelopeCreateRequestDTO true "Envelope data with optional signatories array. When signatories are provided, the response will include the created signatories with their IDs."
-// @Success 201 {object} dtos.EnvelopeResponseDTO "Envelope created successfully. If signatories were provided in the request, the response includes the created signatories with their assigned IDs."
+// @Success 201 {object} dtos.EnvelopeResponseDTO "Envelope created successfully. The response includes clicksign_raw_data field with the complete JSON response from Clicksign API (optional field for debugging). If signatories were provided in the request, the response includes the created signatories with their assigned IDs."
 // @Failure 400 {object} dtos.ValidationErrorResponseDTO "Validation error - invalid request data, duplicate signatory emails, or unsupported document format"
 // @Failure 500 {object} dtos.ErrorResponseDTO "Internal server error - envelope creation failed or signatory creation failed during transaction"
 // @Router /api/v1/envelopes [post]
@@ -246,13 +246,13 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 }
 
 // @Summary Get envelope
-// @Description Get envelope by ID
+// @Description Get envelope by ID. The response includes clicksign_raw_data field with the complete JSON response from Clicksign API when available (optional field for debugging and analysis).
 // @Tags envelopes
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path int true "Envelope ID"
-// @Success 200 {object} dtos.EnvelopeResponseDTO
+// @Success 200 {object} dtos.EnvelopeResponseDTO "Envelope data with optional clicksign_raw_data field containing raw Clicksign API response"
 // @Failure 404 {object} dtos.ErrorResponseDTO
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes/{id} [get]

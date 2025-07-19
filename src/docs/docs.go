@@ -682,7 +682,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories.",
+                "description": "Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories. The response includes the complete raw data returned by Clicksign API for debugging and analysis purposes.",
                 "consumes": [
                     "application/json"
                 ],
@@ -706,7 +706,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Envelope created successfully. If signatories were provided in the request, the response includes the created signatories with their assigned IDs.",
+                        "description": "Envelope created successfully. The response includes clicksign_raw_data field with the complete JSON response from Clicksign API (optional field for debugging). If signatories were provided in the request, the response includes the created signatories with their assigned IDs.",
                         "schema": {
                             "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
                         }
@@ -733,7 +733,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get envelope by ID",
+                "description": "Get envelope by ID. The response includes clicksign_raw_data field with the complete JSON response from Clicksign API when available (optional field for debugging and analysis).",
                 "consumes": [
                     "application/json"
                 ],
@@ -755,7 +755,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Envelope data with optional clicksign_raw_data field containing raw Clicksign API response",
                         "schema": {
                             "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
                         }
@@ -1281,8 +1281,7 @@ const docTemplate = `{
         "dtos.EnvelopeCreateRequestDTO": {
             "type": "object",
             "required": [
-                "name",
-                "signatory_emails"
+                "name"
             ],
             "properties": {
                 "auto_close": {
@@ -1329,7 +1328,6 @@ const docTemplate = `{
                 },
                 "signatory_emails": {
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -1377,6 +1375,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "clicksign_key": {
+                    "type": "string"
+                },
+                "clicksign_raw_data": {
                     "type": "string"
                 },
                 "created_at": {

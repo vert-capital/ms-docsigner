@@ -109,11 +109,9 @@ definitions:
       signatory_emails:
         items:
           type: string
-        minItems: 1
         type: array
     required:
     - name
-    - signatory_emails
     type: object
   dtos.EnvelopeDocumentRequest:
     properties:
@@ -143,6 +141,8 @@ definitions:
       auto_close:
         type: boolean
       clicksign_key:
+        type: string
+      clicksign_raw_data:
         type: string
       created_at:
         type: string
@@ -785,7 +785,9 @@ paths:
       description: Create a new envelope in Clicksign with optional signatories. When
         signatories are provided in the request, they will be created along with the
         envelope in a single atomic transaction. The process maintains backward compatibility
-        - envelopes can still be created without signatories.
+        - envelopes can still be created without signatories. The response includes
+        the complete raw data returned by Clicksign API for debugging and analysis
+        purposes.
       parameters:
       - description: Envelope data with optional signatories array. When signatories
           are provided, the response will include the created signatories with their
@@ -799,9 +801,10 @@ paths:
       - application/json
       responses:
         "201":
-          description: Envelope created successfully. If signatories were provided
-            in the request, the response includes the created signatories with their
-            assigned IDs.
+          description: Envelope created successfully. The response includes clicksign_raw_data
+            field with the complete JSON response from Clicksign API (optional field
+            for debugging). If signatories were provided in the request, the response
+            includes the created signatories with their assigned IDs.
           schema:
             $ref: '#/definitions/dtos.EnvelopeResponseDTO'
         "400":
@@ -823,7 +826,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get envelope by ID
+      description: Get envelope by ID. The response includes clicksign_raw_data field
+        with the complete JSON response from Clicksign API when available (optional
+        field for debugging and analysis).
       parameters:
       - description: Envelope ID
         in: path
@@ -834,7 +839,8 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Envelope data with optional clicksign_raw_data field containing
+            raw Clicksign API response
           schema:
             $ref: '#/definitions/dtos.EnvelopeResponseDTO'
         "404":

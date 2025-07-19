@@ -622,6 +622,102 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 	})
 }
 
+func TestUsecaseEnvelopeService_CreateEnvelope_WithClicksignRawData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
+	logger := logrus.New()
+	logger.SetLevel(logrus.ErrorLevel)
+
+	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, logger)
+
+	t.Run("should create envelope with raw data successfully", func(t *testing.T) {
+		// Arrange
+		envelope := &entity.EntityEnvelope{
+			ID:              1,
+			Name:            "Test Envelope",
+			Description:     "Test description",
+			Status:          "draft",
+			DocumentsIDs:    []int{1, 2},
+			SignatoryEmails: []string{"test@example.com"},
+			Message:         "Please sign",
+			RemindInterval:  3,
+			AutoClose:       true,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		// Mock expectations
+		mockRepo.EXPECT().
+			Create(envelope).
+			Return(nil)
+
+		mockClicksignClient.EXPECT().
+			Post(gomock.Any(), "/api/v3/envelopes", gomock.Any()).
+			Return(mockSuccessResponse(), nil)
+
+		mockRepo.EXPECT().
+			Update(gomock.Any()).
+			DoAndReturn(func(e *entity.EntityEnvelope) error {
+				// Verify that raw data was set
+				assert.NotNil(t, e.ClicksignRawData)
+				assert.Contains(t, *e.ClicksignRawData, "test-key-123")
+				assert.Contains(t, *e.ClicksignRawData, "Test Envelope")
+				return nil
+			})
+
+		// Act
+		result, err := service.CreateEnvelope(envelope)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, envelope.Name, result.Name)
+		assert.NotEmpty(t, result.ClicksignKey)
+		assert.NotNil(t, result.ClicksignRawData)
+	})
+
+	t.Run("should not set raw data when Clicksign creation fails", func(t *testing.T) {
+		// Arrange
+		envelope := &entity.EntityEnvelope{
+			ID:              1,
+			Name:            "Test Envelope",
+			Description:     "Test description", 
+			Status:          "draft",
+			DocumentsIDs:    []int{1, 2},
+			SignatoryEmails: []string{"test@example.com"},
+			Message:         "Please sign",
+			RemindInterval:  3,
+			AutoClose:       true,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		// Mock expectations
+		mockRepo.EXPECT().
+			Create(envelope).
+			Return(nil)
+
+		mockClicksignClient.EXPECT().
+			Post(gomock.Any(), "/api/v3/envelopes", gomock.Any()).
+			Return(nil, errors.New("Clicksign error"))
+
+		mockRepo.EXPECT().
+			Delete(envelope).
+			Return(nil)
+
+		// Act
+		result, err := service.CreateEnvelope(envelope)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create envelope in Clicksign")
+	})
+}
+
 // Helper functions for tests
 
 func mockSuccessResponse() *http.Response {
