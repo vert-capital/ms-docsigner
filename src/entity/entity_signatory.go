@@ -44,7 +44,7 @@ func (EntitySignatory) TableName() string {
 func NewSignatory(signatoryParam EntitySignatory) (*EntitySignatory, error) {
 	now := time.Now()
 
-	// Set default values for optional fields when provided
+	// Set default values for optional fields only when not explicitly provided
 	if signatoryParam.HasDocumentation == nil {
 		defaultHasDoc := false
 		signatoryParam.HasDocumentation = &defaultHasDoc
