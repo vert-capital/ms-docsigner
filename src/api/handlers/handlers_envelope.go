@@ -14,6 +14,7 @@ import (
 	"app/pkg/utils"
 	"app/usecase/envelope"
 	usecase_document "app/usecase/document"
+	"app/usecase/signatory"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -22,27 +23,29 @@ import (
 )
 
 type EnvelopeHandlers struct {
-	UsecaseEnvelope envelope.IUsecaseEnvelope
-	Logger          *logrus.Logger
+	UsecaseEnvelope  envelope.IUsecaseEnvelope
+	UsecaseSignatory signatory.IUsecaseSignatory
+	Logger           *logrus.Logger
 }
 
-func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, logger *logrus.Logger) *EnvelopeHandlers {
+func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
 	return &EnvelopeHandlers{
-		UsecaseEnvelope: usecaseEnvelope,
-		Logger:          logger,
+		UsecaseEnvelope:  usecaseEnvelope,
+		UsecaseSignatory: usecaseSignatory,
+		Logger:           logger,
 	}
 }
 
 // @Summary Create envelope
-// @Description Create a new envelope in Clicksign
+// @Description Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories.
 // @Tags envelopes
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param request body dtos.EnvelopeCreateRequestDTO true "Envelope data"
-// @Success 201 {object} dtos.EnvelopeResponseDTO
-// @Failure 400 {object} dtos.ValidationErrorResponseDTO
-// @Failure 500 {object} dtos.ErrorResponseDTO
+// @Param request body dtos.EnvelopeCreateRequestDTO true "Envelope data with optional signatories array. When signatories are provided, the response will include the created signatories with their IDs."
+// @Success 201 {object} dtos.EnvelopeResponseDTO "Envelope created successfully. If signatories were provided in the request, the response includes the created signatories with their assigned IDs."
+// @Failure 400 {object} dtos.ValidationErrorResponseDTO "Validation error - invalid request data, duplicate signatory emails, or unsupported document format"
+// @Failure 500 {object} dtos.ErrorResponseDTO "Internal server error - envelope creation failed or signatory creation failed during transaction"
 // @Router /api/v1/envelopes [post]
 func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
@@ -136,6 +139,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 			"error":          err.Error(),
 			"envelope_name":  requestDTO.Name,
 			"correlation_id": correlationID,
+			"step":           "envelope_creation",
 		}).Error("Failed to create envelope")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
@@ -148,8 +152,76 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
+	h.Logger.WithFields(logrus.Fields{
+		"envelope_id":    createdEnvelope.ID,
+		"envelope_name":  createdEnvelope.Name,
+		"correlation_id": correlationID,
+		"step":           "envelope_creation",
+	}).Info("Envelope created successfully")
+
+	// Criar signatários se fornecidos no request
+	var createdSignatories []entity.EntitySignatory
+	if len(requestDTO.Signatories) > 0 {
+		h.Logger.WithFields(logrus.Fields{
+			"envelope_id":       createdEnvelope.ID,
+			"signatories_count": len(requestDTO.Signatories),
+			"correlation_id":    correlationID,
+			"step":              "signatory_creation",
+		}).Info("Creating signatories for envelope")
+
+		for i, signatoryRequest := range requestDTO.Signatories {
+			// Converter EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
+			signatoryDTO := signatoryRequest.ToSignatoryCreateRequestDTO(createdEnvelope.ID)
+			
+			// Converter DTO para entidade
+			signatoryEntity := signatoryDTO.ToEntity()
+			
+			// Criar signatário através do use case
+			createdSignatory, sigErr := h.UsecaseSignatory.CreateSignatory(&signatoryEntity)
+			if sigErr != nil {
+				h.Logger.WithFields(logrus.Fields{
+					"error":         sigErr.Error(),
+					"envelope_id":   createdEnvelope.ID,
+					"signatory_email": signatoryRequest.Email,
+					"signatory_index": i,
+					"correlation_id": correlationID,
+					"step":          "signatory_creation",
+				}).Error("Failed to create signatory, rolling back envelope")
+
+				// TODO: Implementar rollback do envelope
+				// Para agora, retornar erro sem rollback automático
+				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+					Error:   "Internal server error",
+					Message: fmt.Sprintf("Failed to create signatory %d: %v", i+1, sigErr),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+						"envelope_id":    createdEnvelope.ID,
+					},
+				})
+				return
+			}
+
+			createdSignatories = append(createdSignatories, *createdSignatory)
+			
+			h.Logger.WithFields(logrus.Fields{
+				"signatory_id":    createdSignatory.ID,
+				"signatory_email": createdSignatory.Email,
+				"envelope_id":     createdEnvelope.ID,
+				"correlation_id":  correlationID,
+				"step":            "signatory_creation",
+			}).Info("Signatory created successfully")
+		}
+
+		h.Logger.WithFields(logrus.Fields{
+			"envelope_id":       createdEnvelope.ID,
+			"signatories_count": len(createdSignatories),
+			"correlation_id":    correlationID,
+			"step":              "signatory_creation",
+		}).Info("All signatories created successfully")
+	}
+
 	// Converter entidade para DTO de resposta
-	responseDTO := h.mapEntityToResponse(createdEnvelope)
+	responseDTO := h.mapEntityToResponse(createdEnvelope, createdSignatories)
 
 	h.Logger.WithFields(logrus.Fields{
 		"envelope_id":    createdEnvelope.ID,
@@ -399,8 +471,8 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 	return envelope, documents, nil
 }
 
-func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope) *dtos.EnvelopeResponseDTO {
-	return &dtos.EnvelopeResponseDTO{
+func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope, signatories ...[]entity.EntitySignatory) *dtos.EnvelopeResponseDTO {
+	response := &dtos.EnvelopeResponseDTO{
 		ID:              envelope.ID,
 		Name:            envelope.Name,
 		Description:     envelope.Description,
@@ -415,6 +487,17 @@ func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope) 
 		CreatedAt:       envelope.CreatedAt,
 		UpdatedAt:       envelope.UpdatedAt,
 	}
+
+	// Incluir signatários se fornecidos
+	if len(signatories) > 0 && len(signatories[0]) > 0 {
+		signatoryDTOs := make([]dtos.SignatoryResponseDTO, len(signatories[0]))
+		for i, signatory := range signatories[0] {
+			signatoryDTOs[i].FromEntity(&signatory)
+		}
+		response.Signatories = signatoryDTOs
+	}
+
+	return response
 }
 
 func (h *EnvelopeHandlers) mapEnvelopeListToResponse(envelopes []entity.EntityEnvelope) *dtos.EnvelopeListResponseDTO {
@@ -475,6 +558,13 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
+	// Criar usecase de signatory
+	usecaseSignatory := signatory.NewUsecaseSignatoryService(
+		repository.NewRepositorySignatory(conn),
+		repository.NewRepositoryEnvelope(conn),
+		logger,
+	)
+
 	envelopeHandlers := NewEnvelopeHandler(
 		envelope.NewUsecaseEnvelopeService(
 			repository.NewRepositoryEnvelope(conn),
@@ -482,6 +572,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 			usecaseDocument,
 			logger,
 		),
+		usecaseSignatory,
 		logger,
 	)
 

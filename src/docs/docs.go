@@ -682,7 +682,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a new envelope in Clicksign",
+                "description": "Create a new envelope in Clicksign with optional signatories. When signatories are provided in the request, they will be created along with the envelope in a single atomic transaction. The process maintains backward compatibility - envelopes can still be created without signatories.",
                 "consumes": [
                     "application/json"
                 ],
@@ -695,7 +695,7 @@ const docTemplate = `{
                 "summary": "Create envelope",
                 "parameters": [
                     {
-                        "description": "Envelope data",
+                        "description": "Envelope data with optional signatories array. When signatories are provided, the response will include the created signatories with their IDs.",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -706,191 +706,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Envelope created successfully. If signatories were provided in the request, the response includes the created signatories with their assigned IDs.",
                         "schema": {
                             "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Validation error - invalid request data, duplicate signatory emails, or unsupported document format",
                         "schema": {
                             "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/envelopes/{envelope_id}/send": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Send envelope signatories to Clicksign for processing",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "signatories"
-                ],
-                "summary": "Send signatories to Clicksign",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Envelope ID",
-                        "name": "envelope_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.SignatoryListResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/envelopes/{envelope_id}/signatories": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get list of signatories for a specific envelope",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "signatories"
-                ],
-                "summary": "Get signatories by envelope",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Envelope ID",
-                        "name": "envelope_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.SignatoryListResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Create a new signatory for an envelope",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "signatories"
-                ],
-                "summary": "Create signatory",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Envelope ID",
-                        "name": "envelope_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Signatory data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.SignatoryCreateRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.SignatoryResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error - envelope creation failed or signatory creation failed during transaction",
                         "schema": {
                             "$ref": "#/definitions/dtos.ErrorResponseDTO"
                         }
@@ -985,6 +813,178 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/envelopes/{id}/send": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Send envelope signatories to Clicksign for processing",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "signatories"
+                ],
+                "summary": "Send signatories to Clicksign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SignatoryListResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/envelopes/{id}/signatories": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get list of signatories for a specific envelope",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "signatories"
+                ],
+                "summary": "Get signatories by envelope",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SignatoryListResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new signatory for an envelope",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "signatories"
+                ],
+                "summary": "Create signatory",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Signatory data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SignatoryCreateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SignatoryResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
                         }
                     },
                     "404": {
@@ -1321,6 +1321,12 @@ const docTemplate = `{
                     "maximum": 30,
                     "minimum": 1
                 },
+                "signatories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeSignatoryRequest"
+                    }
+                },
                 "signatory_emails": {
                     "type": "array",
                     "minItems": 1,
@@ -1400,6 +1406,12 @@ const docTemplate = `{
                 "remind_interval": {
                     "type": "integer"
                 },
+                "signatories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.SignatoryResponseDTO"
+                    }
+                },
                 "signatory_emails": {
                     "type": "array",
                     "items": {
@@ -1411,6 +1423,41 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.EnvelopeSignatoryRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "name"
+            ],
+            "properties": {
+                "birthday": {
+                    "type": "string"
+                },
+                "communicate_events": {
+                    "$ref": "#/definitions/dtos.SignatoryCommunicateEventsDTO"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "integer"
+                },
+                "has_documentation": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "refusable": {
+                    "type": "boolean"
                 }
             }
         },

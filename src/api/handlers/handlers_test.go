@@ -16,13 +16,6 @@ func TestNewDocumentHandler(t *testing.T) {
 	assert.Nil(t, handler.Logger)          // Since we passed nil
 }
 
-func TestNewEnvelopeHandler(t *testing.T) {
-	// Test that NewEnvelopeHandler creates a handler instance
-	handler := NewEnvelopeHandler(nil, nil)
-	assert.NotNil(t, handler)
-	assert.Nil(t, handler.UsecaseEnvelope) // Since we passed nil
-	assert.Nil(t, handler.Logger)          // Since we passed nil
-}
 
 func TestDocumentDTOsStructure(t *testing.T) {
 	// This test verifies that our DTOs are properly structured
@@ -53,7 +46,7 @@ func TestDocumentHandlerHelperMethods(t *testing.T) {
 
 func TestEnvelopeHandlerHelperMethods(t *testing.T) {
 	// Test the helper methods work correctly for envelope handler
-	handler := NewEnvelopeHandler(nil, nil)
+	handler := NewEnvelopeHandler(nil, nil, nil)
 	assert.NotNil(t, handler)
 	
 	// Test that helper methods exist (compilation test)

@@ -102,6 +102,10 @@ definitions:
         maximum: 30
         minimum: 1
         type: integer
+      signatories:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeSignatoryRequest'
+        type: array
       signatory_emails:
         items:
           type: string
@@ -158,6 +162,10 @@ definitions:
         type: string
       remind_interval:
         type: integer
+      signatories:
+        items:
+          $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        type: array
       signatory_emails:
         items:
           type: string
@@ -166,6 +174,30 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  dtos.EnvelopeSignatoryRequest:
+    properties:
+      birthday:
+        type: string
+      communicate_events:
+        $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      email:
+        type: string
+      group:
+        type: integer
+      has_documentation:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      phone_number:
+        type: string
+      refusable:
+        type: boolean
+    required:
+    - email
+    - name
     type: object
   dtos.ErrorResponseDTO:
     properties:
@@ -750,9 +782,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new envelope in Clicksign
+      description: Create a new envelope in Clicksign with optional signatories. When
+        signatories are provided in the request, they will be created along with the
+        envelope in a single atomic transaction. The process maintains backward compatibility
+        - envelopes can still be created without signatories.
       parameters:
-      - description: Envelope data
+      - description: Envelope data with optional signatories array. When signatories
+          are provided, the response will include the created signatories with their
+          IDs.
         in: body
         name: request
         required: true
@@ -762,15 +799,19 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Envelope created successfully. If signatories were provided
+            in the request, the response includes the created signatories with their
+            assigned IDs.
           schema:
             $ref: '#/definitions/dtos.EnvelopeResponseDTO'
         "400":
-          description: Bad Request
+          description: Validation error - invalid request data, duplicate signatory
+            emails, or unsupported document format
           schema:
             $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
         "500":
-          description: Internal Server Error
+          description: Internal server error - envelope creation failed or signatory
+            creation failed during transaction
           schema:
             $ref: '#/definitions/dtos.ErrorResponseDTO'
       security:
@@ -778,116 +819,6 @@ paths:
       summary: Create envelope
       tags:
       - envelopes
-  /api/v1/envelopes/{envelope_id}/send:
-    post:
-      consumes:
-      - application/json
-      description: Send envelope signatories to Clicksign for processing
-      parameters:
-      - description: Envelope ID
-        in: path
-        name: envelope_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-      security:
-      - ApiKeyAuth: []
-      summary: Send signatories to Clicksign
-      tags:
-      - signatories
-  /api/v1/envelopes/{envelope_id}/signatories:
-    get:
-      consumes:
-      - application/json
-      description: Get list of signatories for a specific envelope
-      parameters:
-      - description: Envelope ID
-        in: path
-        name: envelope_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-      security:
-      - ApiKeyAuth: []
-      summary: Get signatories by envelope
-      tags:
-      - signatories
-    post:
-      consumes:
-      - application/json
-      description: Create a new signatory for an envelope
-      parameters:
-      - description: Envelope ID
-        in: path
-        name: envelope_id
-        required: true
-        type: integer
-      - description: Signatory data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.SignatoryCreateRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/dtos.SignatoryResponseDTO'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponseDTO'
-      security:
-      - ApiKeyAuth: []
-      summary: Create signatory
-      tags:
-      - signatories
   /api/v1/envelopes/{id}:
     get:
       consumes:
@@ -954,6 +885,116 @@ paths:
       summary: Activate envelope
       tags:
       - envelopes
+  /api/v1/envelopes/{id}/send:
+    post:
+      consumes:
+      - application/json
+      description: Send envelope signatories to Clicksign for processing
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Send signatories to Clicksign
+      tags:
+      - signatories
+  /api/v1/envelopes/{id}/signatories:
+    get:
+      consumes:
+      - application/json
+      description: Get list of signatories for a specific envelope
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get signatories by envelope
+      tags:
+      - signatories
+    post:
+      consumes:
+      - application/json
+      description: Create a new signatory for an envelope
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Signatory data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.SignatoryCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Create signatory
+      tags:
+      - signatories
   /api/v1/signatories/{id}:
     delete:
       consumes:

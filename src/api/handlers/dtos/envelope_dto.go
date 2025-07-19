@@ -12,6 +12,7 @@ type EnvelopeCreateRequestDTO struct {
 	DocumentsIDs    []int                     `json:"documents_ids,omitempty"`
 	Documents       []EnvelopeDocumentRequest `json:"documents,omitempty"`
 	SignatoryEmails []string                  `json:"signatory_emails" binding:"required,min=1"`
+	Signatories     []EnvelopeSignatoryRequest `json:"signatories,omitempty"`
 	Message         string                    `json:"message,omitempty" binding:"max=500"`
 	DeadlineAt      *time.Time                `json:"deadline_at,omitempty"`
 	RemindInterval  int                       `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
@@ -25,6 +26,33 @@ type EnvelopeDocumentRequest struct {
 	Description        string `json:"description,omitempty"`
 }
 
+// EnvelopeSignatoryRequest representa um signatário a ser criado junto com o envelope
+type EnvelopeSignatoryRequest struct {
+	Name              string                        `json:"name" binding:"required,min=2,max=255"`
+	Email             string                        `json:"email" binding:"required,email"`
+	Birthday          *string                       `json:"birthday,omitempty"`
+	PhoneNumber       *string                       `json:"phone_number,omitempty"`
+	HasDocumentation  *bool                         `json:"has_documentation,omitempty"`
+	Refusable         *bool                         `json:"refusable,omitempty"`
+	Group             *int                          `json:"group,omitempty"`
+	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
+}
+
+// ToSignatoryCreateRequestDTO converte EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
+func (esr *EnvelopeSignatoryRequest) ToSignatoryCreateRequestDTO(envelopeID int) SignatoryCreateRequestDTO {
+	return SignatoryCreateRequestDTO{
+		Name:              esr.Name,
+		Email:             esr.Email,
+		EnvelopeID:        envelopeID,
+		Birthday:          esr.Birthday,
+		PhoneNumber:       esr.PhoneNumber,
+		HasDocumentation:  esr.HasDocumentation,
+		Refusable:         esr.Refusable,
+		Group:             esr.Group,
+		CommunicateEvents: esr.CommunicateEvents,
+	}
+}
+
 // Validate valida o DTO de criação de envelope
 func (dto *EnvelopeCreateRequestDTO) Validate() error {
 	// Deve ter pelo menos um tipo de documento (IDs ou base64)
@@ -35,6 +63,35 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 	// Não pode ter ambos ao mesmo tempo
 	if len(dto.DocumentsIDs) > 0 && len(dto.Documents) > 0 {
 		return fmt.Errorf("não é possível fornecer documents_ids e documents ao mesmo tempo")
+	}
+	
+	// Validar signatários se fornecidos
+	if len(dto.Signatories) > 0 {
+		emails := make(map[string]bool)
+		for i, signatory := range dto.Signatories {
+			// Reutilizar validação da estrutura SignatoryCreateRequestDTO
+			tempSignatory := &SignatoryCreateRequestDTO{
+				Name:              signatory.Name,
+				Email:             signatory.Email,
+				EnvelopeID:        1, // Valor temporário para validação
+				Birthday:          signatory.Birthday,
+				PhoneNumber:       signatory.PhoneNumber,
+				HasDocumentation:  signatory.HasDocumentation,
+				Refusable:         signatory.Refusable,
+				Group:             signatory.Group,
+				CommunicateEvents: signatory.CommunicateEvents,
+			}
+			
+			if err := tempSignatory.Validate(); err != nil {
+				return fmt.Errorf("erro na validação do signatário %d: %v", i+1, err)
+			}
+			
+			// Verificar emails únicos
+			if emails[signatory.Email] {
+				return fmt.Errorf("email duplicado encontrado nos signatários: %s", signatory.Email)
+			}
+			emails[signatory.Email] = true
+		}
 	}
 	
 	return nil
@@ -54,19 +111,20 @@ type EnvelopeUpdateRequestDTO struct {
 
 // EnvelopeResponseDTO representa a estrutura de response para envelope
 type EnvelopeResponseDTO struct {
-	ID              int        `json:"id"`
-	Name            string     `json:"name"`
-	Description     string     `json:"description"`
-	Status          string     `json:"status"`
-	ClicksignKey    string     `json:"clicksign_key"`
-	DocumentsIDs    []int      `json:"documents_ids"`
-	SignatoryEmails []string   `json:"signatory_emails"`
-	Message         string     `json:"message"`
-	DeadlineAt      *time.Time `json:"deadline_at"`
-	RemindInterval  int        `json:"remind_interval"`
-	AutoClose       bool       `json:"auto_close"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              int                     `json:"id"`
+	Name            string                  `json:"name"`
+	Description     string                  `json:"description"`
+	Status          string                  `json:"status"`
+	ClicksignKey    string                  `json:"clicksign_key"`
+	DocumentsIDs    []int                   `json:"documents_ids"`
+	SignatoryEmails []string                `json:"signatory_emails"`
+	Signatories     []SignatoryResponseDTO  `json:"signatories,omitempty"`
+	Message         string                  `json:"message"`
+	DeadlineAt      *time.Time              `json:"deadline_at"`
+	RemindInterval  int                     `json:"remind_interval"`
+	AutoClose       bool                    `json:"auto_close"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 // EnvelopeListResponseDTO representa a estrutura de response para lista de envelopes
