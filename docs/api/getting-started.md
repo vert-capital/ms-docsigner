@@ -1,122 +1,145 @@
-# Guia de Primeiros Passos
+# Guia de Primeiros Passos - MS-DocSigner
 
-Este guia fornece um tutorial completo para começar a usar a API do ms-docsigner, desde a configuração inicial até o envio de seu primeiro documento para assinatura.
+Este guia fornece um tutorial completo para começar a usar o microserviço ms-docsigner, desde a configuração inicial até a coleta de assinaturas digitais.
 
 ## Pré-requisitos
 
-### 1. Acesso à API
-- **Token JWT**: Necessário para autenticação em todos os endpoints
-- **URL Base**: `https://api.ms-docsigner.com` (produção) ou `https://api-dev.ms-docsigner.com` (desenvolvimento)
+### 1. Configuração de Ambiente
 
-### 2. Ferramentas Recomendadas
-- **curl** ou **Postman** para testes
-- Editor de texto para preparar payloads JSON
-- Ferramenta para codificação base64 (se necessário)
+Antes de começar, certifique-se de ter:
 
-### 3. Conhecimentos Básicos
-- APIs REST e métodos HTTP
-- Formato JSON
-- Autenticação via Bearer Token
+- **Token JWT válido** para autenticação
+- **Acesso à API** do ms-docsigner
+- **Conta Clicksign** configurada (sandbox ou produção)
+- **Documentos** prontos para assinatura (PDF, JPEG, PNG, GIF)
 
----
-
-## Configuração Inicial
-
-### 1. Teste de Conectividade
-
-Primeiro, vamos verificar se você consegue acessar a API:
+### 2. Variáveis de Ambiente Necessárias
 
 ```bash
-curl -X GET https://api.ms-docsigner.com/health \
-  -H "Accept: application/json"
+# Configuração do JWT
+JWT_SECRET=your-jwt-secret-key
+
+# Configuração do Clicksign
+CLICKSIGN_API_URL=https://sandbox.clicksign.com/api/v3
+CLICKSIGN_ACCESS_TOKEN=your-clicksign-access-token
+
+# Configuração do Banco de Dados
+DATABASE_URL=postgresql://user:password@localhost:5432/docsigner
+
+# Configuração do Servidor
+PORT=8080
 ```
 
-**Response esperado:**
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-07-19T10:00:00Z"
-}
-```
+### 3. Headers HTTP Obrigatórios
 
-### 2. Configuração da Autenticação
-
-Todos os endpoints requerem autenticação via JWT. Configure seu token:
+Todas as requisições devem incluir:
 
 ```bash
-export API_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-export API_BASE_URL="https://api.ms-docsigner.com"
-```
-
-### 3. Teste de Autenticação
-
-Verifique se seu token está funcionando:
-
-```bash
-curl -X GET $API_BASE_URL/api/v1/documents \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json"
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+X-Correlation-ID: <optional-trace-id>  # Opcional, mas recomendado
 ```
 
 ---
 
-## Tutorial Passo a Passo
+## Fluxo Básico Completo
 
-### Cenário: Envio de Contrato para Assinatura
+### Passo 1: Autenticação
 
-Vamos simular um cenário real onde você precisa enviar um contrato PDF para duas pessoas assinarem.
-
-#### Passo 1: Preparar o Documento
-
-Primeiro, você precisa converter seu arquivo PDF para base64:
+Obtenha um token JWT válido através do sistema de autenticação:
 
 ```bash
-# No Linux/Mac
-base64 -i contrato.pdf > contrato_base64.txt
-
-# No Windows (PowerShell)
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("contrato.pdf")) > contrato_base64.txt
-```
-
-#### Passo 2: Criar o Documento na API
-
-```bash
-curl -X POST $API_BASE_URL/api/v1/documents \
-  -H "Authorization: Bearer $API_TOKEN" \
+curl -X POST https://api.ms-docsigner.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Contrato de Prestação de Serviços - Cliente ABC",
-    "file_content_base64": "'$(cat contrato_base64.txt)'",
-    "description": "Contrato de desenvolvimento de software para cliente ABC"
+    "username": "seu-usuario",
+    "password": "sua-senha"
   }'
 ```
 
-**Response de sucesso:**
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}
+```
+
+### Passo 2: Criar Documento
+
+Você pode criar documentos de duas formas:
+
+#### Opção A: Upload via Base64 (Recomendado para Frontend)
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "name": "Contrato de Prestação de Serviços",
+    "file_content_base64": "JVBERi0xLjQKMSAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgMiAwIFINCj4+DQplbmRvYmoNCjIgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs...",
+    "description": "Contrato para assinatura digital"
+  }'
+```
+
+#### Opção B: Upload via File Path (Para Backend)
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "name": "Contrato de Prestação de Serviços",
+    "file_path": "/uploads/contratos/contrato_cliente_abc.pdf",
+    "file_size": 2048576,
+    "mime_type": "application/pdf",
+    "description": "Contrato para assinatura digital"
+  }'
+```
+
+**Response de Sucesso:**
 ```json
 {
   "id": 1,
-  "name": "Contrato de Prestação de Serviços - Cliente ABC",
-  "file_path": "/tmp/temp_12345.pdf",
-  "file_size": 1048576,
+  "name": "Contrato de Prestação de Serviços",
+  "file_path": "/tmp/processed_document_1627123456.pdf",
+  "file_size": 2048576,
   "mime_type": "application/pdf",
   "status": "draft",
   "clicksign_key": "",
-  "description": "Contrato de desenvolvimento de software para cliente ABC",
+  "description": "Contrato para assinatura digital",
   "created_at": "2025-07-19T10:00:00Z",
   "updated_at": "2025-07-19T10:00:00Z"
 }
 ```
 
-**💡 Dica:** Anote o `id` retornado (neste exemplo: `1`), você precisará dele no próximo passo.
+**⚠️ Guarde o `id` do documento para usar no próximo passo!**
 
-#### Passo 3: Criar o Envelope
+### Passo 3: Atualizar Status do Documento (Opcional)
 
-Agora vamos criar um envelope que associa o documento aos signatários:
+Se necessário, marque o documento como pronto:
 
 ```bash
-curl -X POST $API_BASE_URL/api/v1/envelopes \
-  -H "Authorization: Bearer $API_TOKEN" \
+curl -X PUT https://api.ms-docsigner.com/api/v1/documents/1 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "status": "ready"
+  }'
+```
+
+### Passo 4: Criar Envelope
+
+Crie um envelope associando o documento aos signatários:
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
   -d '{
     "name": "Envelope - Contrato Cliente ABC",
     "description": "Contrato de prestação de serviços para assinatura",
@@ -125,14 +148,14 @@ curl -X POST $API_BASE_URL/api/v1/envelopes \
       "empresa@exemplo.com",
       "cliente@abc.com"
     ],
-    "message": "Prezados, favor assinar o contrato de prestação de serviços conforme acordado. Em caso de dúvidas, entrem em contato.",
+    "message": "Favor assinar o contrato conforme acordado.",
     "deadline_at": "2025-08-15T23:59:59Z",
     "remind_interval": 3,
     "auto_close": true
   }'
 ```
 
-**Response de sucesso:**
+**Response de Sucesso:**
 ```json
 {
   "id": 123,
@@ -142,7 +165,7 @@ curl -X POST $API_BASE_URL/api/v1/envelopes \
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1],
   "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
-  "message": "Prezados, favor assinar o contrato de prestação de serviços conforme acordado. Em caso de dúvidas, entrem em contato.",
+  "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
   "auto_close": true,
@@ -151,19 +174,19 @@ curl -X POST $API_BASE_URL/api/v1/envelopes \
 }
 ```
 
-**💡 Dica:** Anote o `id` do envelope (neste exemplo: `123`) e o `clicksign_key`.
+**⚠️ Guarde o `id` do envelope para ativação!**
 
-#### Passo 4: Ativar o Envelope
+### Passo 5: Ativar Envelope para Assinatura
 
-Por segurança, envelopes são criados no status `draft`. Para iniciar o processo de assinatura, você precisa ativá-lo:
+Ative o envelope para iniciar o processo de assinatura:
 
 ```bash
-curl -X POST $API_BASE_URL/api/v1/envelopes/123/activate \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json"
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/activate \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Correlation-ID: getting-started-001"
 ```
 
-**Response de sucesso:**
+**Response de Sucesso:**
 ```json
 {
   "id": 123,
@@ -173,7 +196,7 @@ curl -X POST $API_BASE_URL/api/v1/envelopes/123/activate \
   "clicksign_key": "12345678-1234-1234-1234-123456789012",
   "documents_ids": [1],
   "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
-  "message": "Prezados, favor assinar o contrato de prestação de serviços conforme acordado. Em caso de dúvidas, entrem em contato.",
+  "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
   "auto_close": true,
@@ -182,168 +205,281 @@ curl -X POST $API_BASE_URL/api/v1/envelopes/123/activate \
 }
 ```
 
-**🎉 Sucesso!** O envelope agora está no status `running` e os signatários receberão e-mails para assinar o documento.
+### Passo 6: Monitorar Status do Envelope
 
-#### Passo 5: Monitorar o Status
-
-Você pode acompanhar o progresso do envelope:
+Consulte periodicamente o status do envelope:
 
 ```bash
-curl -X GET $API_BASE_URL/api/v1/envelopes/123 \
-  -H "Authorization: Bearer $API_TOKEN"
+curl -X GET https://api.ms-docsigner.com/api/v1/envelopes/123 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Correlation-ID: getting-started-001"
 ```
 
 ---
 
-## Fluxo Básico Completo
+## Exemplo Completo End-to-End
 
-### Resumo dos Endpoints Utilizados
+### Cenário: Contrato de Trabalho
 
-1. **POST /api/v1/documents** - Criar documento
-2. **POST /api/v1/envelopes** - Criar envelope
-3. **POST /api/v1/envelopes/{id}/activate** - Ativar envelope
-4. **GET /api/v1/envelopes/{id}** - Monitorar status
-
-### Script Bash Completo
-
-Aqui está um script que automatiza todo o processo:
+Vamos implementar um caso completo de contrato de trabalho:
 
 ```bash
 #!/bin/bash
 
-# Configuração
-API_TOKEN="seu-token-aqui"
-API_BASE_URL="https://api.ms-docsigner.com"
-DOCUMENT_FILE="contrato.pdf"
+# Configurações
+API_BASE="https://api.ms-docsigner.com"
+TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+CORRELATION_ID="contract-workflow-$(date +%s)"
 
-# Função para exibir erros
-check_response() {
-  if [ $? -ne 0 ]; then
-    echo "❌ Erro na requisição"
-    exit 1
-  fi
-}
+echo "🚀 Iniciando fluxo completo de assinatura de contrato..."
 
-echo "🚀 Iniciando processo de envio de documento..."
-
-# 1. Converter arquivo para base64
-echo "📄 Convertendo documento para base64..."
-DOCUMENT_BASE64=$(base64 -i $DOCUMENT_FILE)
-
-# 2. Criar documento
-echo "📤 Criando documento na API..."
-DOCUMENT_RESPONSE=$(curl -s -X POST $API_BASE_URL/api/v1/documents \
-  -H "Authorization: Bearer $API_TOKEN" \
+# Passo 1: Criar documento
+echo "📄 Criando documento..."
+DOCUMENT_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/documents" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: $CORRELATION_ID" \
   -d '{
-    "name": "Contrato de Prestação de Serviços",
-    "file_content_base64": "'$DOCUMENT_BASE64'",
-    "description": "Contrato para assinatura"
+    "name": "Contrato de Trabalho - João Silva",
+    "file_content_base64": "JVBERi0xLjQKMSAwIG9iag0KPDwNCi9UeXBlIC9DYXRhbG9nDQovUGFnZXMgMiAwIFINCj4+DQplbmRvYmoNCjIgMCBvYmoNCjw8DQovVHlwZSAvUGFnZXMNCi9LaWRzIFs...",
+    "description": "Contrato de trabalho para novo funcionário"
   }')
 
-check_response
 DOCUMENT_ID=$(echo $DOCUMENT_RESPONSE | jq -r '.id')
 echo "✅ Documento criado com ID: $DOCUMENT_ID"
 
-# 3. Criar envelope
-echo "📧 Criando envelope..."
-ENVELOPE_RESPONSE=$(curl -s -X POST $API_BASE_URL/api/v1/envelopes \
-  -H "Authorization: Bearer $API_TOKEN" \
+# Passo 2: Marcar documento como pronto
+echo "🔄 Atualizando status do documento..."
+curl -s -X PUT "$API_BASE/api/v1/documents/$DOCUMENT_ID" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: $CORRELATION_ID" \
   -d '{
-    "name": "Envelope - Contrato",
-    "documents_ids": ['$DOCUMENT_ID'],
-    "signatory_emails": ["empresa@exemplo.com", "cliente@exemplo.com"],
-    "message": "Favor assinar o contrato conforme acordado.",
-    "deadline_at": "2025-08-15T23:59:59Z"
-  }')
+    "status": "ready"
+  }' > /dev/null
 
-check_response
+echo "✅ Documento marcado como pronto"
+
+# Passo 3: Criar envelope
+echo "📦 Criando envelope..."
+ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: $CORRELATION_ID" \
+  -d "{
+    \"name\": \"Contrato de Trabalho - João Silva\",
+    \"description\": \"Contrato de trabalho para assinatura do funcionário e RH\",
+    \"documents_ids\": [$DOCUMENT_ID],
+    \"signatory_emails\": [
+      \"joao.silva@empresa.com\",
+      \"rh@empresa.com\"
+    ],
+    \"message\": \"Favor assinar o contrato de trabalho. Em caso de dúvidas, entre em contato com o RH.\",
+    \"deadline_at\": \"$(date -d '+7 days' -Iseconds)\",
+    \"remind_interval\": 2,
+    \"auto_close\": true
+  }")
+
 ENVELOPE_ID=$(echo $ENVELOPE_RESPONSE | jq -r '.id')
 echo "✅ Envelope criado com ID: $ENVELOPE_ID"
 
-# 4. Ativar envelope
-echo "🔥 Ativando envelope..."
-curl -s -X POST $API_BASE_URL/api/v1/envelopes/$ENVELOPE_ID/activate \
-  -H "Authorization: Bearer $API_TOKEN" > /dev/null
+# Passo 4: Ativar envelope
+echo "🚀 Ativando envelope..."
+ACTIVATE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes/$ENVELOPE_ID/activate" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Correlation-ID: $CORRELATION_ID")
 
-check_response
+STATUS=$(echo $ACTIVATE_RESPONSE | jq -r '.status')
+CLICKSIGN_KEY=$(echo $ACTIVATE_RESPONSE | jq -r '.clicksign_key')
+
 echo "✅ Envelope ativado com sucesso!"
+echo "📊 Status: $STATUS"
+echo "🔑 Clicksign Key: $CLICKSIGN_KEY"
 
-echo "🎉 Processo concluído! Os signatários receberão e-mails em breve."
-echo "📊 Para monitorar: curl -X GET $API_BASE_URL/api/v1/envelopes/$ENVELOPE_ID"
+# Passo 5: Consultar status
+echo "🔍 Consultando status final..."
+FINAL_STATUS=$(curl -s -X GET "$API_BASE/api/v1/envelopes/$ENVELOPE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Correlation-ID: $CORRELATION_ID")
+
+echo "📋 Status final do envelope:"
+echo $FINAL_STATUS | jq '{id: .id, name: .name, status: .status, clicksign_key: .clicksign_key}'
+
+echo "🎉 Fluxo concluído! Os signatários receberão e-mails para assinatura."
 ```
 
 ---
 
 ## Casos de Uso Comuns
 
-### 1. Múltiplos Documentos em um Envelope
+### 1. NDA para Funcionários
 
 ```bash
-# Criar vários documentos
-DOCUMENT_ID_1=1  # ID do primeiro documento
-DOCUMENT_ID_2=2  # ID do segundo documento
-
-# Criar envelope com múltiplos documentos
-curl -X POST $API_BASE_URL/api/v1/envelopes \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json" \
+# Criar documento padrão de NDA
+curl -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "name": "Contrato Completo - Múltiplos Anexos",
-    "documents_ids": ['$DOCUMENT_ID_1', '$DOCUMENT_ID_2'],
-    "signatory_emails": ["parte1@email.com", "parte2@email.com"]
+    "name": "NDA Padrão Empresa",
+    "file_content_base64": "...",
+    "description": "Acordo de confidencialidade padrão"
   }'
-```
 
-### 2. Envelope com Prazo Urgente
-
-```bash
-# Prazo de 24 horas com lembretes a cada 6 horas
-DEADLINE=$(date -d "+1 day" -u +"%Y-%m-%dT%H:%M:%SZ")
-
-curl -X POST $API_BASE_URL/api/v1/envelopes \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json" \
+# Criar envelope para múltiplos funcionários
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "name": "Documento Urgente",
-    "documents_ids": [1],
-    "signatory_emails": ["urgente@email.com"],
-    "deadline_at": "'$DEADLINE'",
+    "name": "NDA - Novos Funcionários Julho 2025",
+    "documents_ids": [2],
+    "signatory_emails": [
+      "funcionario1@empresa.com",
+      "funcionario2@empresa.com",
+      "funcionario3@empresa.com"
+    ],
+    "deadline_at": "2025-07-26T17:00:00Z",
     "remind_interval": 1
   }'
 ```
 
-### 3. Buscar Envelopes por Status
+### 2. Contrato de Cliente
 
 ```bash
-# Listar apenas envelopes ativos
-curl -X GET "$API_BASE_URL/api/v1/envelopes?status=running" \
-  -H "Authorization: Bearer $API_TOKEN"
+# Upload de contrato específico do cliente
+curl -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Contrato Cliente XYZ Corp",
+    "file_path": "/contracts/xyz_corp_2025.pdf",
+    "file_size": 3145728,
+    "mime_type": "application/pdf"
+  }'
 
-# Buscar envelopes por nome
-curl -X GET "$API_BASE_URL/api/v1/envelopes?search=contrato" \
-  -H "Authorization: Bearer $API_TOKEN"
+# Envelope com prazo específico
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Contrato XYZ Corp - Projeto ABC",
+    "documents_ids": [3],
+    "signatory_emails": [
+      "vendas@empresa.com",
+      "contrato@xyzcorp.com",
+      "juridico@xyzcorp.com"
+    ],
+    "deadline_at": "2025-08-01T23:59:59Z",
+    "remind_interval": 3
+  }'
+```
+
+### 3. Termo Médico Urgente
+
+```bash
+# Documento com prazo crítico
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Termo de Consentimento - Cirurgia Emergencial",
+    "documents_ids": [4],
+    "signatory_emails": [
+      "paciente@email.com",
+      "responsavel@email.com"
+    ],
+    "deadline_at": "2025-07-19T18:00:00Z",
+    "remind_interval": 1,
+    "auto_close": true
+  }'
+```
+
+---
+
+## Monitoramento e Debugging
+
+### 1. Usar IDs de Correlação
+
+Sempre inclua o header `X-Correlation-ID` para facilitar o rastreamento:
+
+```bash
+CORRELATION_ID="debug-session-$(date +%s)"
+
+curl -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "X-Correlation-ID: $CORRELATION_ID" \
+  # ... resto da requisição
+```
+
+### 2. Consultar Logs
+
+Os logs podem ser consultados usando o correlation ID nos sistemas de monitoramento.
+
+### 3. Validar Responses
+
+Sempre verifique o status HTTP e o conteúdo da response:
+
+```bash
+RESPONSE=$(curl -s -w "%{http_code}" -X POST https://api.ms-docsigner.com/api/v1/documents \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{ ... }')
+
+HTTP_CODE="${RESPONSE: -3}"
+BODY="${RESPONSE%???}"
+
+if [ "$HTTP_CODE" -eq 201 ]; then
+  echo "✅ Sucesso: $BODY"
+else
+  echo "❌ Erro ($HTTP_CODE): $BODY"
+fi
+```
+
+---
+
+## Tratamento de Erros Comuns
+
+### 1. Token Expirado (401)
+
+```bash
+# Renovar token
+curl -X POST https://api.ms-docsigner.com/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "seu-refresh-token"
+  }'
+```
+
+### 2. Documento Muito Grande (413)
+
+```bash
+# Reduzir qualidade ou dividir documento
+echo "Erro: Documento excede 7.5MB. Considere:"
+echo "- Reduzir qualidade do PDF"
+echo "- Dividir em múltiplos documentos"
+echo "- Usar compressão"
+```
+
+### 3. Tipo de Arquivo Não Suportado (415)
+
+```bash
+# Converter para formato suportado
+echo "Tipos suportados: PDF, JPEG, PNG, GIF"
+echo "Converta seu arquivo para um dos formatos suportados"
 ```
 
 ---
 
 ## Próximos Passos
 
-Agora que você concluiu o tutorial básico, explore:
+Após dominar o fluxo básico, explore:
 
-1. **[API de Documentos](documents.md)** - Documentação completa dos endpoints de documentos
-2. **[API de Envelopes](clicksign-envelopes.md)** - Documentação completa dos endpoints de envelopes
-3. **[Autenticação](authentication.md)** - Detalhes sobre sistema de autenticação
-4. **[Exemplos Práticos](examples/)** - Mais casos de uso e exemplos
-5. **[Error Handling](error-handling.md)** - Guia de troubleshooting
+1. **[Documentação completa da API de Documentos](./documents.md)**
+2. **[Documentação completa da API de Envelopes](./clicksign-envelopes.md)**
+3. **Webhooks** para notificações em tempo real
+4. **Integração com sistemas de notificação**
+5. **Monitoramento de performance** e métricas
 
 ---
 
 ## Suporte
 
-- **Documentação**: Consulte os arquivos específicos na pasta `/docs/api/`
-- **Logs**: Use o header `X-Correlation-ID` para rastreamento
-- **Status da API**: Verifique `/health` para status do serviço
+Para dúvidas ou problemas:
 
-**Boa sorte com sua integração! 🚀**
+- Consulte os logs usando o correlation ID
+- Verifique a documentação específica de cada endpoint
+- Entre em contato com a equipe de desenvolvimento
+
+**Dica:** Sempre teste primeiro no ambiente de sandbox antes de usar em produção!
