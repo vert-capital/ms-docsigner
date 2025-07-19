@@ -194,7 +194,7 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 		}
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	req.Header.Set("Authorization", c.apiKey)
 	req.Header.Set("Content-Type", "application/vnd.api+json")
 	req.Header.Set("Accept", "application/vnd.api+json")
 

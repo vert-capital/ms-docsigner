@@ -30,7 +30,9 @@
       "Bash(go:*)",
       "Bash(swag:*)",
       "Bash(curl:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "curl:*
     ],
     "deny": []
   }
