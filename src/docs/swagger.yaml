@@ -83,10 +83,13 @@ definitions:
       description:
         maxLength: 1000
         type: string
+      documents:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeDocumentRequest'
+        type: array
       documents_ids:
         items:
           type: integer
-        minItems: 1
         type: array
       message:
         maxLength: 500
@@ -105,9 +108,22 @@ definitions:
         minItems: 1
         type: array
     required:
-    - documents_ids
     - name
     - signatory_emails
+    type: object
+  dtos.EnvelopeDocumentRequest:
+    properties:
+      description:
+        type: string
+      file_content_base64:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - file_content_base64
+    - name
     type: object
   dtos.EnvelopeListResponseDTO:
     properties:
@@ -160,6 +176,101 @@ definitions:
         type: string
       message:
         type: string
+    type: object
+  dtos.SignatoryCommunicateEventsDTO:
+    properties:
+      document_signed:
+        type: string
+      signature_reminder:
+        type: string
+      signature_request:
+        type: string
+    type: object
+  dtos.SignatoryCreateRequestDTO:
+    properties:
+      birthday:
+        type: string
+      communicate_events:
+        $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      email:
+        type: string
+      envelope_id:
+        type: integer
+      group:
+        type: integer
+      has_documentation:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      phone_number:
+        type: string
+      refusable:
+        type: boolean
+    required:
+    - email
+    - envelope_id
+    - name
+    type: object
+  dtos.SignatoryListResponseDTO:
+    properties:
+      signatories:
+        items:
+          $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.SignatoryResponseDTO:
+    properties:
+      birthday:
+        type: string
+      communicate_events:
+        $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      created_at:
+        type: string
+      email:
+        type: string
+      envelope_id:
+        type: integer
+      group:
+        type: integer
+      has_documentation:
+        type: boolean
+      id:
+        type: integer
+      name:
+        type: string
+      phone_number:
+        type: string
+      refusable:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  dtos.SignatoryUpdateRequestDTO:
+    properties:
+      birthday:
+        type: string
+      communicate_events:
+        $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      email:
+        type: string
+      envelope_id:
+        type: integer
+      group:
+        type: integer
+      has_documentation:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      phone_number:
+        type: string
+      refusable:
+        type: boolean
     type: object
   dtos.ValidationErrorDetail:
     properties:
@@ -667,6 +778,116 @@ paths:
       summary: Create envelope
       tags:
       - envelopes
+  /api/v1/envelopes/{envelope_id}/send:
+    post:
+      consumes:
+      - application/json
+      description: Send envelope signatories to Clicksign for processing
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: envelope_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Send signatories to Clicksign
+      tags:
+      - signatories
+  /api/v1/envelopes/{envelope_id}/signatories:
+    get:
+      consumes:
+      - application/json
+      description: Get list of signatories for a specific envelope
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: envelope_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryListResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get signatories by envelope
+      tags:
+      - signatories
+    post:
+      consumes:
+      - application/json
+      description: Create a new signatory for an envelope
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: envelope_id
+        required: true
+        type: integer
+      - description: Signatory data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.SignatoryCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Create signatory
+      tags:
+      - signatories
   /api/v1/envelopes/{id}:
     get:
       consumes:
@@ -733,4 +954,111 @@ paths:
       summary: Activate envelope
       tags:
       - envelopes
+  /api/v1/signatories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete signatory by ID
+      parameters:
+      - description: Signatory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete signatory
+      tags:
+      - signatories
+    get:
+      consumes:
+      - application/json
+      description: Get signatory by ID
+      parameters:
+      - description: Signatory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get signatory
+      tags:
+      - signatories
+    put:
+      consumes:
+      - application/json
+      description: Update signatory information
+      parameters:
+      - description: Signatory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Signatory update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.SignatoryUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SignatoryResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Update signatory
+      tags:
+      - signatories
 swagger: "2.0"

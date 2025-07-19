@@ -51,6 +51,7 @@ func setupRouter(conn *gorm.DB) *gin.Engine {
 	handlers.MountUsersHandlers(r, conn)
 	handlers.MountDocumentHandlers(r, conn, logger)
 	handlers.MountEnvelopeHandlers(r, conn, logger)
+	handlers.MountSignatoryHandlers(r, conn, logger)
 
 	return r
 }

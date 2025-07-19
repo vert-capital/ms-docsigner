@@ -64,6 +64,21 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) CreateEnvelope(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateEnvelope), arg0)
 }
 
+// CreateEnvelopeWithDocuments mocks base method.
+func (m *MockIUsecaseEnvelope) CreateEnvelopeWithDocuments(arg0 *entity.EntityEnvelope, arg1 []*entity.EntityDocument) (*entity.EntityEnvelope, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEnvelopeWithDocuments", arg0, arg1)
+	ret0, _ := ret[0].(*entity.EntityEnvelope)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEnvelopeWithDocuments indicates an expected call of CreateEnvelopeWithDocuments.
+func (mr *MockIUsecaseEnvelopeMockRecorder) CreateEnvelopeWithDocuments(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEnvelopeWithDocuments", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateEnvelopeWithDocuments), arg0, arg1)
+}
+
 // DeleteEnvelope mocks base method.
 func (m *MockIUsecaseEnvelope) DeleteEnvelope(arg0 int) error {
 	m.ctrl.T.Helper()
