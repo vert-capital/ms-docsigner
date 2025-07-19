@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"app/api/handlers/dtos"
+	"app/config"
 	"app/entity"
+	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
 	"app/pkg/utils"
 	usecase_document "app/usecase/document"
@@ -592,9 +594,14 @@ func (h DocumentHandlers) getValidationErrorMessage(fieldError validator.FieldEr
 }
 
 func MountDocumentHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
+	// Inicializar cliente Clicksign
+	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
+	
 	documentHandlers := NewDocumentHandler(
-		usecase_document.NewUsecaseDocumentService(
+		usecase_document.NewUsecaseDocumentServiceWithClicksign(
 			repository.NewRepositoryDocument(conn),
+			clicksignClient,
+			logger,
 		),
 		logger,
 	)

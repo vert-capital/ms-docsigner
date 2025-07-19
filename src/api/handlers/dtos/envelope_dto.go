@@ -1,17 +1,43 @@
 package dtos
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // EnvelopeCreateRequestDTO representa a estrutura de request para criação de envelope
 type EnvelopeCreateRequestDTO struct {
-	Name            string     `json:"name" binding:"required,min=3,max=255"`
-	Description     string     `json:"description,omitempty" binding:"max=1000"`
-	DocumentsIDs    []int      `json:"documents_ids" binding:"required,min=1"`
-	SignatoryEmails []string   `json:"signatory_emails" binding:"required,min=1"`
-	Message         string     `json:"message,omitempty" binding:"max=500"`
-	DeadlineAt      *time.Time `json:"deadline_at,omitempty"`
-	RemindInterval  int        `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
-	AutoClose       bool       `json:"auto_close,omitempty"`
+	Name            string                    `json:"name" binding:"required,min=3,max=255"`
+	Description     string                    `json:"description,omitempty" binding:"max=1000"`
+	DocumentsIDs    []int                     `json:"documents_ids,omitempty"`
+	Documents       []EnvelopeDocumentRequest `json:"documents,omitempty"`
+	SignatoryEmails []string                  `json:"signatory_emails" binding:"required,min=1"`
+	Message         string                    `json:"message,omitempty" binding:"max=500"`
+	DeadlineAt      *time.Time                `json:"deadline_at,omitempty"`
+	RemindInterval  int                       `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
+	AutoClose       bool                      `json:"auto_close,omitempty"`
+}
+
+// EnvelopeDocumentRequest representa um documento a ser criado junto com o envelope
+type EnvelopeDocumentRequest struct {
+	Name               string `json:"name" binding:"required,min=3,max=255"`
+	FileContentBase64  string `json:"file_content_base64" binding:"required"`
+	Description        string `json:"description,omitempty"`
+}
+
+// Validate valida o DTO de criação de envelope
+func (dto *EnvelopeCreateRequestDTO) Validate() error {
+	// Deve ter pelo menos um tipo de documento (IDs ou base64)
+	if len(dto.DocumentsIDs) == 0 && len(dto.Documents) == 0 {
+		return fmt.Errorf("deve fornecer pelo menos um documento (documents_ids ou documents)")
+	}
+	
+	// Não pode ter ambos ao mesmo tempo
+	if len(dto.DocumentsIDs) > 0 && len(dto.Documents) > 0 {
+		return fmt.Errorf("não é possível fornecer documents_ids e documents ao mesmo tempo")
+	}
+	
+	return nil
 }
 
 // EnvelopeUpdateRequestDTO representa a estrutura de request para atualização de envelope

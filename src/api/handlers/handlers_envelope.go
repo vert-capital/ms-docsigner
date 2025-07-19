@@ -11,7 +11,9 @@ import (
 	"app/entity"
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
+	"app/pkg/utils"
 	"app/usecase/envelope"
+	usecase_document "app/usecase/document"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -70,11 +72,65 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
+	// Validação customizada do DTO
+	if err := requestDTO.Validate(); err != nil {
+		h.Logger.WithFields(logrus.Fields{
+			"error":          err.Error(),
+			"correlation_id": correlationID,
+		}).Error("Custom validation failed")
+
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
 	// Converter DTO para entidade
-	envelope := h.mapCreateRequestToEntity(requestDTO)
+	envelope, documents, err := h.mapCreateRequestToEntity(requestDTO)
+	if err != nil {
+		h.Logger.WithFields(logrus.Fields{
+			"error":          err.Error(),
+			"envelope_name":  requestDTO.Name,
+			"correlation_id": correlationID,
+		}).Error("Failed to map request to entity")
+
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Limpar arquivos temporários em caso de erro
+	var tempPaths []string
+	for _, doc := range documents {
+		if doc.IsFromBase64 && doc.FilePath != "" {
+			tempPaths = append(tempPaths, doc.FilePath)
+		}
+	}
+	defer func() {
+		for _, tempPath := range tempPaths {
+			if cleanupErr := utils.CleanupTempFile(tempPath); cleanupErr != nil {
+				h.Logger.WithFields(logrus.Fields{
+					"error":          cleanupErr.Error(),
+					"temp_path":      tempPath,
+					"correlation_id": correlationID,
+				}).Warn("Failed to cleanup temporary file")
+			}
+		}
+	}()
 
 	// Criar envelope através do use case
-	createdEnvelope, err := h.UsecaseEnvelope.CreateEnvelope(envelope)
+	var createdEnvelope *entity.EntityEnvelope
+	if len(documents) > 0 {
+		// Criar envelope com documentos base64
+		createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelopeWithDocuments(envelope, documents)
+	} else {
+		// Criar envelope com IDs de documentos existentes
+		createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelope(envelope)
+	}
+	
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
 			"error":          err.Error(),
@@ -292,7 +348,7 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 
 // Helper methods
 
-func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateRequestDTO) *entity.EntityEnvelope {
+func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateRequestDTO) (*entity.EntityEnvelope, []*entity.EntityDocument, error) {
 	envelope := &entity.EntityEnvelope{
 		Name:            dto.Name,
 		Description:     dto.Description,
@@ -311,7 +367,36 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 		envelope.RemindInterval = 3
 	}
 
-	return envelope
+	var documents []*entity.EntityDocument
+	
+	// Processar documentos base64 se fornecidos
+	for _, docRequest := range dto.Documents {
+		// Processar base64
+		fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+		}
+
+		// Validar MIME type
+		if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
+			utils.CleanupTempFile(fileInfo.TempPath)
+			return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
+		}
+
+		document := &entity.EntityDocument{
+			Name:         docRequest.Name,
+			Description:  docRequest.Description,
+			FilePath:     fileInfo.TempPath,
+			FileSize:     fileInfo.Size,
+			MimeType:     fileInfo.MimeType,
+			IsFromBase64: true,
+			Status:       "draft",
+		}
+
+		documents = append(documents, document)
+	}
+
+	return envelope, documents, nil
 }
 
 func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope) *dtos.EnvelopeResponseDTO {
@@ -383,10 +468,18 @@ func (h *EnvelopeHandlers) getValidationErrorMessage(fieldError validator.FieldE
 func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
 
+	// Criar usecase de documento para envelopes com documentos base64
+	usecaseDocument := usecase_document.NewUsecaseDocumentServiceWithClicksign(
+		repository.NewRepositoryDocument(conn),
+		clicksignClient,
+		logger,
+	)
+
 	envelopeHandlers := NewEnvelopeHandler(
 		envelope.NewUsecaseEnvelopeService(
 			repository.NewRepositoryEnvelope(conn),
 			clicksignClient,
+			usecaseDocument,
 			logger,
 		),
 		logger,
