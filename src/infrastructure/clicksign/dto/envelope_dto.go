@@ -112,9 +112,9 @@ type DocumentUploadData struct {
 
 // DocumentUploadAttributes representa os atributos do documento para upload
 type DocumentUploadAttributes struct {
-	Path        string `json:"path"`
+	Path          string `json:"path,omitempty"`
 	ContentBase64 string `json:"content_base64,omitempty"`
-	Filename    string `json:"filename,omitempty"`
+	Filename      string `json:"filename,omitempty"`
 }
 
 // DocumentUploadResponseWrapper representa a resposta JSON API para upload de documento

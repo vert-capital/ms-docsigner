@@ -153,9 +153,9 @@ func TestDocumentCreateRequestDTO_ValidateFields(t *testing.T) {
 			FileContentBase64: "   ",
 		}
 
-		// Note: Since we're checking for empty strings with !=, whitespace counts as non-empty
+		// After trimming whitespace, both strings become empty, so it should error with neither field provided
 		err := dto.Validate()
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "forneça apenas file_path OU file_content_base64, não ambos")
+		assert.Contains(t, err.Error(), "é necessário fornecer file_path ou file_content_base64")
 	})
 }

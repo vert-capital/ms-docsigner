@@ -61,8 +61,12 @@ func DecodeBase64File(base64Data string) (*Base64FileInfo, error) {
 		return nil, fmt.Errorf("tamanho do arquivo após decodificação excede o limite de %.1f MB", MaxFileSize/(1024*1024))
 	}
 
-	// Detectar MIME type
-	mimeType := http.DetectContentType(decodedData)
+	// Detectar MIME type usando amostra adequada
+	sampleSize := len(decodedData)
+	if sampleSize > 512 {
+		sampleSize = 512
+	}
+	mimeType := http.DetectContentType(decodedData[:sampleSize])
 
 	// Criar arquivo temporário
 	tempFile, err := os.CreateTemp("", "docsigner_base64_*")

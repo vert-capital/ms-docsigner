@@ -2,6 +2,7 @@ package dtos
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,11 @@ type DocumentCreateRequestDTO struct {
 
 // Validate realiza validação customizada do DTO
 func (dto *DocumentCreateRequestDTO) Validate() error {
+	// Normalizar strings removendo espaços em branco
+	dto.FilePath = strings.TrimSpace(dto.FilePath)
+	dto.FileContentBase64 = strings.TrimSpace(dto.FileContentBase64)
+	dto.MimeType = strings.TrimSpace(dto.MimeType)
+
 	// Garantir que apenas um dos campos seja fornecido
 	hasFilePath := dto.FilePath != ""
 	hasBase64 := dto.FileContentBase64 != ""
