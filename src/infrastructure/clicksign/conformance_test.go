@@ -87,7 +87,7 @@ func TestEnvelopeCreateRequestConformance(t *testing.T) {
 			RemindInterval: 3,
 		}
 		
-		_, err := service.CreateEnvelope(context.Background(), (*entity.EntityEnvelope)(envelope))
+		_, _, err := service.CreateEnvelope(context.Background(), (*entity.EntityEnvelope)(envelope))
 
 		// Assert
 		assert.NoError(t, err)

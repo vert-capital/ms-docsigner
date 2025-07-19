@@ -90,7 +90,7 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	}).Info("Envelope created locally, now creating in Clicksign")
 
 	// Criar envelope no Clicksign
-	clicksignKey, err := u.envelopeService.CreateEnvelope(ctx, envelope)
+	clicksignKey, rawData, err := u.envelopeService.CreateEnvelope(ctx, envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
 			"error":          err.Error(),
@@ -111,8 +111,9 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 		return nil, fmt.Errorf("failed to create envelope in Clicksign: %w", err)
 	}
 
-	// Atualizar envelope com chave do Clicksign
+	// Atualizar envelope com chave e dados brutos do Clicksign
 	envelope.SetClicksignKey(clicksignKey)
+	envelope.SetClicksignRawData(rawData)
 	err = u.repositoryEnvelope.Update(envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
@@ -226,7 +227,7 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 	}).Info("Envelope created locally, now creating in Clicksign")
 
 	// Criar envelope no Clicksign
-	clicksignKey, err := u.envelopeService.CreateEnvelope(ctx, envelope)
+	clicksignKey, rawData, err := u.envelopeService.CreateEnvelope(ctx, envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
 			"error":          err.Error(),
@@ -281,8 +282,9 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 		}).Info("Document created in Clicksign successfully")
 	}
 
-	// Atualizar envelope com chave do Clicksign
+	// Atualizar envelope com chave e dados brutos do Clicksign
 	envelope.SetClicksignKey(clicksignKey)
+	envelope.SetClicksignRawData(rawData)
 	err = u.repositoryEnvelope.Update(envelope)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{

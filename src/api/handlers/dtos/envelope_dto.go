@@ -121,21 +121,23 @@ type EnvelopeUpdateRequestDTO struct {
 }
 
 // EnvelopeResponseDTO representa a estrutura de response para envelope
+// O campo clicksign_raw_data contém os dados brutos retornados pela API do Clicksign
 type EnvelopeResponseDTO struct {
-	ID              int                     `json:"id"`
-	Name            string                  `json:"name"`
-	Description     string                  `json:"description"`
-	Status          string                  `json:"status"`
-	ClicksignKey    string                  `json:"clicksign_key"`
-	DocumentsIDs    []int                   `json:"documents_ids"`
-	SignatoryEmails []string                `json:"signatory_emails"`
-	Signatories     []SignatoryResponseDTO  `json:"signatories,omitempty"`
-	Message         string                  `json:"message"`
-	DeadlineAt      *time.Time              `json:"deadline_at"`
-	RemindInterval  int                     `json:"remind_interval"`
-	AutoClose       bool                    `json:"auto_close"`
-	CreatedAt       time.Time               `json:"created_at"`
-	UpdatedAt       time.Time               `json:"updated_at"`
+	ID               int                     `json:"id"`
+	Name             string                  `json:"name"`
+	Description      string                  `json:"description"`
+	Status           string                  `json:"status"`
+	ClicksignKey     string                  `json:"clicksign_key"`
+	ClicksignRawData *string                 `json:"clicksign_raw_data,omitempty"`
+	DocumentsIDs     []int                   `json:"documents_ids"`
+	SignatoryEmails  []string                `json:"signatory_emails"`
+	Signatories      []SignatoryResponseDTO  `json:"signatories,omitempty"`
+	Message          string                  `json:"message"`
+	DeadlineAt       *time.Time              `json:"deadline_at"`
+	RemindInterval   int                     `json:"remind_interval"`
+	AutoClose        bool                    `json:"auto_close"`
+	CreatedAt        time.Time               `json:"created_at"`
+	UpdatedAt        time.Time               `json:"updated_at"`
 }
 
 // EnvelopeListResponseDTO representa a estrutura de response para lista de envelopes

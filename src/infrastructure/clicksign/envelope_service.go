@@ -24,7 +24,7 @@ func NewEnvelopeService(clicksignClient clicksign.ClicksignClientInterface, logg
 	}
 }
 
-func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.EntityEnvelope) (string, error) {
+func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.EntityEnvelope) (string, string, error) {
 	correlationID := ctx.Value("correlation_id")
 
 	s.logger.WithFields(logrus.Fields{
@@ -54,7 +54,7 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 			"envelope_name":  envelope.Name,
 			"correlation_id": correlationID,
 		}).Error("Failed to create envelope in Clicksign")
-		return "", fmt.Errorf("failed to create envelope in Clicksign: %w", err)
+		return "", "", fmt.Errorf("failed to create envelope in Clicksign: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -66,7 +66,7 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 			"envelope_name":  envelope.Name,
 			"correlation_id": correlationID,
 		}).Error("Failed to read response from Clicksign")
-		return "", fmt.Errorf("failed to read response from Clicksign: %w", err)
+		return "", "", fmt.Errorf("failed to read response from Clicksign: %w", err)
 	}
 
 	// Verificar se houve erro na resposta
@@ -79,7 +79,7 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 				"response_body":  string(body),
 				"correlation_id": correlationID,
 			}).Error("Failed to parse error response from Clicksign")
-			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+			return "", "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
 		s.logger.WithFields(logrus.Fields{
@@ -90,9 +90,12 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 			"correlation_id": correlationID,
 		}).Error("Clicksign API returned error")
 
-		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
+		return "", "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
+	// Preservar dados brutos antes do parse
+	rawData := string(body)
+	
 	// Fazer parse da resposta de sucesso usando estrutura JSON API
 	var createResponse dto.EnvelopeCreateResponseWrapper
 	if err := json.Unmarshal(body, &createResponse); err != nil {
@@ -102,7 +105,7 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 			"expected_format": "JSON API (data.type.attributes)",
 			"correlation_id": correlationID,
 		}).Error("Failed to parse JSON API response from Clicksign")
-		return "", fmt.Errorf("failed to parse JSON API response from Clicksign: %w", err)
+		return "", "", fmt.Errorf("failed to parse JSON API response from Clicksign: %w", err)
 	}
 
 	s.logger.WithFields(logrus.Fields{
@@ -117,10 +120,11 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 		"envelope_name":  createResponse.Data.Attributes.Name,
 		"status":         createResponse.Data.Attributes.Status,
 		"type":           createResponse.Data.Type,
+		"raw_data_size":  len(rawData),
 		"correlation_id": correlationID,
 	}).Info("Envelope created successfully in Clicksign using JSON API format")
 
-	return createResponse.Data.ID, nil
+	return createResponse.Data.ID, rawData, nil
 }
 
 func (s *EnvelopeService) GetEnvelope(ctx context.Context, clicksignKey string) (*dto.EnvelopeGetResponse, error) {

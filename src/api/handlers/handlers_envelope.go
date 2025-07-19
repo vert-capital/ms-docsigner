@@ -225,12 +225,22 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	// Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(createdEnvelope, createdSignatories)
 
+	// Log da persistência dos dados brutos do Clicksign
+	rawDataPersisted := createdEnvelope.ClicksignRawData != nil
+	var rawDataSize int
+	if rawDataPersisted {
+		rawDataSize = len(*createdEnvelope.ClicksignRawData)
+	}
+
 	h.Logger.WithFields(logrus.Fields{
-		"envelope_id":    createdEnvelope.ID,
-		"envelope_name":  createdEnvelope.Name,
-		"clicksign_key":  createdEnvelope.ClicksignKey,
-		"correlation_id": correlationID,
-	}).Info("Envelope created successfully")
+		"envelope_id":         createdEnvelope.ID,
+		"envelope_name":       createdEnvelope.Name,
+		"clicksign_key":       createdEnvelope.ClicksignKey,
+		"raw_data_persisted":  rawDataPersisted,
+		"raw_data_size":       rawDataSize,
+		"step":                "clicksign_data_persistence",
+		"correlation_id":      correlationID,
+	}).Info("Envelope created successfully with Clicksign raw data persistence")
 
 	c.JSON(http.StatusCreated, responseDTO)
 }
@@ -487,19 +497,20 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 func (h *EnvelopeHandlers) mapEntityToResponse(envelope *entity.EntityEnvelope, signatories ...[]entity.EntitySignatory) *dtos.EnvelopeResponseDTO {
 	response := &dtos.EnvelopeResponseDTO{
-		ID:              envelope.ID,
-		Name:            envelope.Name,
-		Description:     envelope.Description,
-		Status:          envelope.Status,
-		ClicksignKey:    envelope.ClicksignKey,
-		DocumentsIDs:    envelope.DocumentsIDs,
-		SignatoryEmails: envelope.SignatoryEmails,
-		Message:         envelope.Message,
-		DeadlineAt:      envelope.DeadlineAt,
-		RemindInterval:  envelope.RemindInterval,
-		AutoClose:       envelope.AutoClose,
-		CreatedAt:       envelope.CreatedAt,
-		UpdatedAt:       envelope.UpdatedAt,
+		ID:               envelope.ID,
+		Name:             envelope.Name,
+		Description:      envelope.Description,
+		Status:           envelope.Status,
+		ClicksignKey:     envelope.ClicksignKey,
+		ClicksignRawData: envelope.ClicksignRawData,
+		DocumentsIDs:     envelope.DocumentsIDs,
+		SignatoryEmails:  envelope.SignatoryEmails,
+		Message:          envelope.Message,
+		DeadlineAt:       envelope.DeadlineAt,
+		RemindInterval:   envelope.RemindInterval,
+		AutoClose:        envelope.AutoClose,
+		CreatedAt:        envelope.CreatedAt,
+		UpdatedAt:        envelope.UpdatedAt,
 	}
 
 	// Incluir signatários se fornecidos

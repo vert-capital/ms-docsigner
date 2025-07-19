@@ -80,11 +80,12 @@ func TestEnvelopeService_CreateEnvelope(t *testing.T) {
 			})
 
 		// Act
-		envelopeID, err := service.CreateEnvelope(ctx, envelope)
+		envelopeID, rawData, err := service.CreateEnvelope(ctx, envelope)
 
 		// Assert
 		assert.NoError(t, err)
 		assert.Equal(t, "envelope-123", envelopeID)
+		assert.Equal(t, jsonAPIResponse, rawData)
 	})
 
 	t.Run("should handle JSON API error response", func(t *testing.T) {
@@ -115,11 +116,12 @@ func TestEnvelopeService_CreateEnvelope(t *testing.T) {
 			Return(mockResponse, nil)
 
 		// Act
-		envelopeID, err := service.CreateEnvelope(ctx, envelope)
+		envelopeID, rawData, err := service.CreateEnvelope(ctx, envelope)
 
 		// Assert
 		assert.Error(t, err)
 		assert.Empty(t, envelopeID)
+		assert.Empty(t, rawData)
 		assert.Contains(t, err.Error(), "validation_error")
 	})
 
@@ -138,11 +140,12 @@ func TestEnvelopeService_CreateEnvelope(t *testing.T) {
 			Return(nil, assert.AnError)
 
 		// Act
-		envelopeID, err := service.CreateEnvelope(ctx, envelope)
+		envelopeID, rawData, err := service.CreateEnvelope(ctx, envelope)
 
 		// Assert
 		assert.Error(t, err)
 		assert.Empty(t, envelopeID)
+		assert.Empty(t, rawData)
 		assert.Contains(t, err.Error(), "failed to create envelope in Clicksign")
 	})
 }

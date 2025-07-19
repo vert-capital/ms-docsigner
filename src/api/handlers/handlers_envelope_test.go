@@ -527,3 +527,195 @@ func TestMapEntityToResponse_WithoutSignatories(t *testing.T) {
 	assert.Equal(t, envelope.Name, result.Name)
 	assert.Nil(t, result.Signatories) // Deve ser nil quando não há signatários
 }
+
+func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gin.SetMode(gin.TestMode)
+
+	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
+	logger := logrus.New()
+	logger.SetLevel(logrus.FatalLevel)
+
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+
+	requestDTO := dtos.EnvelopeCreateRequestDTO{
+		Name:            "Test Envelope",
+		Description:     "Test Description",
+		SignatoryEmails: []string{"test@example.com"},
+		Documents: []dtos.EnvelopeDocumentRequest{
+			{
+				Name:              "Test Document",
+				FileContentBase64: "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPD4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQo+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmCjAwMDAwMDAwMDkgMDAwMDAgbgowMDAwMDAwMDU4IDAwMDAwIG4KMDAwMDAwMDExNSAwMDAwMCBuCnRyYWlsZXIKPDwKL1NpemUgNAovUm9vdCAxIDAgUgo+PgpzdGFydHhyZWYKMTc4CiUlRU9G",
+				Description:       "Test Document Description",
+			},
+		},
+	}
+
+	rawData := `{"data":{"id":"test-key","type":"envelopes","attributes":{"name":"Test Envelope","status":"draft"}}}`
+	expectedEnvelope := &entity.EntityEnvelope{
+		ID:               1,
+		Name:             "Test Envelope",
+		Description:      "Test Description",
+		Status:           "draft",
+		ClicksignKey:     "test-key",
+		ClicksignRawData: &rawData,
+		SignatoryEmails:  []string{"test@example.com"},
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		Return(expectedEnvelope, nil).
+		Times(1)
+
+	jsonData, err := json.Marshal(requestDTO)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/api/v1/envelopes", bytes.NewBuffer(jsonData))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Correlation-ID", "test-correlation-id")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.CreateEnvelopeHandler(c)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var responseDTO dtos.EnvelopeResponseDTO
+	err = json.Unmarshal(w.Body.Bytes(), &responseDTO)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedEnvelope.ID, responseDTO.ID)
+	assert.Equal(t, expectedEnvelope.Name, responseDTO.Name)
+	assert.Equal(t, expectedEnvelope.ClicksignKey, responseDTO.ClicksignKey)
+	assert.NotNil(t, responseDTO.ClicksignRawData)
+	assert.Equal(t, rawData, *responseDTO.ClicksignRawData)
+}
+
+func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gin.SetMode(gin.TestMode)
+
+	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
+	logger := logrus.New()
+	logger.SetLevel(logrus.FatalLevel)
+
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+
+	requestDTO := dtos.EnvelopeCreateRequestDTO{
+		Name:            "Test Envelope",
+		Description:     "Test Description",
+		SignatoryEmails: []string{"test@example.com"},
+		Documents: []dtos.EnvelopeDocumentRequest{
+			{
+				Name:              "Test Document",
+				FileContentBase64: "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPD4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQo+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmCjAwMDAwMDAwMDkgMDAwMDAgbgowMDAwMDAwMDU4IDAwMDAwIG4KMDAwMDAwMDExNSAwMDAwMCBuCnRyYWlsZXIKPDwKL1NpemUgNAovUm9vdCAxIDAgUgo+PgpzdGFydHhyZWYKMTc4CiUlRU9G",
+				Description:       "Test Document Description",
+			},
+		},
+	}
+
+	expectedEnvelope := &entity.EntityEnvelope{
+		ID:               1,
+		Name:             "Test Envelope",
+		Description:      "Test Description",
+		Status:           "draft",
+		ClicksignKey:     "test-key",
+		ClicksignRawData: nil,
+		SignatoryEmails:  []string{"test@example.com"},
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		Return(expectedEnvelope, nil).
+		Times(1)
+
+	jsonData, err := json.Marshal(requestDTO)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/api/v1/envelopes", bytes.NewBuffer(jsonData))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Correlation-ID", "test-correlation-id")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.CreateEnvelopeHandler(c)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var responseDTO dtos.EnvelopeResponseDTO
+	err = json.Unmarshal(w.Body.Bytes(), &responseDTO)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedEnvelope.ID, responseDTO.ID)
+	assert.Equal(t, expectedEnvelope.Name, responseDTO.Name)
+	assert.Equal(t, expectedEnvelope.ClicksignKey, responseDTO.ClicksignKey)
+	assert.Nil(t, responseDTO.ClicksignRawData)
+}
+
+func TestMapEntityToResponse_WithClicksignRawData(t *testing.T) {
+	logger := logrus.New()
+	handler := &EnvelopeHandlers{Logger: logger}
+
+	rawData := `{"data":{"id":"test-key","type":"envelopes","attributes":{"name":"Test Envelope"}}}`
+	envelope := &entity.EntityEnvelope{
+		ID:               1,
+		Name:             "Test Envelope",
+		Description:      "Test Description",
+		Status:           "draft",
+		ClicksignKey:     "test-key",
+		ClicksignRawData: &rawData,
+		SignatoryEmails:  []string{"test@example.com"},
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	result := handler.mapEntityToResponse(envelope)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, envelope.ID, result.ID)
+	assert.Equal(t, envelope.Name, result.Name)
+	assert.Equal(t, envelope.ClicksignKey, result.ClicksignKey)
+	assert.NotNil(t, result.ClicksignRawData)
+	assert.Equal(t, rawData, *result.ClicksignRawData)
+}
+
+func TestMapEntityToResponse_WithoutClicksignRawData(t *testing.T) {
+	logger := logrus.New()
+	handler := &EnvelopeHandlers{Logger: logger}
+
+	envelope := &entity.EntityEnvelope{
+		ID:               1,
+		Name:             "Test Envelope",
+		Description:      "Test Description",
+		Status:           "draft",
+		ClicksignKey:     "test-key",
+		ClicksignRawData: nil,
+		SignatoryEmails:  []string{"test@example.com"},
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	result := handler.mapEntityToResponse(envelope)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, envelope.ID, result.ID)
+	assert.Equal(t, envelope.Name, result.Name)
+	assert.Equal(t, envelope.ClicksignKey, result.ClicksignKey)
+	assert.Nil(t, result.ClicksignRawData)
+}

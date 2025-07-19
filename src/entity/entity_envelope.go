@@ -15,19 +15,20 @@ type EntityEnvelopeFilters struct {
 }
 
 type EntityEnvelope struct {
-	ID              int        `json:"id" gorm:"primaryKey"`
-	Name            string     `json:"name" gorm:"not null" validate:"required,min=3,max=255"`
-	Description     string     `json:"description" validate:"max=1000"`
-	Status          string     `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft sent pending completed cancelled"`
-	ClicksignKey    string     `json:"clicksign_key" gorm:"index"`
-	DocumentsIDs    []int      `json:"documents_ids" gorm:"serializer:json" validate:"required,min=1"`
-	SignatoryEmails []string   `json:"signatory_emails" gorm:"serializer:json"`
-	Message         string     `json:"message" validate:"max=500"`
-	DeadlineAt      *time.Time `json:"deadline_at"`
-	RemindInterval  int        `json:"remind_interval" validate:"min=1,max=30"`
-	AutoClose       bool       `json:"auto_close" gorm:"default:true"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID               int        `json:"id" gorm:"primaryKey"`
+	Name             string     `json:"name" gorm:"not null" validate:"required,min=3,max=255"`
+	Description      string     `json:"description" validate:"max=1000"`
+	Status           string     `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft sent pending completed cancelled"`
+	ClicksignKey     string     `json:"clicksign_key" gorm:"index"`
+	ClicksignRawData *string    `json:"clicksign_raw_data" gorm:"type:text"`
+	DocumentsIDs     []int      `json:"documents_ids" gorm:"serializer:json" validate:"required,min=1"`
+	SignatoryEmails  []string   `json:"signatory_emails" gorm:"serializer:json"`
+	Message          string     `json:"message" validate:"max=500"`
+	DeadlineAt       *time.Time `json:"deadline_at"`
+	RemindInterval   int        `json:"remind_interval" validate:"min=1,max=30"`
+	AutoClose        bool       `json:"auto_close" gorm:"default:true"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 // TableName sets the table name for GORM
@@ -47,18 +48,19 @@ func NewEnvelope(envelopeParam EntityEnvelope) (*EntityEnvelope, error) {
 	}
 
 	e := &EntityEnvelope{
-		Name:            envelopeParam.Name,
-		Description:     envelopeParam.Description,
-		Status:          envelopeParam.Status,
-		ClicksignKey:    envelopeParam.ClicksignKey,
-		DocumentsIDs:    envelopeParam.DocumentsIDs,
-		SignatoryEmails: envelopeParam.SignatoryEmails,
-		Message:         envelopeParam.Message,
-		DeadlineAt:      envelopeParam.DeadlineAt,
-		RemindInterval:  envelopeParam.RemindInterval,
-		AutoClose:       envelopeParam.AutoClose,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		Name:             envelopeParam.Name,
+		Description:      envelopeParam.Description,
+		Status:           envelopeParam.Status,
+		ClicksignKey:     envelopeParam.ClicksignKey,
+		ClicksignRawData: envelopeParam.ClicksignRawData,
+		DocumentsIDs:     envelopeParam.DocumentsIDs,
+		SignatoryEmails:  envelopeParam.SignatoryEmails,
+		Message:          envelopeParam.Message,
+		DeadlineAt:       envelopeParam.DeadlineAt,
+		RemindInterval:   envelopeParam.RemindInterval,
+		AutoClose:        envelopeParam.AutoClose,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 
 	err := e.Validate()
@@ -174,4 +176,9 @@ func (e *EntityEnvelope) RemoveSignatory(email string) {
 			break
 		}
 	}
+}
+
+func (e *EntityEnvelope) SetClicksignRawData(rawData string) {
+	e.ClicksignRawData = &rawData
+	e.UpdatedAt = time.Now()
 }
