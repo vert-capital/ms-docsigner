@@ -36,8 +36,10 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | `name` | string | Sim | Nome do documento (3-255 caracteres) |
-| `file_content_base64` | string | Sim | Conteúdo do arquivo em base64 |
+| `file_content_base64` | string | Sim | Conteúdo do arquivo em base64 (RAW - sem prefixos) |
 | `description` | string | Não | Descrição do documento |
+
+**⚠️ FORMATO BASE64:** O campo `file_content_base64` deve conter apenas o conteúdo base64 RAW, **SEM** prefixos como `data:application/pdf;base64,`. O sistema adiciona automaticamente o prefixo correto baseado no tipo MIME detectado.
 
 ### Exemplos de Request
 
@@ -328,6 +330,7 @@ A nova funcionalidade permite criar envelopes e documentos simultaneamente em um
 3. **Simplicidade**: Menos código e menos gerenciamento de estado
 4. **Consistência**: Documentos são automaticamente associados ao envelope
 5. **Integração Clicksign**: Documentos são criados diretamente no Clicksign
+6. **Auto-conversão**: Sistema converte automaticamente base64 RAW para data URI com MIME type correto
 
 ### Limitações e Considerações
 
@@ -340,7 +343,28 @@ A nova funcionalidade permite criar envelopes e documentos simultaneamente em um
 
 ## Integração com Documentos Base64
 
-### Fluxo Completo: Documento Base64 → Envelope → Ativação
+### ⭐ Fluxo Novo (Recomendado): Documento Base64 + Envelope em Uma Operação
+
+```bash
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Envelope - Contrato Cliente ABC",
+    "description": "Contrato de prestação de serviços",
+    "documents": [
+      {
+        "name": "contrato-abc.pdf",
+        "file_content_base64": "JVBERi0xLjQKM...",
+        "description": "Contrato de prestação de serviços"
+      }
+    ],
+    "signatory_emails": ["empresa@exemplo.com", "cliente@abc.com"],
+    "deadline_at": "2025-08-15T23:59:59Z"
+  }'
+```
+
+### Fluxo Antigo (Ainda Suportado): Documento Base64 → Envelope → Ativação
 
 1. **Criar documento via base64**
 ```bash
@@ -367,11 +391,27 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
   }'
 ```
 
-3. **Ativar envelope para assinatura**
+### Ativação do Envelope (Para Ambos os Fluxos)
+
 ```bash
 curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/activate \
   -H "Authorization: Bearer <token>"
 ```
+
+### 🔧 Detalhes Técnicos da Conversão Base64
+
+**O que acontece internamente:**
+
+1. **Recebimento**: Sistema recebe base64 RAW (ex: `JVBERi0xLjQKM...`)
+2. **Detecção MIME**: Sistema detecta tipo do arquivo automaticamente
+3. **Conversão**: Adiciona prefixo data URI (ex: `data:application/pdf;base64,JVBERi0xLjQKM...`)
+4. **Envio**: Envia para Clicksign no formato esperado
+
+**Tipos MIME Suportados:**
+- `application/pdf` → PDFs
+- `image/jpeg` → Imagens JPEG/JPG
+- `image/png` → Imagens PNG
+- `image/gif` → Imagens GIF
 
 ---
 
