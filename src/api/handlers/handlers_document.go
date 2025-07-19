@@ -4,6 +4,7 @@ import (
 	"app/api/handlers/dtos"
 	"app/entity"
 	"app/infrastructure/repository"
+	"app/pkg/utils"
 	usecase_document "app/usecase/document"
 	"net/http"
 	"strconv"
@@ -28,7 +29,12 @@ func NewDocumentHandler(usecaseDocument usecase_document.IUsecaseDocument, logge
 }
 
 // @Summary Criar documento
-// @Description Cria um novo documento
+// @Description Cria um novo documento usando file_path ou conteúdo base64
+// @Description Aceita documentos através de file_path (caminho absoluto) ou file_content_base64 (conteúdo em base64)
+// @Description Para file_path: file_size e mime_type são obrigatórios
+// @Description Para file_content_base64: file_size e mime_type são opcionais (detectados automaticamente)
+// @Description Tipos suportados: PDF, JPEG, PNG, GIF
+// @Description Tamanho máximo: 7.5MB após decodificação
 // @Tags Documents
 // @Accept json
 // @Produce json
@@ -67,16 +73,112 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		return
 	}
 
+	// Validação customizada do DTO
+	if err := requestDTO.Validate(); err != nil {
+		h.Logger.WithFields(logrus.Fields{
+			"error":          err.Error(),
+			"correlation_id": correlationID,
+		}).Error("Custom validation failed")
+
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
 	document := &entity.EntityDocument{
 		Name:        requestDTO.Name,
-		FilePath:    requestDTO.FilePath,
-		FileSize:    requestDTO.FileSize,
-		MimeType:    requestDTO.MimeType,
 		Description: requestDTO.Description,
 		Status:      "draft",
 	}
 
-	err := h.UsecaseDocument.Create(document)
+	var tempPath string
+	var err error
+
+	// Processar base64 ou file_path
+	if requestDTO.FileContentBase64 != "" {
+		h.Logger.WithFields(logrus.Fields{
+			"correlation_id": correlationID,
+			"document_name":  requestDTO.Name,
+		}).Info("Processing document from base64")
+
+		// Processar base64
+		fileInfo, base64Err := utils.DecodeBase64File(requestDTO.FileContentBase64)
+		if base64Err != nil {
+			h.Logger.WithFields(logrus.Fields{
+				"error":          base64Err.Error(),
+				"correlation_id": correlationID,
+			}).Error("Failed to process base64 content")
+
+			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+				Error:   "Invalid base64",
+				Message: base64Err.Error(),
+			})
+			return
+		}
+
+		// Validar MIME type
+		if validateErr := utils.ValidateMimeType(fileInfo.MimeType); validateErr != nil {
+			utils.CleanupTempFile(fileInfo.TempPath)
+			h.Logger.WithFields(logrus.Fields{
+				"error":          validateErr.Error(),
+				"mime_type":      fileInfo.MimeType,
+				"correlation_id": correlationID,
+			}).Error("Unsupported MIME type")
+
+			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+				Error:   "Unsupported file type",
+				Message: validateErr.Error(),
+			})
+			return
+		}
+
+		document.FilePath = fileInfo.TempPath
+		document.FileSize = fileInfo.Size
+		document.MimeType = fileInfo.MimeType
+		document.IsFromBase64 = true
+		tempPath = fileInfo.TempPath
+
+		h.Logger.WithFields(logrus.Fields{
+			"temp_path":      fileInfo.TempPath,
+			"file_size":      fileInfo.Size,
+			"mime_type":      fileInfo.MimeType,
+			"correlation_id": correlationID,
+		}).Info("Base64 file processed successfully")
+
+	} else {
+		// Usar file_path tradicional
+		document.FilePath = requestDTO.FilePath
+		document.FileSize = requestDTO.FileSize
+		document.MimeType = requestDTO.MimeType
+		document.IsFromBase64 = false
+
+		h.Logger.WithFields(logrus.Fields{
+			"file_path":      requestDTO.FilePath,
+			"correlation_id": correlationID,
+		}).Info("Processing document from file path")
+	}
+
+	// Limpar arquivo temporário em caso de erro ou sucesso
+	if tempPath != "" {
+		defer func() {
+			if cleanupErr := utils.CleanupTempFile(tempPath); cleanupErr != nil {
+				h.Logger.WithFields(logrus.Fields{
+					"error":          cleanupErr.Error(),
+					"temp_path":      tempPath,
+					"correlation_id": correlationID,
+				}).Warn("Failed to cleanup temporary file")
+			} else {
+				h.Logger.WithFields(logrus.Fields{
+					"temp_path":      tempPath,
+					"correlation_id": correlationID,
+				}).Debug("Temporary file cleaned up successfully")
+			}
+		}()
+	}
+
+	err = h.UsecaseDocument.Create(document)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
 			"error":          err.Error(),
@@ -99,6 +201,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 	h.Logger.WithFields(logrus.Fields{
 		"document_id":    document.ID,
 		"document_name":  document.Name,
+		"is_from_base64": document.IsFromBase64,
 		"correlation_id": correlationID,
 	}).Info("Document created successfully")
 

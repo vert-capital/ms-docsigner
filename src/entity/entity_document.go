@@ -23,6 +23,7 @@ type EntityDocument struct {
 	Status       string    `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft ready processing sent"`
 	ClicksignKey string    `json:"clicksign_key" gorm:"index"`
 	Description  string    `json:"description" validate:"max=1000"`
+	IsFromBase64 bool      `json:"is_from_base64" gorm:"default:false"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -47,6 +48,7 @@ func NewDocument(docParam EntityDocument) (*EntityDocument, error) {
 		Status:       docParam.Status,
 		ClicksignKey: docParam.ClicksignKey,
 		Description:  docParam.Description,
+		IsFromBase64: docParam.IsFromBase64,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -65,8 +67,11 @@ func (d *EntityDocument) Validate() error {
 		return err
 	}
 
-	if err := d.validateFileExists(); err != nil {
-		return err
+	// Validar se arquivo existe apenas quando não for base64
+	if !d.IsFromBase64 {
+		if err := d.validateFileExists(); err != nil {
+			return err
+		}
 	}
 
 	if err := d.validateMimeType(); err != nil {
@@ -128,5 +133,14 @@ func (d *EntityDocument) SetStatus(status string) error {
 
 func (d *EntityDocument) SetClicksignKey(key string) {
 	d.ClicksignKey = key
+	d.UpdatedAt = time.Now()
+}
+
+// ProcessBase64Document processa um documento que veio de base64
+func (d *EntityDocument) ProcessBase64Document(tempPath, mimeType string, size int64) {
+	d.FilePath = tempPath
+	d.MimeType = mimeType
+	d.FileSize = size
+	d.IsFromBase64 = true
 	d.UpdatedAt = time.Now()
 }

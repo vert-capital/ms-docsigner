@@ -99,6 +99,46 @@ type EnvelopeGetResponse struct {
 	SignersCount   int        `json:"signers_count"`
 }
 
+// DocumentUploadRequestWrapper representa a estrutura JSON API para upload de documento
+type DocumentUploadRequestWrapper struct {
+	Data DocumentUploadData `json:"data"`
+}
+
+// DocumentUploadData representa a seção "data" da estrutura JSON API para upload
+type DocumentUploadData struct {
+	Type       string                    `json:"type"`
+	Attributes DocumentUploadAttributes  `json:"attributes"`
+}
+
+// DocumentUploadAttributes representa os atributos do documento para upload
+type DocumentUploadAttributes struct {
+	Path        string `json:"path"`
+	ContentBase64 string `json:"content_base64,omitempty"`
+	Filename    string `json:"filename,omitempty"`
+}
+
+// DocumentUploadResponseWrapper representa a resposta JSON API para upload de documento
+type DocumentUploadResponseWrapper struct {
+	Data DocumentUploadResponseData `json:"data"`
+}
+
+// DocumentUploadResponseData representa a seção "data" da resposta JSON API
+type DocumentUploadResponseData struct {
+	Type       string                        `json:"type"`
+	ID         string                        `json:"id"`
+	Attributes DocumentUploadResponseAttributes `json:"attributes"`
+}
+
+// DocumentUploadResponseAttributes representa os atributos do documento na resposta
+type DocumentUploadResponseAttributes struct {
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Filesize    int64  `json:"filesize"`
+	Path        string `json:"path"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 // ClicksignErrorResponse representa a estrutura de erro da API do Clicksign
 type ClicksignErrorResponse struct {
 	Error struct {

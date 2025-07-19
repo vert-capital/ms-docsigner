@@ -25,7 +25,9 @@
       "Bash(go vet:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "cd:*",
-      "go:*"
+      "go:*",
+      "Bash(cd:*)",
+      "Bash(go:*)"
     ],
     "deny": []
   }
