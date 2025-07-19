@@ -2,6 +2,7 @@ version: "3.7"
 
 volumes:
   data:
+  go-cache:
 
 services:
   app:
@@ -14,6 +15,7 @@ services:
       - 2345:2345
     volumes:
       - ./src:/app
+      - go-cache:/go/pkg/mod
     environment:
       - ENV=dev
     depends_on:

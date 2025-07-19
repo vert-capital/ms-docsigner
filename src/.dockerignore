@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Temporary files
+tmp/
+logs/
+
+# Docker
+.docker/
+Dockerfile*
+docker-compose*
+
+# Documentation
+*.md
+README*
+
+# Environment files
+.env*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go specific
+vendor/

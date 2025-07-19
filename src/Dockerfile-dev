@@ -1,32 +1,29 @@
-FROM golang:1.24-alpine AS base
+FROM golang:1.23-alpine AS base
 
 ENV GO111MODULE="on"
 ENV GOOS="linux"
 ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org
 
 # System dependencies
 RUN apk update && apk add --no-cache ca-certificates curl bash gcc libc-dev librdkafka-dev
-RUN go install -tags musl gotest.tools/gotestsum@latest
-RUN go install -tags musl github.com/golang/mock/mockgen@v1.6.0
-RUN go install -tags musl github.com/smartystreets/goconvey@latest
 
-ARG PROJECT_NAME="app"
-ARG VERSION="dev"
-ARG COMMIT="none"
-ENV CGO_ENABLED=1
-ENV GOPROXY=https://proxy.golang.org
+# Instalar todas as ferramentas uma única vez
+RUN go install -tags musl gotest.tools/gotestsum@latest && \
+    go install -tags musl github.com/golang/mock/mockgen@v1.6.0 && \
+    go install -tags musl github.com/smartystreets/goconvey@latest && \
+    go install -tags musl github.com/go-delve/delve/cmd/dlv@latest && \
+    go install -tags musl github.com/air-verse/air@v1.61.1
 
 FROM base AS dev
 WORKDIR /app
 
-COPY . .
-
+# Copiar apenas go.mod e go.sum primeiro para cache de dependências
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go install -tags musl github.com/go-delve/delve/cmd/dlv@latest
 
-# Hot reloading mod
-RUN go get -tags musl -u github.com/air-verse/air && go install -tags musl github.com/go-delve/delve/cmd/dlv@latest
-RUN go install -tags musl github.com/air-verse/air@latest
+# Depois copiar o resto do código
+COPY . .
 
 EXPOSE 8080
 EXPOSE 2345
