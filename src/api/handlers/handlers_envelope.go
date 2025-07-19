@@ -188,14 +188,16 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					"step":          "signatory_creation",
 				}).Error("Failed to create signatory, rolling back envelope")
 
-				// TODO: Implementar rollback do envelope
-				// Para agora, retornar erro sem rollback automático
+				// FIXME: Rollback automático de envelope não implementado
+				// Considerar implementação futura de transação distribuída
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to create signatory %d: %v", i+1, sigErr),
+					Message: fmt.Sprintf("Failed to create signatory %d: %v. ATENÇÃO: Envelope %d foi criado mas signatários falharam", i+1, sigErr, createdEnvelope.ID),
 					Details: map[string]interface{}{
-						"correlation_id": correlationID,
-						"envelope_id":    createdEnvelope.ID,
+						"correlation_id":     correlationID,
+						"envelope_id":        createdEnvelope.ID,
+						"failed_signatory":   i + 1,
+						"partial_transaction": true,
 					},
 				})
 				return

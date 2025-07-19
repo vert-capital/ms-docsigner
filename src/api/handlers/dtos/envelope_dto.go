@@ -67,8 +67,15 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 	
 	// Validar signatários se fornecidos
 	if len(dto.Signatories) > 0 {
-		emails := make(map[string]bool)
+		emailsMap := make(map[string]int) // valor é o índice do primeiro signatário com este email
 		for i, signatory := range dto.Signatories {
+			// Verificar emails únicos primeiro (mais eficiente)
+			if firstIndex, exists := emailsMap[signatory.Email]; exists {
+				return fmt.Errorf("email duplicado encontrado nos signatários: %s (posições %d e %d)", 
+					signatory.Email, firstIndex+1, i+1)
+			}
+			emailsMap[signatory.Email] = i
+			
 			// Reutilizar validação da estrutura SignatoryCreateRequestDTO
 			tempSignatory := &SignatoryCreateRequestDTO{
 				Name:              signatory.Name,
@@ -83,14 +90,8 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 			}
 			
 			if err := tempSignatory.Validate(); err != nil {
-				return fmt.Errorf("erro na validação do signatário %d: %v", i+1, err)
+				return fmt.Errorf("erro na validação do signatário %d (%s): %v", i+1, signatory.Email, err)
 			}
-			
-			// Verificar emails únicos
-			if emails[signatory.Email] {
-				return fmt.Errorf("email duplicado encontrado nos signatários: %s", signatory.Email)
-			}
-			emails[signatory.Email] = true
 		}
 	}
 	
