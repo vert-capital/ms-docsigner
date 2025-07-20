@@ -7,16 +7,17 @@ import (
 
 // EnvelopeCreateRequestDTO representa a estrutura de request para criação de envelope
 type EnvelopeCreateRequestDTO struct {
-	Name            string                    `json:"name" binding:"required,min=3,max=255"`
-	Description     string                    `json:"description,omitempty" binding:"max=1000"`
-	DocumentsIDs    []int                     `json:"documents_ids,omitempty"`
-	Documents       []EnvelopeDocumentRequest `json:"documents,omitempty"`
-	SignatoryEmails []string                  `json:"signatory_emails,omitempty"`
-	Signatories     []EnvelopeSignatoryRequest `json:"signatories,omitempty"`
-	Message         string                    `json:"message,omitempty" binding:"max=500"`
-	DeadlineAt      *time.Time                `json:"deadline_at,omitempty"`
-	RemindInterval  int                       `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
-	AutoClose       bool                      `json:"auto_close,omitempty"`
+	Name            string                          `json:"name" binding:"required,min=3,max=255"`
+	Description     string                          `json:"description,omitempty" binding:"max=1000"`
+	DocumentsIDs    []int                           `json:"documents_ids,omitempty"`
+	Documents       []EnvelopeDocumentRequest       `json:"documents,omitempty"`
+	SignatoryEmails []string                        `json:"signatory_emails,omitempty"`
+	Signatories     []EnvelopeSignatoryRequest      `json:"signatories,omitempty"`
+	Requirements    []EnvelopeRequirementRequest    `json:"requirements,omitempty"`
+	Message         string                          `json:"message,omitempty" binding:"max=500"`
+	DeadlineAt      *time.Time                      `json:"deadline_at,omitempty"`
+	RemindInterval  int                             `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
+	AutoClose       bool                            `json:"auto_close,omitempty"`
 }
 
 // EnvelopeDocumentRequest representa um documento a ser criado junto com o envelope
@@ -38,6 +39,15 @@ type EnvelopeSignatoryRequest struct {
 	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
 }
 
+// EnvelopeRequirementRequest representa um requirement a ser criado junto com o envelope
+type EnvelopeRequirementRequest struct {
+	Action     string  `json:"action" binding:"required,oneof=agree sign provide_evidence"`
+	Role       string  `json:"role,omitempty" binding:"omitempty,oneof=sign"`
+	Auth       *string `json:"auth,omitempty" binding:"omitempty,oneof=email icp_brasil"`
+	DocumentID *string `json:"document_id,omitempty"`
+	SignerID   *string `json:"signer_id,omitempty"`
+}
+
 // ToSignatoryCreateRequestDTO converte EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
 func (esr *EnvelopeSignatoryRequest) ToSignatoryCreateRequestDTO(envelopeID int) SignatoryCreateRequestDTO {
 	return SignatoryCreateRequestDTO{
@@ -51,6 +61,27 @@ func (esr *EnvelopeSignatoryRequest) ToSignatoryCreateRequestDTO(envelopeID int)
 		Group:             esr.Group,
 		CommunicateEvents: esr.CommunicateEvents,
 	}
+}
+
+// ToRequirementCreateRequestDTO converte EnvelopeRequirementRequest para RequirementCreateRequestDTO
+func (err *EnvelopeRequirementRequest) ToRequirementCreateRequestDTO() RequirementCreateRequestDTO {
+	return RequirementCreateRequestDTO{
+		Action:     err.Action,
+		Role:       err.Role,
+		Auth:       err.Auth,
+		DocumentID: err.DocumentID,
+		SignerID:   err.SignerID,
+	}
+}
+
+// Validate valida o requirement
+func (err *EnvelopeRequirementRequest) Validate() error {
+	// Para action "provide_evidence", auth é obrigatório
+	if err.Action == "provide_evidence" && (err.Auth == nil || *err.Auth == "") {
+		return fmt.Errorf("auth é obrigatório para action 'provide_evidence'")
+	}
+
+	return nil
 }
 
 // Validate valida o DTO de criação de envelope
@@ -101,6 +132,15 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 			
 			if err := tempSignatory.Validate(); err != nil {
 				return fmt.Errorf("erro na validação do signatário %d (%s): %v", i+1, signatory.Email, err)
+			}
+		}
+	}
+	
+	// Validar requirements se fornecidos
+	if len(dto.Requirements) > 0 {
+		for i, requirement := range dto.Requirements {
+			if err := requirement.Validate(); err != nil {
+				return fmt.Errorf("erro na validação do requirement %d: %v", i+1, err)
 			}
 		}
 	}

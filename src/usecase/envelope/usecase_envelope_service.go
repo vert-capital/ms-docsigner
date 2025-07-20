@@ -8,22 +8,25 @@ import (
 	"app/infrastructure/clicksign"
 	clicksignInterface "app/usecase/clicksign"
 	usecase_document "app/usecase/document"
+	usecase_requirement "app/usecase/requirement"
 	"github.com/sirupsen/logrus"
 )
 
 type UsecaseEnvelopeService struct {
-	repositoryEnvelope IRepositoryEnvelope
-	clicksignClient    clicksignInterface.ClicksignClientInterface
-	envelopeService    *clicksign.EnvelopeService
-	documentService    *clicksign.DocumentService
-	usecaseDocument    usecase_document.IUsecaseDocument
-	logger             *logrus.Logger
+	repositoryEnvelope  IRepositoryEnvelope
+	clicksignClient     clicksignInterface.ClicksignClientInterface
+	envelopeService     *clicksign.EnvelopeService
+	documentService     *clicksign.DocumentService
+	usecaseDocument     usecase_document.IUsecaseDocument
+	usecaseRequirement  usecase_requirement.IUsecaseRequirement
+	logger              *logrus.Logger
 }
 
 func NewUsecaseEnvelopeService(
 	repositoryEnvelope IRepositoryEnvelope,
 	clicksignClient clicksignInterface.ClicksignClientInterface,
 	usecaseDocument usecase_document.IUsecaseDocument,
+	usecaseRequirement usecase_requirement.IUsecaseRequirement,
 	logger *logrus.Logger,
 ) IUsecaseEnvelope {
 	envelopeService := clicksign.NewEnvelopeService(clicksignClient, logger)
@@ -35,6 +38,7 @@ func NewUsecaseEnvelopeService(
 		envelopeService:    envelopeService,
 		documentService:    documentService,
 		usecaseDocument:    usecaseDocument,
+		usecaseRequirement: usecaseRequirement,
 		logger:             logger,
 	}
 }
@@ -411,6 +415,121 @@ func (u *UsecaseEnvelopeService) DeleteEnvelope(id int) error {
 	}).Info("Envelope deleted successfully")
 
 	return nil
+}
+
+func (u *UsecaseEnvelopeService) CreateEnvelopeWithRequirements(ctx context.Context, envelope *entity.EntityEnvelope, requirements []*entity.EntityRequirement) (*entity.EntityEnvelope, error) {
+	correlationID := ctx.Value("correlation_id")
+	if correlationID == nil {
+		correlationID = fmt.Sprintf("envelope_req_%d_%d", envelope.ID, envelope.CreatedAt.Unix())
+		ctx = context.WithValue(ctx, "correlation_id", correlationID)
+	}
+
+	u.logger.WithFields(logrus.Fields{
+		"envelope_name":      envelope.Name,
+		"documents_count":    len(envelope.DocumentsIDs),
+		"signers_count":      len(envelope.SignatoryEmails),
+		"requirements_count": len(requirements),
+		"correlation_id":     correlationID,
+		"step":               "envelope_with_requirements_creation_start",
+	}).Info("Starting envelope creation with requirements")
+
+	// 1. Criar envelope primeiro
+	createdEnvelope, err := u.CreateEnvelope(envelope)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"envelope_name":  envelope.Name,
+			"error":          err.Error(),
+			"correlation_id": correlationID,
+			"step":           "envelope_creation",
+		}).Error("Failed to create envelope before requirements")
+		return nil, fmt.Errorf("failed to create envelope: %w", err)
+	}
+
+	u.logger.WithFields(logrus.Fields{
+		"envelope_id":        createdEnvelope.ID,
+		"envelope_name":      createdEnvelope.Name,
+		"clicksign_key":      createdEnvelope.ClicksignKey,
+		"requirements_count": len(requirements),
+		"correlation_id":     correlationID,
+		"step":               "envelope_created_starting_requirements",
+	}).Info("Envelope created successfully, now creating requirements")
+
+	// 2. Criar requirements se fornecidos
+	if len(requirements) > 0 {
+		var createdRequirements []*entity.EntityRequirement
+		var failedRequirements []error
+
+		for i, requirement := range requirements {
+			// Definir o envelope_id do requirement
+			requirement.EnvelopeID = createdEnvelope.ID
+
+			u.logger.WithFields(logrus.Fields{
+				"envelope_id":         createdEnvelope.ID,
+				"requirement_index":   i + 1,
+				"requirement_action":  requirement.Action,
+				"requirement_role":    requirement.Role,
+				"requirement_auth":    requirement.Auth,
+				"correlation_id":      correlationID,
+				"step":                "requirement_creation",
+			}).Debug("Creating requirement for envelope")
+
+			createdRequirement, err := u.usecaseRequirement.CreateRequirement(ctx, requirement)
+			if err != nil {
+				u.logger.WithFields(logrus.Fields{
+					"envelope_id":        createdEnvelope.ID,
+					"requirement_index":  i + 1,
+					"requirement_action": requirement.Action,
+					"error":              err.Error(),
+					"correlation_id":     correlationID,
+					"step":               "requirement_creation_failed",
+				}).Error("Failed to create requirement")
+
+				failedRequirements = append(failedRequirements, fmt.Errorf("requirement %d (%s): %w", i+1, requirement.Action, err))
+				continue
+			}
+
+			createdRequirements = append(createdRequirements, createdRequirement)
+
+			u.logger.WithFields(logrus.Fields{
+				"envelope_id":         createdEnvelope.ID,
+				"requirement_id":      createdRequirement.ID,
+				"requirement_action":  createdRequirement.Action,
+				"clicksign_key":       createdRequirement.ClicksignKey,
+				"correlation_id":      correlationID,
+				"step":                "requirement_created",
+			}).Debug("Requirement created successfully")
+		}
+
+		u.logger.WithFields(logrus.Fields{
+			"envelope_id":            createdEnvelope.ID,
+			"total_requirements":     len(requirements),
+			"successful_requirements": len(createdRequirements),
+			"failed_requirements":    len(failedRequirements),
+			"correlation_id":         correlationID,
+			"step":                   "requirements_creation_summary",
+		}).Info("Requirements creation completed")
+
+		// Se houve falhas, log de aviso mas não falha toda a operação
+		if len(failedRequirements) > 0 {
+			u.logger.WithFields(logrus.Fields{
+				"envelope_id":         createdEnvelope.ID,
+				"failed_requirements": failedRequirements,
+				"correlation_id":      correlationID,
+				"step":                "requirements_partial_failure",
+			}).Warn("Some requirements failed to create, but envelope was created successfully")
+		}
+	}
+
+	u.logger.WithFields(logrus.Fields{
+		"envelope_id":        createdEnvelope.ID,
+		"envelope_name":      createdEnvelope.Name,
+		"clicksign_key":      createdEnvelope.ClicksignKey,
+		"requirements_count": len(requirements),
+		"correlation_id":     correlationID,
+		"step":               "envelope_with_requirements_creation_complete",
+	}).Info("Envelope with requirements created successfully")
+
+	return createdEnvelope, nil
 }
 
 func (u *UsecaseEnvelopeService) ActivateEnvelope(id int) (*entity.EntityEnvelope, error) {
