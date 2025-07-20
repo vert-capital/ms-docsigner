@@ -14,6 +14,7 @@ import (
 	"app/pkg/utils"
 	"app/usecase/envelope"
 	usecase_document "app/usecase/document"
+	"app/usecase/requirement"
 	"app/usecase/signatory"
 
 	"github.com/gin-gonic/gin"
@@ -591,16 +592,28 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
+	// Criar usecase de requirement
+	usecaseRequirement := requirement.NewUsecaseRequirementService(
+		repository.NewRepositoryRequirement(conn),
+		repository.NewRepositoryEnvelope(conn),
+		clicksignClient,
+		logger,
+	)
+
 	envelopeHandlers := NewEnvelopeHandler(
 		envelope.NewUsecaseEnvelopeService(
 			repository.NewRepositoryEnvelope(conn),
 			clicksignClient,
 			usecaseDocument,
+			usecaseRequirement,
 			logger,
 		),
 		usecaseSignatory,
 		logger,
 	)
+
+	// Criar handler de requirements
+	requirementHandlers := NewRequirementHandler(usecaseRequirement, logger)
 
 	group := gin.Group("/api/v1/envelopes")
 	SetAuthMiddleware(conn, group)
@@ -609,4 +622,8 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 	group.GET("/:id", envelopeHandlers.GetEnvelopeHandler)
 	group.GET("/", envelopeHandlers.GetEnvelopesHandler)
 	group.POST("/:id/activate", envelopeHandlers.ActivateEnvelopeHandler)
+
+	// Rotas de requirements por envelope
+	group.POST("/:id/requirements", requirementHandlers.CreateRequirementHandler)
+	group.GET("/:id/requirements", requirementHandlers.GetRequirementsByEnvelopeHandler)
 }

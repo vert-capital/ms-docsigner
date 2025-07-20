@@ -14,6 +14,7 @@ import (
 	"app/infrastructure/repository"
 	"app/usecase/document"
 	"app/usecase/envelope"
+	"app/usecase/requirement"
 	"app/usecase/signatory"
 
 	"github.com/gin-gonic/gin"
@@ -804,6 +805,14 @@ func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logge
 		logger,
 	)
 
+	// Criar usecase de requirement
+	usecaseRequirement := requirement.NewUsecaseRequirementService(
+		repository.NewRepositoryRequirement(conn),
+		repository.NewRepositoryEnvelope(conn),
+		clicksignClient,
+		logger,
+	)
+
 	// Importar as dependências necessárias
 	signatoryHandlers := NewSignatoryHandler(
 		signatory.NewUsecaseSignatoryService(
@@ -816,6 +825,7 @@ func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logge
 			repository.NewRepositoryEnvelope(conn),
 			clicksignClient,
 			usecaseDocument,
+			usecaseRequirement,
 			logger,
 		),
 		logger,

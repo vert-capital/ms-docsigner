@@ -32,13 +32,13 @@ func NewRequirementHandler(usecaseRequirement requirement.IUsecaseRequirement, l
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param envelope_id path int true "Envelope ID"
+// @Param id path int true "Envelope ID"
 // @Param request body dtos.RequirementCreateRequestDTO true "Requirement data"
 // @Success 201 {object} dtos.RequirementResponseDTO "Requirement created successfully"
 // @Failure 400 {object} dtos.ValidationErrorResponseDTO "Validation error - invalid request data or business rule violation"
 // @Failure 404 {object} dtos.ErrorResponseDTO "Envelope not found"
 // @Failure 500 {object} dtos.ErrorResponseDTO "Internal server error - requirement creation failed"
-// @Router /api/v1/envelopes/{envelope_id}/requirements [post]
+// @Router /api/v1/envelopes/{id}/requirements [post]
 func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
 	if correlationID == "" {
@@ -47,13 +47,13 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
 	h.Logger.WithFields(logrus.Fields{
-		"endpoint":       "POST /api/v1/envelopes/{envelope_id}/requirements",
+		"endpoint":       "POST /api/v1/envelopes/{id}/requirements",
 		"correlation_id": correlationID,
 		"step":           "request_start",
 	}).Info("Starting requirement creation request")
 
 	// Parse envelope_id from URL
-	envelopeIDParam := c.Param("envelope_id")
+	envelopeIDParam := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDParam)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
@@ -188,11 +188,11 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param envelope_id path int true "Envelope ID"
+// @Param id path int true "Envelope ID"
 // @Success 200 {object} dtos.RequirementListResponseDTO "Requirements retrieved successfully"
 // @Failure 404 {object} dtos.ErrorResponseDTO "Envelope not found"
 // @Failure 500 {object} dtos.ErrorResponseDTO "Internal server error"
-// @Router /api/v1/envelopes/{envelope_id}/requirements [get]
+// @Router /api/v1/envelopes/{id}/requirements [get]
 func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	correlationID := c.GetHeader("X-Correlation-ID")
 	if correlationID == "" {
@@ -201,13 +201,13 @@ func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
 	h.Logger.WithFields(logrus.Fields{
-		"endpoint":       "GET /api/v1/envelopes/{envelope_id}/requirements",
+		"endpoint":       "GET /api/v1/envelopes/{id}/requirements",
 		"correlation_id": correlationID,
 		"step":           "request_start",
 	}).Info("Starting get requirements by envelope request")
 
 	// Parse envelope_id from URL
-	envelopeIDParam := c.Param("envelope_id")
+	envelopeIDParam := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDParam)
 	if err != nil {
 		h.Logger.WithFields(logrus.Fields{
