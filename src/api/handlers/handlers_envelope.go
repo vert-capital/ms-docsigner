@@ -587,6 +587,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 	usecaseSignatory := signatory.NewUsecaseSignatoryService(
 		repository.NewRepositorySignatory(conn),
 		repository.NewRepositoryEnvelope(conn),
+		clicksignClient,
 		logger,
 	)
 

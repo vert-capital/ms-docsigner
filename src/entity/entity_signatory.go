@@ -32,6 +32,7 @@ type EntitySignatory struct {
 	Refusable         *bool              `json:"refusable,omitempty"`
 	Group             *int               `json:"group,omitempty"`
 	CommunicateEvents *CommunicateEvents `json:"communicate_events,omitempty" gorm:"serializer:json"`
+	ClicksignKey      string             `json:"clicksign_key,omitempty" gorm:"column:clicksign_key"`
 	CreatedAt         time.Time          `json:"created_at"`
 	UpdatedAt         time.Time          `json:"updated_at"`
 }
@@ -218,6 +219,11 @@ func (s *EntitySignatory) SetPhoneNumber(phoneNumber string) error {
 	s.PhoneNumber = &phoneNumber
 	s.UpdatedAt = time.Now()
 	return s.validatePhoneNumber()
+}
+
+func (s *EntitySignatory) SetClicksignKey(clicksignKey string) {
+	s.ClicksignKey = clicksignKey
+	s.UpdatedAt = time.Now()
 }
 
 func (s *EntitySignatory) ToJSON() ([]byte, error) {

@@ -1,9 +1,12 @@
 package signatory
 
 import (
+	"context"
 	"fmt"
 
 	"app/entity"
+	"app/infrastructure/clicksign"
+	clicksignInterface "app/usecase/clicksign"
 	usecase_envelope "app/usecase/envelope"
 	"github.com/sirupsen/logrus"
 )
@@ -11,17 +14,27 @@ import (
 type UsecaseSignatoryService struct {
 	repositorySignatory IRepositorySignatory
 	repositoryEnvelope  usecase_envelope.IRepositoryEnvelope
+	clicksignClient     clicksignInterface.ClicksignClientInterface
+	signerService       *clicksign.SignerService
+	signatoryMapper     *clicksign.SignatoryMapper
 	logger              *logrus.Logger
 }
 
 func NewUsecaseSignatoryService(
 	repositorySignatory IRepositorySignatory,
 	repositoryEnvelope usecase_envelope.IRepositoryEnvelope,
+	clicksignClient clicksignInterface.ClicksignClientInterface,
 	logger *logrus.Logger,
 ) IUsecaseSignatory {
+	signerService := clicksign.NewSignerService(clicksignClient, logger)
+	signatoryMapper := clicksign.NewSignatoryMapper()
+
 	return &UsecaseSignatoryService{
 		repositorySignatory: repositorySignatory,
 		repositoryEnvelope:  repositoryEnvelope,
+		clicksignClient:     clicksignClient,
+		signerService:       signerService,
+		signatoryMapper:     signatoryMapper,
 		logger:              logger,
 	}
 }
@@ -54,7 +67,7 @@ func (u *UsecaseSignatoryService) CreateSignatory(signatory *entity.EntitySignat
 		return nil, fmt.Errorf("business rule validation failed: %w", err)
 	}
 
-	// Criar signatário localmente
+	// Criar signatário localmente primeiro
 	err = u.repositorySignatory.Create(signatory)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
@@ -70,7 +83,106 @@ func (u *UsecaseSignatoryService) CreateSignatory(signatory *entity.EntitySignat
 		"signatory_name":  signatory.Name,
 		"signatory_email": signatory.Email,
 		"envelope_id":     signatory.EnvelopeID,
-	}).Info("Signatory created successfully")
+	}).Info("Signatory created locally, now creating in Clicksign")
+
+	// Obter envelope para pegar a chave do Clicksign
+	envelope, err := u.repositoryEnvelope.GetByID(signatory.EnvelopeID)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"error":           err.Error(),
+			"signatory_email": signatory.Email,
+			"envelope_id":     signatory.EnvelopeID,
+		}).Error("Failed to get envelope for Clicksign integration")
+		return nil, fmt.Errorf("failed to get envelope for Clicksign integration: %w", err)
+	}
+
+	// Verificar se envelope tem chave do Clicksign
+	if envelope.ClicksignKey == "" {
+		u.logger.WithFields(logrus.Fields{
+			"signatory_email": signatory.Email,
+			"envelope_id":     signatory.EnvelopeID,
+		}).Error("Envelope has no Clicksign key, cannot create signatory in Clicksign")
+		return nil, fmt.Errorf("envelope has no Clicksign key, cannot create signatory in Clicksign")
+	}
+
+	// Validar dados para Clicksign
+	if err := u.signatoryMapper.ValidateForClicksign(signatory); err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"error":           err.Error(),
+			"signatory_email": signatory.Email,
+			"envelope_id":     signatory.EnvelopeID,
+		}).Error("Signatory validation failed for Clicksign")
+		return nil, fmt.Errorf("signatory validation failed for Clicksign: %w", err)
+	}
+
+	// Mapear para estrutura do Clicksign
+	clicksignRequest := u.signatoryMapper.ToClicksignCreateRequest(signatory)
+
+	// Criar contexto para chamada do Clicksign
+	ctx := context.Background()
+	correlationID := fmt.Sprintf("signatory_%d_%d", signatory.ID, signatory.EnvelopeID)
+	ctx = context.WithValue(ctx, "correlation_id", correlationID)
+
+	// Mapear para SignerData
+	signerData := clicksign.SignerData{
+		Name:             clicksignRequest.Data.Attributes.Name,
+		Email:            clicksignRequest.Data.Attributes.Email,
+		Birthday:         clicksignRequest.Data.Attributes.Birthday,
+		PhoneNumber:      clicksignRequest.Data.Attributes.PhoneNumber,
+		HasDocumentation: clicksignRequest.Data.Attributes.HasDocumentation,
+		Refusable:        clicksignRequest.Data.Attributes.Refusable,
+		Group:            clicksignRequest.Data.Attributes.Group,
+	}
+
+	// Mapear communicate events se fornecidos
+	if clicksignRequest.Data.Attributes.CommunicateEvents != nil {
+		signerData.CommunicateEvents = &clicksign.SignerCommunicateEventsData{
+			DocumentSigned:    clicksignRequest.Data.Attributes.CommunicateEvents.DocumentSigned,
+			SignatureRequest:  clicksignRequest.Data.Attributes.CommunicateEvents.SignatureRequest,
+			SignatureReminder: clicksignRequest.Data.Attributes.CommunicateEvents.SignatureReminder,
+		}
+	}
+
+	// Criar signatário no Clicksign
+	clicksignSignerID, err := u.signerService.CreateSigner(ctx, envelope.ClicksignKey, signerData)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"error":           err.Error(),
+			"signatory_id":    signatory.ID,
+			"signatory_email": signatory.Email,
+			"envelope_id":     signatory.EnvelopeID,
+			"envelope_key":    envelope.ClicksignKey,
+		}).Error("Failed to create signatory in Clicksign")
+
+		// Tentar reverter criação local (best effort)
+		if deleteErr := u.repositorySignatory.Delete(signatory); deleteErr != nil {
+			u.logger.WithFields(logrus.Fields{
+				"error":        deleteErr.Error(),
+				"signatory_id": signatory.ID,
+			}).Error("Failed to rollback local signatory creation")
+		}
+
+		return nil, fmt.Errorf("failed to create signatory in Clicksign: %w", err)
+	}
+
+	// Armazenar chave do Clicksign no signatário (se necessário)
+	signatory.SetClicksignKey(clicksignSignerID)
+	if err := u.repositorySignatory.Update(signatory); err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"error":              err.Error(),
+			"signatory_id":       signatory.ID,
+			"clicksign_signer_id": clicksignSignerID,
+		}).Error("Failed to update signatory with Clicksign key")
+		return nil, fmt.Errorf("failed to update signatory with Clicksign key: %w", err)
+	}
+
+	u.logger.WithFields(logrus.Fields{
+		"signatory_id":       signatory.ID,
+		"signatory_name":     signatory.Name,
+		"signatory_email":    signatory.Email,
+		"envelope_id":        signatory.EnvelopeID,
+		"clicksign_signer_id": clicksignSignerID,
+	}).Info("Signatory created successfully in both local and Clicksign")
 
 	return signatory, nil
 }

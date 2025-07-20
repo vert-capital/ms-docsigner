@@ -809,6 +809,7 @@ func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logge
 		signatory.NewUsecaseSignatoryService(
 			repository.NewRepositorySignatory(conn),
 			repository.NewRepositoryEnvelope(conn),
+			clicksignClient,
 			logger,
 		),
 		envelope.NewUsecaseEnvelopeService(
