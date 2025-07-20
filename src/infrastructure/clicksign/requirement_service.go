@@ -25,39 +25,13 @@ func NewRequirementService(clicksignClient clicksign.ClicksignClientInterface, l
 
 // CreateRequirement cria um requisito no envelope usando a estrutura JSON API com relacionamentos
 func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID string, reqData RequirementData) (string, error) {
-	correlationID := ctx.Value("correlation_id")
-
-	s.logger.WithFields(logrus.Fields{
-		"envelope_id":    envelopeID,
-		"action":         reqData.Action,
-		"role":           reqData.Role,
-		"auth":           reqData.Auth,
-		"document_id":    reqData.DocumentID,
-		"signer_id":      reqData.SignerID,
-		"correlation_id": correlationID,
-	}).Info("Creating requirement in envelope using JSON API format with relationships")
 
 	createRequest := s.mapRequirementDataToCreateRequest(reqData)
-
-	s.logger.WithFields(logrus.Fields{
-		"data_type":           createRequest.Data.Type,
-		"action":             createRequest.Data.Attributes.Action,
-		"role":               createRequest.Data.Attributes.Role,
-		"auth":               createRequest.Data.Attributes.Auth,
-		"has_relationships":  createRequest.Data.Relationships != nil,
-		"correlation_id":     correlationID,
-	}).Debug("JSON API request structure prepared for requirement")
 
 	// Fazer chamada para API do Clicksign usando o endpoint correto para requisitos
 	endpoint := fmt.Sprintf("/api/v3/envelopes/%s/requirements", envelopeID)
 	resp, err := s.clicksignClient.Post(ctx, endpoint, createRequest)
 	if err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"action":         reqData.Action,
-			"correlation_id": correlationID,
-		}).Error("Failed to create requirement in Clicksign envelope")
 		return "", fmt.Errorf("failed to create requirement in Clicksign envelope: %w", err)
 	}
 	defer resp.Body.Close()
@@ -65,12 +39,6 @@ func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID s
 	// Ler resposta
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"action":         reqData.Action,
-			"correlation_id": correlationID,
-		}).Error("Failed to read response from Clicksign")
 		return "", fmt.Errorf("failed to read response from Clicksign: %w", err)
 	}
 
@@ -78,22 +46,8 @@ func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID s
 	if resp.StatusCode >= 400 {
 		var errorResp dto.ClicksignErrorResponse
 		if err := json.Unmarshal(body, &errorResp); err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"error":          err.Error(),
-				"status_code":    resp.StatusCode,
-				"response_body":  string(body),
-				"correlation_id": correlationID,
-			}).Error("Failed to parse error response from Clicksign")
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
-
-		s.logger.WithFields(logrus.Fields{
-			"error_type":     errorResp.Error.Type,
-			"error_message":  errorResp.Error.Message,
-			"error_code":     errorResp.Error.Code,
-			"status_code":    resp.StatusCode,
-			"correlation_id": correlationID,
-		}).Error("Clicksign API returned error")
 
 		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
@@ -101,54 +55,21 @@ func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID s
 	// Fazer parse da resposta de sucesso usando estrutura JSON API
 	var createResponse dto.RequirementCreateResponseWrapper
 	if err := json.Unmarshal(body, &createResponse); err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"response_body":  string(body),
-			"expected_format": "JSON API (data.type.attributes)",
-			"correlation_id": correlationID,
-		}).Error("Failed to parse JSON API response from Clicksign")
 		return "", fmt.Errorf("failed to parse JSON API response from Clicksign: %w", err)
 	}
-
-	s.logger.WithFields(logrus.Fields{
-		"envelope_id":       envelopeID,
-		"requirement_id":    createResponse.Data.ID,
-		"action":           createResponse.Data.Attributes.Action,
-		"role":             createResponse.Data.Attributes.Role,
-		"auth":             createResponse.Data.Attributes.Auth,
-		"response_type":    createResponse.Data.Type,
-		"correlation_id":   correlationID,
-	}).Info("Requirement created successfully in Clicksign envelope using JSON API format")
 
 	return createResponse.Data.ID, nil
 }
 
 // CreateBulkRequirements cria múltiplos requisitos usando operações atômicas conforme JSON API spec
 func (s *RequirementService) CreateBulkRequirements(ctx context.Context, envelopeID string, operations []BulkOperation) ([]string, error) {
-	correlationID := ctx.Value("correlation_id")
-
-	s.logger.WithFields(logrus.Fields{
-		"envelope_id":        envelopeID,
-		"operations_count":   len(operations),
-		"correlation_id":     correlationID,
-	}).Info("Creating bulk requirements in envelope using atomic operations")
 
 	bulkRequest := s.mapBulkOperationsToBulkRequest(operations)
-
-	s.logger.WithFields(logrus.Fields{
-		"atomic_operations_count": len(bulkRequest.AtomicOperations),
-		"correlation_id":         correlationID,
-	}).Debug("Atomic operations request structure prepared")
 
 	// Fazer chamada para API do Clicksign usando o endpoint de bulk requirements
 	endpoint := fmt.Sprintf("/api/v3/envelopes/%s/bulk_requirements", envelopeID)
 	resp, err := s.clicksignClient.Post(ctx, endpoint, bulkRequest)
 	if err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Failed to create bulk requirements in Clicksign envelope")
 		return nil, fmt.Errorf("failed to create bulk requirements in Clicksign envelope: %w", err)
 	}
 	defer resp.Body.Close()
@@ -156,11 +77,6 @@ func (s *RequirementService) CreateBulkRequirements(ctx context.Context, envelop
 	// Ler resposta
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Failed to read response from Clicksign")
 		return nil, fmt.Errorf("failed to read response from Clicksign: %w", err)
 	}
 
@@ -168,22 +84,8 @@ func (s *RequirementService) CreateBulkRequirements(ctx context.Context, envelop
 	if resp.StatusCode >= 400 {
 		var errorResp dto.ClicksignErrorResponse
 		if err := json.Unmarshal(body, &errorResp); err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"error":          err.Error(),
-				"status_code":    resp.StatusCode,
-				"response_body":  string(body),
-				"correlation_id": correlationID,
-			}).Error("Failed to parse error response from Clicksign")
 			return nil, fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
-
-		s.logger.WithFields(logrus.Fields{
-			"error_type":     errorResp.Error.Type,
-			"error_message":  errorResp.Error.Message,
-			"error_code":     errorResp.Error.Code,
-			"status_code":    resp.StatusCode,
-			"correlation_id": correlationID,
-		}).Error("Clicksign API returned error")
 
 		return nil, fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
@@ -191,12 +93,6 @@ func (s *RequirementService) CreateBulkRequirements(ctx context.Context, envelop
 	// Fazer parse da resposta de sucesso usando estrutura JSON API para bulk operations
 	var bulkResponse dto.BulkRequirementsResponseWrapper
 	if err := json.Unmarshal(body, &bulkResponse); err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"response_body":  string(body),
-			"expected_format": "JSON API atomic:results",
-			"correlation_id": correlationID,
-		}).Error("Failed to parse JSON API bulk response from Clicksign")
 		return nil, fmt.Errorf("failed to parse JSON API bulk response from Clicksign: %w", err)
 	}
 
@@ -207,13 +103,6 @@ func (s *RequirementService) CreateBulkRequirements(ctx context.Context, envelop
 			createdIDs = append(createdIDs, result.Data.ID)
 		}
 	}
-
-	s.logger.WithFields(logrus.Fields{
-		"envelope_id":       envelopeID,
-		"created_count":     len(createdIDs),
-		"requirement_ids":   createdIDs,
-		"correlation_id":    correlationID,
-	}).Info("Bulk requirements created successfully in Clicksign envelope using atomic operations")
 
 	return createdIDs, nil
 }

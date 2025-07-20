@@ -140,47 +140,15 @@ func (u *UsecaseDocumentService) UploadToClicksign(document *entity.EntityDocume
 	correlationID := fmt.Sprintf("doc_%d_%d", document.ID, document.CreatedAt.Unix())
 	ctx = context.WithValue(ctx, "correlation_id", correlationID)
 
-	if u.logger != nil {
-		u.logger.WithFields(logrus.Fields{
-			"document_id":    document.ID,
-			"document_name":  document.Name,
-			"is_from_base64": document.IsFromBase64,
-			"correlation_id": correlationID,
-		}).Info("Starting document upload to Clicksign")
-	}
-
 	clicksignDocID, err := u.documentService.UploadDocument(ctx, document)
 	if err != nil {
-		if u.logger != nil {
-			u.logger.WithFields(logrus.Fields{
-				"error":          err.Error(),
-				"document_id":    document.ID,
-				"correlation_id": correlationID,
-			}).Error("Failed to upload document to Clicksign")
-		}
 		return "", fmt.Errorf("failed to upload document to Clicksign: %w", err)
 	}
 
 	// Atualizar documento com a chave do Clicksign
 	document.SetClicksignKey(clicksignDocID)
 	if err := u.repositoryDocument.Update(document); err != nil {
-		if u.logger != nil {
-			u.logger.WithFields(logrus.Fields{
-				"error":             err.Error(),
-				"document_id":       document.ID,
-				"clicksign_doc_id":  clicksignDocID,
-				"correlation_id":    correlationID,
-			}).Error("Failed to update document with Clicksign key")
-		}
 		return "", fmt.Errorf("failed to update document with Clicksign key: %w", err)
-	}
-
-	if u.logger != nil {
-		u.logger.WithFields(logrus.Fields{
-			"document_id":      document.ID,
-			"clicksign_doc_id": clicksignDocID,
-			"correlation_id":   correlationID,
-		}).Info("Document uploaded to Clicksign successfully")
 	}
 
 	return clicksignDocID, nil

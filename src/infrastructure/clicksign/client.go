@@ -89,11 +89,6 @@ func (c *ClicksignClient) doRequest(ctx context.Context, method, endpoint string
 		var err error
 		bodyBytes, err = json.Marshal(body)
 		if err != nil {
-			c.logger.WithFields(logrus.Fields{
-				"error":    err.Error(),
-				"endpoint": endpoint,
-				"method":   method,
-			}).Error("Failed to marshal request body")
 			return nil, &ClicksignError{
 				Type:     ErrorTypeSerialization,
 				Message:  "failed to marshal request body",
@@ -108,13 +103,6 @@ func (c *ClicksignClient) doRequest(ctx context.Context, method, endpoint string
 		if attempt > 0 {
 			// Backoff exponencial: 100ms, 200ms, 400ms, 800ms...
 			backoffDuration := time.Duration(100*attempt*attempt) * time.Millisecond
-			c.logger.WithFields(logrus.Fields{
-				"attempt":        attempt,
-				"backoff_ms":     backoffDuration.Milliseconds(),
-				"method":         method,
-				"endpoint":       endpoint,
-				"correlation_id": ctx.Value("correlation_id"),
-			}).Info("Retrying HTTP request to Clicksign API")
 
 			select {
 			case <-ctx.Done():
@@ -182,11 +170,6 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
-		c.logger.WithFields(logrus.Fields{
-			"error":  err.Error(),
-			"method": method,
-			"url":    url,
-		}).Error("Failed to create HTTP request")
 		return nil, &ClicksignError{
 			Type:     ErrorTypeClient,
 			Message:  "failed to create HTTP request",
@@ -203,25 +186,10 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 		req.Header.Set("X-Correlation-ID", correlationID.(string))
 	}
 
-	c.logger.WithFields(logrus.Fields{
-		"method":         method,
-		"url":            url,
-		"content_type":   "application/vnd.api+json",
-		"correlation_id": correlationID,
-	}).Info("Making HTTP request to Clicksign API using JSON API format")
 
-	startTime := time.Now()
 	resp, err := c.httpClient.Do(req)
-	duration := time.Since(startTime)
 
 	if err != nil {
-		c.logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"method":         method,
-			"url":            url,
-			"duration_ms":    duration.Milliseconds(),
-			"correlation_id": correlationID,
-		}).Error("HTTP request failed")
 
 		// Categorizar tipos de erro
 		errorType := c.categorizeError(err)
@@ -232,25 +200,7 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 		}
 	}
 
-	c.logger.WithFields(logrus.Fields{
-		"method":         method,
-		"url":            url,
-		"status_code":    resp.StatusCode,
-		"duration_ms":    duration.Milliseconds(),
-		"correlation_id": correlationID,
-	}).Info("HTTP request completed")
 
-	// Verificar códigos de status HTTP para erros específicos
-	if resp.StatusCode >= 400 {
-		errorType := c.categorizeHTTPError(resp.StatusCode)
-		c.logger.WithFields(logrus.Fields{
-			"status_code":    resp.StatusCode,
-			"error_type":     errorType,
-			"method":         method,
-			"url":            url,
-			"correlation_id": correlationID,
-		}).Warn("HTTP request returned error status")
-	}
 
 	return resp, nil
 }
