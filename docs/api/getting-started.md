@@ -133,7 +133,7 @@ curl -X PUT https://api.ms-docsigner.com/api/v1/documents/1 \
 
 ### Passo 4: Criar Envelope
 
-Você pode criar envelopes de duas formas:
+Você pode criar envelopes de três formas, incluindo o novo suporte a requirements de assinatura:
 
 #### Opção A: Envelope com Documentos Existentes (IDs)
 
@@ -164,7 +164,14 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
     "message": "Favor assinar o contrato conforme acordado.",
     "deadline_at": "2025-08-15T23:59:59Z",
     "remind_interval": 3,
-    "auto_close": true
+    "auto_close": true,
+    "requirements": [
+      {
+        "action": "sign",
+        "role": "sign",
+        "auth": "email"
+      }
+    ]
   }'
 ```
 
@@ -203,11 +210,56 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
     "message": "Favor assinar o contrato conforme acordado.",
     "deadline_at": "2025-08-15T23:59:59Z",
     "remind_interval": 3,
-    "auto_close": true
+    "auto_close": true,
+    "requirements": [
+      {
+        "action": "sign",
+        "role": "sign",
+        "auth": "email"
+      },
+      {
+        "action": "provide_evidence",
+        "role": "sign",
+        "auth": "icp_brasil"
+      }
+    ]
   }'
 ```
 
-**⚠️ IMPORTANTE:** Use **OU** `documents_ids` **OU** `documents`, nunca ambos na mesma requisição.
+#### Opção C: Gerenciar Requirements Separadamente ⭐ **NOVA FUNCIONALIDADE**
+
+Você também pode criar requirements específicos para um envelope após sua criação:
+
+```bash
+# Criar requirement básico de assinatura
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/requirements \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "action": "sign",
+    "role": "sign",
+    "auth": "email"
+  }'
+
+# Criar requirement com evidência ICP-Brasil
+curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/requirements \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "action": "provide_evidence",
+    "role": "sign",
+    "auth": "icp_brasil",
+    "document_id": "doc_123",
+    "signer_id": "signer_456"
+  }'
+```
+
+**⚠️ IMPORTANTE:** 
+- Use **OU** `documents_ids` **OU** `documents`, nunca ambos na mesma requisição
+- Requirements podem ser criados tanto durante a criação do envelope quanto separadamente
+- Action `provide_evidence` **obrigatoriamente** requer campo `auth`
 
 **Response de Sucesso:**
 ```json
@@ -248,7 +300,33 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes \
 
 **⚠️ Guarde o `id` do envelope para ativação!**
 
-### Passo 5: Gerenciar Signatários (Opcional) ⭐ **NOVA FUNCIONALIDADE**
+### Passo 5: Gerenciar Requirements (Opcional) ⭐ **NOVA FUNCIONALIDADE**
+
+Você pode consultar e gerenciar requirements criados:
+
+#### Listar Requirements do Envelope
+
+```bash
+curl -X GET https://api.ms-docsigner.com/api/v1/envelopes/123/requirements \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Correlation-ID: getting-started-001"
+```
+
+#### Atualizar Requirement
+
+```bash
+curl -X PUT https://api.ms-docsigner.com/api/v1/requirements/1 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: getting-started-001" \
+  -d '{
+    "action": "provide_evidence",
+    "auth": "icp_brasil",
+    "status": "completed"
+  }'
+```
+
+### Passo 6: Gerenciar Signatários (Opcional) ⭐ **NOVA FUNCIONALIDADE**
 
 Se você criou o envelope apenas com `signatory_emails` (método antigo), pode adicionar signatários completos separadamente:
 
@@ -299,7 +377,7 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/send \
   -H "X-Correlation-ID: getting-started-001"
 ```
 
-### Passo 6: Ativar Envelope para Assinatura
+### Passo 7: Ativar Envelope para Assinatura
 
 Ative o envelope para iniciar o processo de assinatura:
 
@@ -328,7 +406,7 @@ curl -X POST https://api.ms-docsigner.com/api/v1/envelopes/123/activate \
 }
 ```
 
-### Passo 7: Monitorar Status do Envelope
+### Passo 8: Monitorar Status do Envelope
 
 Consulte periodicamente o status do envelope:
 
@@ -340,11 +418,11 @@ curl -X GET https://api.ms-docsigner.com/api/v1/envelopes/123 \
 
 ---
 
-## Fluxo Simplificado com Documentos Base64 ⭐ **NOVO**
+## Fluxo Simplificado com Documentos Base64 e Requirements ⭐ **NOVO**
 
-### Cenário: Assinatura Rápida em Uma Só Requisição
+### Cenário: Assinatura Rápida com Requirements Específicos
 
-O novo fluxo permite criar envelope e documentos simultaneamente, ideal para integrações frontend:
+O novo fluxo permite criar envelope, documentos e requirements simultaneamente, ideal para integrações frontend:
 
 ```bash
 #!/bin/bash
@@ -354,10 +432,10 @@ API_BASE="https://api.ms-docsigner.com"
 TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 CORRELATION_ID="simplified-workflow-$(date +%s)"
 
-echo "🚀 Iniciando fluxo simplificado de assinatura..."
+echo "🚀 Iniciando fluxo simplificado de assinatura com requirements..."
 
-# Criar envelope com documentos base64 em uma única operação
-echo "📦 Criando envelope com documento base64..."
+# Criar envelope com documentos base64 e requirements em uma única operação
+echo "📦 Criando envelope com documento base64 e requirements específicos..."
 ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -388,7 +466,19 @@ ENVELOPE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes" \
     ],
     "message": "Por favor, assinem este contrato de prestação de serviços.",
     "remind_interval": 3,
-    "auto_close": false
+    "auto_close": false,
+    "requirements": [
+      {
+        "action": "sign",
+        "role": "sign",
+        "auth": "email"
+      },
+      {
+        "action": "provide_evidence",
+        "role": "sign",
+        "auth": "icp_brasil"
+      }
+    ]
   }')
 
 ENVELOPE_ID=$(echo $ENVELOPE_RESPONSE | jq -r '.id')
@@ -406,7 +496,7 @@ ACTIVATE_RESPONSE=$(curl -s -X POST "$API_BASE/api/v1/envelopes/$ENVELOPE_ID/act
 STATUS=$(echo $ACTIVATE_RESPONSE | jq -r '.status')
 echo "✅ Envelope ativado! Status: $STATUS"
 
-echo "🎉 Pronto! Documentos criados no Clicksign e processo de assinatura iniciado."
+echo "🎉 Pronto! Documentos criados no Clicksign com requirements específicos e processo de assinatura iniciado."
 ```
 
 ### Vantagens do Fluxo Simplificado:
@@ -418,6 +508,9 @@ echo "🎉 Pronto! Documentos criados no Clicksign e processo de assinatura inic
 5. **Performance** - Reduz latência e complexidade
 6. **Signatários completos** - Inclui dados detalhados dos signatários desde o início
 7. **Integração direta com Clicksign** - Signatários são automaticamente sincronizados
+8. **Requirements automáticos** - Configura automaticamente requisitos de assinatura e autenticação
+9. **Controle granular** - Suporte a diferentes tipos de ação (sign, agree, provide_evidence)
+10. **Conformidade** - Suporte a certificação ICP-Brasil para maior segurança jurídica
 
 ---
 
@@ -684,9 +777,11 @@ Após dominar o fluxo básico, explore:
 
 1. **[Documentação completa da API de Documentos](./documents.md)**
 2. **[Documentação completa da API de Envelopes](./clicksign-envelopes.md)**
-3. **Webhooks** para notificações em tempo real
-4. **Integração com sistemas de notificação**
-5. **Monitoramento de performance** e métricas
+3. **Requirements avançados** - Configuração de requirements específicos por documento e signatário
+4. **Webhooks** para notificações em tempo real
+5. **Integração com sistemas de notificação**
+6. **Monitoramento de performance** e métricas
+7. **Certificação ICP-Brasil** para máxima conformidade legal
 
 ---
 

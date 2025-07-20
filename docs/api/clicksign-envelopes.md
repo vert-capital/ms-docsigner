@@ -25,6 +25,7 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
 | `documents` | array[object] | Condicional | Documentos base64 para criação simultânea |
 | `signatory_emails` | array[string] | Condicional | E-mails dos signatários (compatibilidade) |
 | `signatories` | array[object] | Condicional | Signatários completos com dados detalhados ⭐ **NOVO** |
+| `requirements` | array[object] | Não | Requirements de assinatura para aplicar automaticamente ⭐ **NOVO** |
 | `message` | string | Não | Mensagem personalizada para signatários |
 | `deadline_at` | string | Não | Prazo para assinatura (ISO 8601) |
 | `remind_interval` | integer | Não | Intervalo de lembrete em dias (padrão: 3) |
@@ -57,6 +58,16 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
 | `group` | integer | Não | Grupo de assinatura para ordem específica |
 | `communicate_events` | object | Não | Configurações de notificação do signatário |
 
+#### Objeto `requirements` (para criação com requirements automáticos) ⭐ **NOVA FUNCIONALIDADE**
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `action` | string | Sim | Tipo de ação: "sign", "agree", "provide_evidence" |
+| `role` | string | Sim | Papel do signatário: "sign" |
+| `auth` | string | Condicional | Método de autenticação: "email", "icp_brasil" (obrigatório para provide_evidence) |
+| `document_id` | string | Não | ID do documento no Clicksign |
+| `signer_id` | string | Não | ID do signatário no Clicksign |
+
 ### Exemplos de Request
 
 #### Opção A: Criação com Documentos Existentes (IDs)
@@ -84,7 +95,19 @@ Cria um novo envelope no Clicksign com documentos associados e signatários.
   "message": "Favor assinar o contrato conforme acordado.",
   "deadline_at": "2025-08-15T23:59:59Z",
   "remind_interval": 3,
-  "auto_close": true
+  "auto_close": true,
+  "requirements": [
+    {
+      "action": "sign",
+      "role": "sign",
+      "auth": "email"
+    },
+    {
+      "action": "provide_evidence",
+      "role": "sign",
+      "auth": "icp_brasil"
+    }
+  ]
 }
 ```
 
@@ -385,6 +408,165 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - `401` - Não autorizado
 - `404` - Envelope não encontrado
 - `500` - Erro interno ou falha na ativação
+
+---
+
+## 🆕 Gerenciamento de Requirements (Requisitos de Assinatura)
+
+### 1. Criar Requirement para Envelope
+`POST /api/v1/envelopes/{envelope_id}/requirements`
+
+Adiciona um novo requirement (requisito de assinatura) a um envelope existente.
+
+#### Parâmetros da URL
+- `envelope_id` (integer): ID do envelope
+
+#### Parâmetros do Request
+```json
+{
+  "action": "sign",
+  "role": "sign", 
+  "auth": "email",
+  "document_id": "doc_123",
+  "signer_id": "signer_456"
+}
+```
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `action` | string | Sim | Tipo de ação: "sign", "agree", "provide_evidence" |
+| `role` | string | Sim | Papel do signatário: "sign" |
+| `auth` | string | Condicional | Método de autenticação: "email", "icp_brasil" (obrigatório para provide_evidence) |
+| `document_id` | string | Não | ID do documento no Clicksign |
+| `signer_id` | string | Não | ID do signatário no Clicksign |
+
+#### Response de Sucesso (201)
+```json
+{
+  "id": 1,
+  "envelope_id": 123,
+  "clicksign_key": "req_12345678-1234-1234-1234-123456789012",
+  "action": "sign",
+  "role": "sign",
+  "auth": "email",
+  "document_id": "doc_123",
+  "signer_id": "signer_456",
+  "status": "pending",
+  "created_at": "2025-07-20T10:00:00Z",
+  "updated_at": "2025-07-20T10:00:00Z"
+}
+```
+
+### 2. Listar Requirements do Envelope
+`GET /api/v1/envelopes/{envelope_id}/requirements`
+
+Lista todos os requirements de um envelope específico.
+
+#### Response de Sucesso (200)
+```json
+{
+  "requirements": [
+    {
+      "id": 1,
+      "envelope_id": 123,
+      "clicksign_key": "req_12345678-1234-1234-1234-123456789012",
+      "action": "sign",
+      "role": "sign",
+      "auth": "email",
+      "document_id": "doc_123",
+      "signer_id": "signer_456",
+      "status": "pending",
+      "created_at": "2025-07-20T10:00:00Z",
+      "updated_at": "2025-07-20T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+### 3. Obter Requirement Específico
+`GET /api/v1/requirements/{requirement_id}`
+
+Retorna detalhes de um requirement específico.
+
+### 4. Atualizar Requirement
+`PUT /api/v1/requirements/{requirement_id}`
+
+Atualiza informações de um requirement existente.
+
+#### Parâmetros do Request
+```json
+{
+  "action": "provide_evidence",
+  "auth": "icp_brasil",
+  "status": "completed"
+}
+```
+
+### 5. Remover Requirement
+`DELETE /api/v1/requirements/{requirement_id}`
+
+Remove um requirement do envelope.
+
+#### Response de Sucesso (200)
+```json
+{
+  "message": "Requirement deletado com sucesso"
+}
+```
+
+### Criação de Envelope com Requirements Automáticos ⭐ **NOVA FUNCIONALIDADE**
+
+Agora você pode criar envelopes e requirements simultaneamente usando o campo `requirements` no payload de criação de envelope:
+
+```json
+{
+  "name": "Contrato com Requirements Específicos",
+  "description": "Contrato com requisitos de assinatura personalizados",
+  "documents_ids": [1, 2],
+  "signatories": [
+    {
+      "name": "Cliente ABC",
+      "email": "cliente@abc.com",
+      "refusable": true
+    }
+  ],
+  "requirements": [
+    {
+      "action": "sign",
+      "role": "sign",
+      "auth": "email",
+      "document_id": "doc_123",
+      "signer_id": "signer_456"
+    },
+    {
+      "action": "provide_evidence",
+      "role": "sign", 
+      "auth": "icp_brasil",
+      "document_id": "doc_124",
+      "signer_id": "signer_456"
+    }
+  ],
+  "deadline_at": "2025-08-15T23:59:59Z"
+}
+```
+
+### Tipos de Requirements
+
+#### Actions Disponíveis
+- **`agree`**: Requisito de concordância/aceite
+- **`sign`**: Requisito de assinatura digital
+- **`provide_evidence`**: Requisito de fornecimento de evidência (requer autenticação)
+
+#### Métodos de Autenticação
+- **`email`**: Autenticação via email (padrão)
+- **`icp_brasil`**: Certificado digital ICP-Brasil
+
+#### Validações de Negócio
+- Action `provide_evidence` **obrigatoriamente** requer campo `auth`
+- Role atualmente suporta apenas `sign`
+- `document_id` e `signer_id` devem referenciar recursos válidos no Clicksign
+- Envelope deve existir antes de criar requirements
 
 ---
 

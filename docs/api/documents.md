@@ -347,9 +347,9 @@ curl -X GET "https://api.ms-docsigner.com/api/v1/documents?status=ready" \
 
 ---
 
-## Integração com Envelopes
+## Integração com Envelopes e Requirements
 
-Após criar e preparar documentos, eles podem ser utilizados na criação de envelopes:
+Após criar e preparar documentos, eles podem ser utilizados na criação de envelopes e associados a requirements específicos de assinatura:
 
 ### Método Tradicional (Separado)
 
@@ -377,6 +377,14 @@ POST /api/v1/envelopes
       "name": "Empresa ABC",
       "email": "empresa@example.com",
       "refusable": false
+    }
+  ],
+  "requirements": [
+    {
+      "action": "sign",
+      "role": "sign",
+      "auth": "email",
+      "document_id": "doc_123"
     }
   ]
 }
@@ -408,6 +416,18 @@ POST /api/v1/envelopes
       "email": "empresa@example.com",
       "refusable": false
     }
+  ],
+  "requirements": [
+    {
+      "action": "sign",
+      "role": "sign",
+      "auth": "email"
+    },
+    {
+      "action": "provide_evidence",
+      "role": "sign",
+      "auth": "icp_brasil"
+    }
   ]
 }
 ```
@@ -417,6 +437,8 @@ POST /api/v1/envelopes
 - Operação completamente atômica
 - Ideal para aplicações frontend
 - Reduz latência e complexidade
+- Requirements aplicados automaticamente
+- Suporte completo a diferentes tipos de assinatura
 
 ---
 
@@ -469,6 +491,8 @@ Todas as operações incluem:
 - Logs estruturados com contexto
 - Métricas de performance
 - Limpeza automática de arquivos temporários
+- Integração com sistema de requirements para controle de assinatura
+- Suporte a múltiplos tipos de autenticação (email, ICP-Brasil)
 
 ### Header de Correlação
 
