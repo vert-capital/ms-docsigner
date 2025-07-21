@@ -26,9 +26,10 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 	t.Run("should create signatory successfully", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		signatory := &entity.EntitySignatory{
@@ -40,7 +41,8 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 		// Mock expectations
 		mockEnvelopeRepo.EXPECT().
 			GetByID(1).
-			Return(envelope, nil)
+			Return(envelope, nil).
+			Times(2) // Será chamado duas vezes durante a validação
 
 		mockSignatoryRepo.EXPECT().
 			GetByEmailAndEnvelopeID("john.doe@example.com", 1).
@@ -117,9 +119,10 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 	t.Run("should fail when email already exists in envelope", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		existingSignatory := &entity.EntitySignatory{
@@ -156,9 +159,10 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 	t.Run("should fail when envelope has too many signatories", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		// Create 50 existing signatories
@@ -268,9 +272,10 @@ func TestUsecaseSignatoryService_GetSignatoriesByEnvelope(t *testing.T) {
 	t.Run("should get signatories by envelope successfully", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		signatories := []entity.EntitySignatory{
@@ -340,9 +345,10 @@ func TestUsecaseSignatoryService_UpdateSignatory(t *testing.T) {
 	t.Run("should update signatory successfully", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		existingSignatory := &entity.EntitySignatory{
@@ -456,9 +462,10 @@ func TestUsecaseSignatoryService_DeleteSignatory(t *testing.T) {
 	t.Run("should delete signatory successfully", func(t *testing.T) {
 		// Arrange
 		envelope := &entity.EntityEnvelope{
-			ID:     1,
-			Name:   "Test Envelope",
-			Status: "draft",
+			ID:           1,
+			Name:         "Test Envelope",
+			Status:       "draft",
+			ClicksignKey: "test-envelope-key",
 		}
 
 		signatory := &entity.EntitySignatory{

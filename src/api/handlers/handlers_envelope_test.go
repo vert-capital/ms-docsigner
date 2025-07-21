@@ -82,9 +82,19 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 
 	// Configurar expectativas do mock
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", nil).
+		AnyTimes()
 
 	// Preparar request
 	jsonData, err := json.Marshal(requestDTO)
@@ -176,9 +186,19 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 
 	// Configurar expectativas dos mocks
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", nil).
+		AnyTimes()
 
 	mockUsecaseSignatory.EXPECT().
 		CreateSignatory(gomock.Any()).
@@ -250,7 +270,7 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 
 	// Mock falha na criação do envelope
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(nil, fmt.Errorf("database error")).
 		Times(1)
 
@@ -329,7 +349,7 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 
 	// Mock envelope criado com sucesso, mas signatory falha
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
 
@@ -586,7 +606,7 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 	}
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
 
@@ -658,7 +678,7 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 	}
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
 

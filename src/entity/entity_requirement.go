@@ -11,7 +11,7 @@ type EntityRequirement struct {
 	EnvelopeID   int       `json:"envelope_id" gorm:"not null;index" validate:"required"`
 	ClicksignKey string    `json:"clicksign_key" gorm:"index"`
 	Action       string    `json:"action" gorm:"not null" validate:"required,oneof=agree sign provide_evidence"`
-	Role         string    `json:"role" gorm:"not null;validate:"omitempty,oneof=sign"`
+	Role         string    `json:"role" gorm:"not null" validate:"omitempty,oneof=sign"`
 	Auth         *string   `json:"auth" validate:"omitempty,oneof=email icp_brasil"`
 	DocumentID   *string   `json:"document_id" gorm:"index"`
 	SignerID     *string   `json:"signer_id" gorm:"index"`
