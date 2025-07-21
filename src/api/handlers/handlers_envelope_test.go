@@ -113,7 +113,6 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 	// Executar handler
 	handler.CreateEnvelopeHandler(c)
 
-
 	// Verificar response
 	assert.Equal(t, http.StatusCreated, w.Code)
 
@@ -145,9 +144,8 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 
 	// Request DTO com signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
+		Name:        "Test Envelope",
+		Description: "Test Description",
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory",
@@ -165,14 +163,13 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 
 	// Mock entities esperadas
 	expectedEnvelope := &entity.EntityEnvelope{
-		ID:              1,
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		Status:          "draft",
-		ClicksignKey:    "test-key",
-		SignatoryEmails: []string{"test@example.com"},
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		ID:           1,
+		Name:         "Test Envelope",
+		Description:  "Test Description",
+		Status:       "draft",
+		ClicksignKey: "test-key",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	expectedSignatory := &entity.EntitySignatory{

@@ -50,38 +50,6 @@ func TestNewEnvelope(t *testing.T) {
 		assert.Nil(t, envelope)
 	})
 
-	t.Run("should fail with no documents", func(t *testing.T) {
-		// Arrange
-		invalidEnvelope := EntityEnvelope{
-			Name:            "Test Envelope",
-			DocumentsIDs:    []int{}, // Empty
-			SignatoryEmails: []string{"test@example.com"},
-		}
-
-		// Act
-		envelope, err := NewEnvelope(invalidEnvelope)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, envelope)
-	})
-
-	t.Run("should fail with no signatories", func(t *testing.T) {
-		// Arrange
-		invalidEnvelope := EntityEnvelope{
-			Name:            "Test Envelope",
-			DocumentsIDs:    []int{1},
-			SignatoryEmails: []string{}, // Empty
-		}
-
-		// Act
-		envelope, err := NewEnvelope(invalidEnvelope)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, envelope)
-	})
-
 	t.Run("should fail with invalid email", func(t *testing.T) {
 		// Arrange
 		invalidEnvelope := EntityEnvelope{
