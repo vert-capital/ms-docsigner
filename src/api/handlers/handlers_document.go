@@ -53,18 +53,12 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-		"endpoint":       "POST /api/v1/documents",
-	}).Info("Creating document request received")
+	h.Logger.Info("Creating document request received")
 
 	var requestDTO dtos.DocumentCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"correlation_id": correlationID,
-		}).Error("Invalid request payload")
+		h.Logger.Error("Invalid request payload")
 
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
@@ -77,10 +71,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	// Validação customizada do DTO
 	if err := requestDTO.Validate(); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"correlation_id": correlationID,
-		}).Error("Custom validation failed")
+		h.Logger.Error("Custom validation failed")
 
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
@@ -100,18 +91,12 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	// Processar base64 ou file_path
 	if requestDTO.FileContentBase64 != "" {
-		h.Logger.WithFields(logrus.Fields{
-			"correlation_id": correlationID,
-			"document_name":  requestDTO.Name,
-		}).Info("Processing document from base64")
+		h.Logger.Info("Processing document from base64")
 
 		// Processar base64
 		fileInfo, base64Err := utils.DecodeBase64File(requestDTO.FileContentBase64)
 		if base64Err != nil {
-			h.Logger.WithFields(logrus.Fields{
-				"error":          base64Err.Error(),
-				"correlation_id": correlationID,
-			}).Error("Failed to process base64 content")
+			h.Logger.Error("Failed to process base64 content")
 
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Invalid base64",
@@ -123,11 +108,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		// Validar MIME type
 		if validateErr := utils.ValidateMimeType(fileInfo.MimeType); validateErr != nil {
 			utils.CleanupTempFile(fileInfo.TempPath)
-			h.Logger.WithFields(logrus.Fields{
-				"error":          validateErr.Error(),
-				"mime_type":      fileInfo.MimeType,
-				"correlation_id": correlationID,
-			}).Error("Unsupported MIME type")
+			h.Logger.Error("Unsupported MIME type")
 
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Unsupported file type",
@@ -142,12 +123,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		document.IsFromBase64 = true
 		tempPath = fileInfo.TempPath
 
-		h.Logger.WithFields(logrus.Fields{
-			"temp_path":      fileInfo.TempPath,
-			"file_size":      fileInfo.Size,
-			"mime_type":      fileInfo.MimeType,
-			"correlation_id": correlationID,
-		}).Info("Base64 file processed successfully")
+		h.Logger.Info("Base64 file processed successfully")
 
 	} else {
 		// Usar file_path tradicional
@@ -156,37 +132,23 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		document.MimeType = requestDTO.MimeType
 		document.IsFromBase64 = false
 
-		h.Logger.WithFields(logrus.Fields{
-			"file_path":      requestDTO.FilePath,
-			"correlation_id": correlationID,
-		}).Info("Processing document from file path")
+		h.Logger.Info("Processing document from file path")
 	}
 
 	// Limpar arquivo temporário em caso de erro ou sucesso
 	if tempPath != "" {
 		defer func() {
 			if cleanupErr := utils.CleanupTempFile(tempPath); cleanupErr != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"error":          cleanupErr.Error(),
-					"temp_path":      tempPath,
-					"correlation_id": correlationID,
-				}).Warn("Failed to cleanup temporary file")
+				h.Logger.Warn("Failed to cleanup temporary file")
 			} else {
-				h.Logger.WithFields(logrus.Fields{
-					"temp_path":      tempPath,
-					"correlation_id": correlationID,
-				}).Debug("Temporary file cleaned up successfully")
+				h.Logger.Debug("Temporary file cleaned up successfully")
 			}
 		}()
 	}
 
 	err = h.UsecaseDocument.Create(document)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_name":  requestDTO.Name,
-			"correlation_id": correlationID,
-		}).Error("Failed to create document")
+		h.Logger.Error("Failed to create document")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -200,12 +162,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	responseDTO := h.mapEntityToResponse(document)
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    document.ID,
-		"document_name":  document.Name,
-		"is_from_base64": document.IsFromBase64,
-		"correlation_id": correlationID,
-	}).Info("Document created successfully")
+	h.Logger.Info("Document created successfully")
 
 	jsonResponse(c, http.StatusCreated, responseDTO)
 }
@@ -231,11 +188,7 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid document ID")
+		h.Logger.Error("Invalid document ID")
 
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
@@ -244,18 +197,11 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    id,
-		"correlation_id": correlationID,
-	}).Info("Getting document request received")
+	h.Logger.Info("Getting document request received")
 
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_id":    id,
-			"correlation_id": correlationID,
-		}).Error("Failed to get document")
+		h.Logger.Error("Failed to get document")
 
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
@@ -266,11 +212,7 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 
 	responseDTO := h.mapEntityToResponse(document)
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    document.ID,
-		"document_name":  document.Name,
-		"correlation_id": correlationID,
-	}).Info("Document retrieved successfully")
+	h.Logger.Info("Document retrieved successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -294,9 +236,7 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-	}).Info("Getting documents list request received")
+	h.Logger.Info("Getting documents list request received")
 
 	var filters entity.EntityDocumentFilters
 	filters.Search = c.Query("search")
@@ -305,11 +245,7 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 
 	documents, err := h.UsecaseDocument.GetDocuments(filters)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"filters":        filters,
-			"correlation_id": correlationID,
-		}).Error("Failed to get documents")
+		h.Logger.Error("Failed to get documents")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -328,10 +264,7 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 		Total:     len(responseDTOs),
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"documents_count": len(documents),
-		"correlation_id":  correlationID,
-	}).Info("Documents retrieved successfully")
+	h.Logger.Info("Documents retrieved successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -359,11 +292,7 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid document ID")
+		h.Logger.Error("Invalid document ID")
 
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
@@ -372,17 +301,11 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    id,
-		"correlation_id": correlationID,
-	}).Info("Updating document request received")
+	h.Logger.Info("Updating document request received")
 
 	var requestDTO dtos.DocumentUpdateRequestDTO
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"correlation_id": correlationID,
-		}).Error("Invalid request payload")
+		h.Logger.Error("Invalid request payload")
 
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
@@ -395,11 +318,7 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_id":    id,
-			"correlation_id": correlationID,
-		}).Error("Document not found")
+		h.Logger.Error("Document not found")
 
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
@@ -417,11 +336,7 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 	if requestDTO.Status != nil {
 		err := document.SetStatus(*requestDTO.Status)
 		if err != nil {
-			h.Logger.WithFields(logrus.Fields{
-				"error":          err.Error(),
-				"status":         *requestDTO.Status,
-				"correlation_id": correlationID,
-			}).Error("Invalid status transition")
+			h.Logger.Error("Invalid status transition")
 
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Invalid status",
@@ -433,11 +348,7 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 
 	err = h.UsecaseDocument.Update(document)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_id":    id,
-			"correlation_id": correlationID,
-		}).Error("Failed to update document")
+		h.Logger.Error("Failed to update document")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -451,11 +362,7 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 
 	responseDTO := h.mapEntityToResponse(document)
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    document.ID,
-		"document_name":  document.Name,
-		"correlation_id": correlationID,
-	}).Info("Document updated successfully")
+	h.Logger.Info("Document updated successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -481,11 +388,7 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid document ID")
+		h.Logger.Error("Invalid document ID")
 
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
@@ -494,18 +397,11 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    id,
-		"correlation_id": correlationID,
-	}).Info("Deleting document request received")
+	h.Logger.Info("Deleting document request received")
 
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_id":    id,
-			"correlation_id": correlationID,
-		}).Error("Document not found")
+		h.Logger.Error("Document not found")
 
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
@@ -516,11 +412,7 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 
 	err = h.UsecaseDocument.Delete(document)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"document_id":    id,
-			"correlation_id": correlationID,
-		}).Error("Failed to delete document")
+		h.Logger.Error("Failed to delete document")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -532,10 +424,7 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"document_id":    id,
-		"correlation_id": correlationID,
-	}).Info("Document deleted successfully")
+	h.Logger.Info("Document deleted successfully")
 
 	jsonResponse(c, http.StatusOK, gin.H{"message": "Documento deletado com sucesso"})
 }
