@@ -32,7 +32,9 @@ func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID s
 	// Fazer chamada para API do Clicksign usando o endpoint correto para requisitos
 	endpoint := fmt.Sprintf("/api/v3/envelopes/%s/requirements", envelopeID)
 	resp, err := s.clicksignClient.Post(ctx, endpoint, createRequest)
+
 	if err != nil {
+		// Log the error with more context
 		return "", fmt.Errorf("failed to create requirement in Clicksign envelope: %w", err)
 	}
 	defer resp.Body.Close()
@@ -40,7 +42,7 @@ func (s *RequirementService) CreateRequirement(ctx context.Context, envelopeID s
 	// Ler resposta
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response from Clicksign: %w", err)
+		return "", fmt.Errorf("failed to read response from Clicksign: %w body: %s", err, body)
 	}
 
 	// Verificar se houve erro na resposta

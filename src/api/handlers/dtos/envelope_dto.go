@@ -14,6 +14,7 @@ type EnvelopeCreateRequestDTO struct {
 	SignatoryEmails []string                     `json:"signatory_emails,omitempty"`
 	Signatories     []EnvelopeSignatoryRequest   `json:"signatories,omitempty"`
 	Requirements    []EnvelopeRequirementRequest `json:"requirements,omitempty"`
+	Qualifiers      []EnvelopeRequirementRequest `json:"qualifiers,omitempty"` // Qualificadores para o envelope, como "sign", "agree", etc.
 	Message         string                       `json:"message,omitempty" binding:"max=500"`
 	DeadlineAt      *time.Time                   `json:"deadline_at,omitempty"`
 	RemindInterval  int                          `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`

@@ -212,7 +212,40 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					SignerID:     &signatory.ClicksignKey,
 					Action:       requirementRequest.Action,
 					Role:         requirementRequest.Role,
-					Auth:         requirementRequest.Auth,
+					Auth:         nil,
+				})
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"envelope_id":    createdEnvelope.ID,
+						},
+					})
+					return
+				}
+			}
+		}
+	}
+
+	// cria os qualificadores se fornecidos no request
+	if len(requestDTO.Qualifiers) > 0 {
+		for i, qualifierRequest := range requestDTO.Qualifiers {
+			signatory := createdSignatories[i]
+
+			for _, document := range documents {
+				// Converter RequirementCreateRequest para EntityRequirement
+
+				_, err := h.UsecaseRequirement.CreateRequirement(c.Request.Context(), &entity.EntityRequirement{
+					EnvelopeID:   createdEnvelope.ID,
+					ClicksignKey: createdEnvelope.ClicksignKey,
+					DocumentID:   &document.ClicksignKey,
+					SignerID:     &signatory.ClicksignKey,
+					Action:       qualifierRequest.Action,
+					Role:         "",
+					Auth:         qualifierRequest.Auth,
 				})
 
 				if err != nil {
