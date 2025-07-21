@@ -17,10 +17,11 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise in tests
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should create signatory successfully", func(t *testing.T) {
 		// Arrange
@@ -206,10 +207,11 @@ func TestUsecaseSignatoryService_GetSignatory(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should get signatory successfully", func(t *testing.T) {
 		// Arrange
@@ -257,10 +259,11 @@ func TestUsecaseSignatoryService_GetSignatoriesByEnvelope(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should get signatories by envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -328,10 +331,11 @@ func TestUsecaseSignatoryService_UpdateSignatory(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should update signatory successfully", func(t *testing.T) {
 		// Arrange
@@ -443,10 +447,11 @@ func TestUsecaseSignatoryService_DeleteSignatory(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should delete signatory successfully", func(t *testing.T) {
 		// Arrange
@@ -537,10 +542,11 @@ func TestUsecaseSignatoryService_AssociateToEnvelope(t *testing.T) {
 
 	mockSignatoryRepo := mocks.NewMockIRepositorySignatory(ctrl)
 	mockEnvelopeRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
+	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, logger)
+	service := NewUsecaseSignatoryService(mockSignatoryRepo, mockEnvelopeRepo, mockClicksignClient, logger)
 
 	t.Run("should associate signatory to envelope successfully", func(t *testing.T) {
 		// Arrange

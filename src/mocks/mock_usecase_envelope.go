@@ -6,6 +6,7 @@ package mocks
 
 import (
 	entity "app/entity"
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -49,6 +50,21 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) ActivateEnvelope(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).ActivateEnvelope), arg0)
 }
 
+// CreateDocument mocks base method.
+func (m *MockIUsecaseEnvelope) CreateDocument(arg0 context.Context, arg1 string, arg2 *entity.EntityDocument) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDocument", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateDocument indicates an expected call of CreateDocument.
+func (mr *MockIUsecaseEnvelopeMockRecorder) CreateDocument(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDocument", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateDocument), arg0, arg1, arg2)
+}
+
 // CreateEnvelope mocks base method.
 func (m *MockIUsecaseEnvelope) CreateEnvelope(arg0 *entity.EntityEnvelope) (*entity.EntityEnvelope, error) {
 	m.ctrl.T.Helper()
@@ -77,6 +93,21 @@ func (m *MockIUsecaseEnvelope) CreateEnvelopeWithDocuments(arg0 *entity.EntityEn
 func (mr *MockIUsecaseEnvelopeMockRecorder) CreateEnvelopeWithDocuments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEnvelopeWithDocuments", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateEnvelopeWithDocuments), arg0, arg1)
+}
+
+// CreateEnvelopeWithRequirements mocks base method.
+func (m *MockIUsecaseEnvelope) CreateEnvelopeWithRequirements(arg0 context.Context, arg1 *entity.EntityEnvelope, arg2 []*entity.EntityRequirement) (*entity.EntityEnvelope, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEnvelopeWithRequirements", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*entity.EntityEnvelope)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEnvelopeWithRequirements indicates an expected call of CreateEnvelopeWithRequirements.
+func (mr *MockIUsecaseEnvelopeMockRecorder) CreateEnvelopeWithRequirements(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEnvelopeWithRequirements", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateEnvelopeWithRequirements), arg0, arg1, arg2)
 }
 
 // DeleteEnvelope mocks base method.

@@ -164,10 +164,7 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO "Erro interno"
 // @Router /api/v1/documents/{id} [get]
 func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -209,10 +206,7 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO "Erro interno"
 // @Router /api/v1/documents [get]
 func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	var filters entity.EntityDocumentFilters
 	filters.Search = c.Query("search")

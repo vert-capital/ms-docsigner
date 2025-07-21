@@ -23,6 +23,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 type SignatoryHandlers struct {
 	UsecaseSignatory signatory.IUsecaseSignatory
 	UsecaseEnvelope  envelope.IUsecaseEnvelope
@@ -139,10 +140,7 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes/{id}/signatories [get]
 func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
@@ -192,10 +190,7 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/signatories/{id} [get]
 func (h *SignatoryHandlers) GetSignatoryHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -455,7 +450,7 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 		}
 
 		// Criar contexto com correlation ID
-		ctx := context.WithValue(context.Background(), "correlation_id", correlationID)
+		ctx := context.WithValue(context.Background(), correlationIDKey, correlationID)
 
 		// Enviar para Clicksign
 		_, err := signerService.CreateSigner(ctx, envelope.ClicksignKey, signerData)

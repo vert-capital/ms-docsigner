@@ -13,7 +13,6 @@ import (
 	"app/infrastructure/repository"
 	"app/pkg/utils"
 	"app/usecase/document"
-	usecase_document "app/usecase/document"
 	"app/usecase/envelope"
 	"app/usecase/requirement"
 	"app/usecase/signatory"
@@ -130,7 +129,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	}
 
 	// cria o envelope com documentos base64
-	if documents != nil && len(documents) > 0 {
+	if len(documents) > 0 {
 
 		for _, doc := range documents {
 
@@ -271,10 +270,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes/{id} [get]
 func (h *EnvelopeHandlers) GetEnvelopeHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -313,10 +309,7 @@ func (h *EnvelopeHandlers) GetEnvelopeHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes [get]
 func (h *EnvelopeHandlers) GetEnvelopesHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	var filters entity.EntityEnvelopeFilters
 	filters.Search = c.Query("search")
@@ -529,7 +522,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
 
 	// Criar usecase de documento para envelopes com documentos base64
-	usecaseDocument := usecase_document.NewUsecaseDocumentServiceWithClicksign(
+	usecaseDocument := document.NewUsecaseDocumentServiceWithClicksign(
 		repository.NewRepositoryDocument(conn),
 		clicksignClient,
 		logger,

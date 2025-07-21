@@ -120,3 +120,18 @@ func (mr *MockIUsecaseDocumentMockRecorder) Update(arg0 interface{}) *gomock.Cal
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockIUsecaseDocument)(nil).Update), arg0)
 }
+
+// UploadToClicksign mocks base method.
+func (m *MockIUsecaseDocument) UploadToClicksign(arg0 *entity.EntityDocument) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadToClicksign", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadToClicksign indicates an expected call of UploadToClicksign.
+func (mr *MockIUsecaseDocumentMockRecorder) UploadToClicksign(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadToClicksign", reflect.TypeOf((*MockIUsecaseDocument)(nil).UploadToClicksign), arg0)
+}

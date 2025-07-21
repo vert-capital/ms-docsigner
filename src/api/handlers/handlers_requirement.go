@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+
 type RequirementHandlers struct {
 	UsecaseRequirement requirement.IUsecaseRequirement
 	Logger             *logrus.Logger
@@ -44,7 +45,7 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
-	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+	ctx := context.WithValue(c.Request.Context(), correlationIDKey, correlationID)
 
 	// Parse envelope_id from URL
 	envelopeIDParam := c.Param("id")
@@ -146,7 +147,7 @@ func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
-	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+	ctx := context.WithValue(c.Request.Context(), correlationIDKey, correlationID)
 
 	// Parse envelope_id from URL
 	envelopeIDParam := c.Param("id")
@@ -203,7 +204,7 @@ func (h *RequirementHandlers) GetRequirementHandler(c *gin.Context) {
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
-	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+	ctx := context.WithValue(c.Request.Context(), correlationIDKey, correlationID)
 
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")
@@ -262,7 +263,7 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
-	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+	ctx := context.WithValue(c.Request.Context(), correlationIDKey, correlationID)
 
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")
@@ -348,7 +349,7 @@ func (h *RequirementHandlers) DeleteRequirementHandler(c *gin.Context) {
 	if correlationID == "" {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
-	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+	ctx := context.WithValue(c.Request.Context(), correlationIDKey, correlationID)
 
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")

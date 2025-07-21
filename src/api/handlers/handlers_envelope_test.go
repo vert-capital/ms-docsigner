@@ -24,13 +24,17 @@ func TestNewEnvelopeHandler(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockUsecaseEnvelope, handler.UsecaseEnvelope)
+	assert.Equal(t, mockUsecaseDocument, handler.UsecaseDocuments)
+	assert.Equal(t, mockUsecaseRequirement, handler.UsecaseRequirement)
 	assert.Equal(t, mockUsecaseSignatory, handler.UsecaseSignatory)
 	assert.Equal(t, logger, handler.Logger)
 }
@@ -42,11 +46,13 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO sem signatários (compatibilidade retroativa)
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -119,11 +125,13 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -219,11 +227,13 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -279,11 +289,13 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -361,11 +373,13 @@ func TestCreateEnvelopeHandler_ValidationErrors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com dados inválidos
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -409,11 +423,13 @@ func TestCreateEnvelopeHandler_DuplicateSignatoryEmails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com emails duplicados de signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -535,11 +551,13 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel)
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -606,11 +624,13 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel)
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
