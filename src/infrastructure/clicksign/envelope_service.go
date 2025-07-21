@@ -9,6 +9,7 @@ import (
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
 	"app/usecase/clicksign"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,10 +27,8 @@ func NewEnvelopeService(clicksignClient clicksign.ClicksignClientInterface, logg
 
 func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.EntityEnvelope) (string, string, error) {
 
-
 	// Mapear entidade para DTO do Clicksign
 	createRequest := s.mapEntityToCreateRequest(envelope)
-
 
 	// Fazer chamada para API do Clicksign
 	resp, err := s.clicksignClient.Post(ctx, "/api/v3/envelopes", createRequest)
@@ -51,26 +50,22 @@ func (s *EnvelopeService) CreateEnvelope(ctx context.Context, envelope *entity.E
 			return "", "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
-
 		return "", "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
 	// Preservar dados brutos antes do parse
 	rawData := string(body)
-	
+
 	// Fazer parse da resposta de sucesso usando estrutura JSON API
 	var createResponse dto.EnvelopeCreateResponseWrapper
 	if err := json.Unmarshal(body, &createResponse); err != nil {
 		return "", "", fmt.Errorf("failed to parse JSON API response from Clicksign: %w", err)
 	}
 
-
-
 	return createResponse.Data.ID, rawData, nil
 }
 
 func (s *EnvelopeService) GetEnvelope(ctx context.Context, clicksignKey string) (*dto.EnvelopeGetResponse, error) {
-
 
 	endpoint := fmt.Sprintf("/api/v3/envelopes/%s", clicksignKey)
 	resp, err := s.clicksignClient.Get(ctx, endpoint)
@@ -92,7 +87,6 @@ func (s *EnvelopeService) GetEnvelope(ctx context.Context, clicksignKey string) 
 			return nil, fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
-
 		return nil, fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
@@ -102,15 +96,19 @@ func (s *EnvelopeService) GetEnvelope(ctx context.Context, clicksignKey string) 
 		return nil, fmt.Errorf("failed to parse response from Clicksign: %w", err)
 	}
 
-
 	return &getResponse, nil
 }
 
 func (s *EnvelopeService) ActivateEnvelope(ctx context.Context, clicksignKey string) error {
 
-
-	updateRequest := dto.EnvelopeUpdateRequest{
-		Status: stringPtr("running"),
+	updateRequest := dto.EnvelopeUpdateRequestWrapper{
+		Data: dto.EnvelopeUpdateRequestWrapperData{
+			ID:   clicksignKey,
+			Type: "envelopes",
+			Attributes: dto.EnvelopeUpdateRequestWrapperAttributes{
+				Status: "running",
+			},
+		},
 	}
 
 	endpoint := fmt.Sprintf("/api/v3/envelopes/%s", clicksignKey)
@@ -133,10 +131,8 @@ func (s *EnvelopeService) ActivateEnvelope(ctx context.Context, clicksignKey str
 			return fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
-
 		return fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
-
 
 	return nil
 }

@@ -9,8 +9,8 @@ type EnvelopeCreateRequestWrapper struct {
 
 // EnvelopeCreateData representa a seção "data" da estrutura JSON API
 type EnvelopeCreateData struct {
-	Type       string                    `json:"type"`
-	Attributes EnvelopeCreateAttributes  `json:"attributes"`
+	Type       string                   `json:"type"`
+	Attributes EnvelopeCreateAttributes `json:"attributes"`
 }
 
 // EnvelopeCreateAttributes representa os atributos do envelope dentro da estrutura JSON API
@@ -41,8 +41,8 @@ type EnvelopeCreateResponseWrapper struct {
 
 // EnvelopeCreateResponseData representa a seção "data" da resposta JSON API
 type EnvelopeCreateResponseData struct {
-	Type       string                         `json:"type"`
-	ID         string                         `json:"id"`
+	Type       string                           `json:"type"`
+	ID         string                           `json:"id"`
 	Attributes EnvelopeCreateResponseAttributes `json:"attributes"`
 }
 
@@ -83,6 +83,19 @@ type EnvelopeUpdateRequest struct {
 	DefaultSubject *string    `json:"default_subject,omitempty"`
 }
 
+type EnvelopeUpdateRequestWrapper struct {
+	Data EnvelopeUpdateRequestWrapperData `json:"data"`
+}
+type EnvelopeUpdateRequestWrapperAttributes struct {
+	Status     string `json:"status"`
+	DeadlineAt string `json:"deadline_at"`
+}
+type EnvelopeUpdateRequestWrapperData struct {
+	ID         string                                 `json:"id"`
+	Type       string                                 `json:"type"`
+	Attributes EnvelopeUpdateRequestWrapperAttributes `json:"attributes"`
+}
+
 // EnvelopeGetResponse representa a resposta da API do Clicksign para consulta de envelope
 type EnvelopeGetResponse struct {
 	ID             string     `json:"id"`
@@ -106,16 +119,16 @@ type DocumentCreateRequestWrapper struct {
 
 // DocumentCreateData representa a seção "data" da estrutura JSON API para criação de documento
 type DocumentCreateData struct {
-	Type       string                    `json:"type"`
-	Attributes DocumentCreateAttributes  `json:"attributes"`
+	Type       string                   `json:"type"`
+	Attributes DocumentCreateAttributes `json:"attributes"`
 }
 
 // DocumentCreateAttributes representa os atributos do documento para criação conforme Postman Collection
 type DocumentCreateAttributes struct {
-	Filename      string                   `json:"filename"`
-	ContentBase64 string                   `json:"content_base64,omitempty"`
-	Template      *DocumentTemplate        `json:"template,omitempty"`
-	Metadata      *DocumentMetadata        `json:"metadata,omitempty"`
+	Filename      string            `json:"filename"`
+	ContentBase64 string            `json:"content_base64,omitempty"`
+	Template      *DocumentTemplate `json:"template,omitempty"`
+	Metadata      *DocumentMetadata `json:"metadata,omitempty"`
 }
 
 // DocumentTemplate representa a estrutura para documentos criados via template
@@ -137,8 +150,8 @@ type DocumentUploadRequestWrapper struct {
 
 // DocumentUploadData representa a seção "data" da estrutura JSON API para upload (DEPRECATED)
 type DocumentUploadData struct {
-	Type       string                    `json:"type"`
-	Attributes DocumentUploadAttributes  `json:"attributes"`
+	Type       string                   `json:"type"`
+	Attributes DocumentUploadAttributes `json:"attributes"`
 }
 
 // DocumentUploadAttributes representa os atributos do documento para upload (DEPRECATED)
@@ -155,8 +168,8 @@ type DocumentCreateResponseWrapper struct {
 
 // DocumentCreateResponseData representa a seção "data" da resposta JSON API para criação
 type DocumentCreateResponseData struct {
-	Type       string                         `json:"type"`
-	ID         string                         `json:"id"`
+	Type       string                           `json:"type"`
+	ID         string                           `json:"id"`
 	Attributes DocumentCreateResponseAttributes `json:"attributes"`
 }
 
@@ -176,27 +189,27 @@ type SignerCreateRequestWrapper struct {
 
 // SignerCreateData representa a seção "data" da estrutura JSON API para criação de signatário
 type SignerCreateData struct {
-	Type       string               `json:"type"`
+	Type       string                 `json:"type"`
 	Attributes SignerCreateAttributes `json:"attributes"`
 }
 
 // SignerCreateAttributes representa os atributos do signatário conforme Postman Collection
 type SignerCreateAttributes struct {
-	Name              string                      `json:"name"`
-	Email             string                      `json:"email"`
-	Birthday          string                      `json:"birthday,omitempty"`
-	PhoneNumber       *string                     `json:"phone_number,omitempty"`
-	HasDocumentation  bool                        `json:"has_documentation"`
-	Refusable         bool                        `json:"refusable"`
-	Group             int                         `json:"group"`
-	CommunicateEvents *SignerCommunicateEvents    `json:"communicate_events,omitempty"`
+	Name              string                   `json:"name"`
+	Email             string                   `json:"email"`
+	Birthday          string                   `json:"birthday,omitempty"`
+	PhoneNumber       *string                  `json:"phone_number,omitempty"`
+	HasDocumentation  bool                     `json:"has_documentation"`
+	Refusable         bool                     `json:"refusable"`
+	Group             int                      `json:"group"`
+	CommunicateEvents *SignerCommunicateEvents `json:"communicate_events,omitempty"`
 }
 
 // SignerCommunicateEvents representa as configurações de comunicação do signatário
 type SignerCommunicateEvents struct {
-	DocumentSigned     string `json:"document_signed,omitempty"`
-	SignatureRequest   string `json:"signature_request,omitempty"`
-	SignatureReminder  string `json:"signature_reminder,omitempty"`
+	DocumentSigned    string `json:"document_signed,omitempty"`
+	SignatureRequest  string `json:"signature_request,omitempty"`
+	SignatureReminder string `json:"signature_reminder,omitempty"`
 }
 
 // SignerCreateResponseWrapper representa a resposta JSON API para criação de signatário
@@ -206,8 +219,8 @@ type SignerCreateResponseWrapper struct {
 
 // SignerCreateResponseData representa a seção "data" da resposta JSON API para criação de signatário
 type SignerCreateResponseData struct {
-	Type       string                       `json:"type"`
-	ID         string                       `json:"id"`
+	Type       string                         `json:"type"`
+	ID         string                         `json:"id"`
 	Attributes SignerCreateResponseAttributes `json:"attributes"`
 }
 
@@ -232,17 +245,17 @@ type DocumentUploadResponseWrapper struct {
 
 // DocumentUploadResponseData representa a seção "data" da resposta JSON API (DEPRECATED)
 type DocumentUploadResponseData struct {
-	Type       string                        `json:"type"`
-	ID         string                        `json:"id"`
+	Type       string                           `json:"type"`
+	ID         string                           `json:"id"`
 	Attributes DocumentUploadResponseAttributes `json:"attributes"`
 }
 
 // DocumentUploadResponseAttributes representa os atributos do documento na resposta (DEPRECATED)
 type DocumentUploadResponseAttributes struct {
-	Filename    string `json:"filename"`
-	ContentType string `json:"content_type"`
-	Filesize    int64  `json:"filesize"`
-	Path        string `json:"path"`
+	Filename    string    `json:"filename"`
+	ContentType string    `json:"content_type"`
+	Filesize    int64     `json:"filesize"`
+	Path        string    `json:"path"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -254,7 +267,7 @@ type RequirementCreateRequestWrapper struct {
 
 // RequirementCreateData representa a seção "data" da estrutura JSON API para requisito
 type RequirementCreateData struct {
-	Type          string                     `json:"type"`
+	Type          string                      `json:"type"`
 	Attributes    RequirementCreateAttributes `json:"attributes"`
 	Relationships *RequirementRelationships   `json:"relationships,omitempty"`
 }
@@ -290,10 +303,10 @@ type RequirementCreateResponseWrapper struct {
 
 // RequirementCreateResponseData representa a seção "data" da resposta JSON API para requisito
 type RequirementCreateResponseData struct {
-	Type          string                           `json:"type"`
-	ID            string                           `json:"id"`
+	Type          string                              `json:"type"`
+	ID            string                              `json:"id"`
 	Attributes    RequirementCreateResponseAttributes `json:"attributes"`
-	Relationships *RequirementRelationships         `json:"relationships,omitempty"`
+	Relationships *RequirementRelationships           `json:"relationships,omitempty"`
 }
 
 // RequirementCreateResponseAttributes representa os atributos do requisito na resposta
@@ -312,9 +325,9 @@ type BulkRequirementsRequestWrapper struct {
 
 // AtomicOperation representa uma operação atômica conforme JSON API spec
 type AtomicOperation struct {
-	Op   string                   `json:"op"`
-	Ref  *AtomicOperationRef      `json:"ref,omitempty"`
-	Data *RequirementCreateData   `json:"data,omitempty"`
+	Op   string                 `json:"op"`
+	Ref  *AtomicOperationRef    `json:"ref,omitempty"`
+	Data *RequirementCreateData `json:"data,omitempty"`
 }
 
 // AtomicOperationRef representa a referência para operações de remoção
@@ -336,10 +349,10 @@ type AtomicResult struct {
 // ClicksignErrorResponse representa a estrutura de erro da API do Clicksign
 type ClicksignErrorResponse struct {
 	Error struct {
-		Type       string                 `json:"type"`
-		Message    string                 `json:"message"`
+		Type       string         `json:"type"`
+		Message    string         `json:"message"`
 		Details    map[string]any `json:"details,omitempty"`
-		Code       string                 `json:"code,omitempty"`
-		StatusCode int                    `json:"status_code,omitempty"`
+		Code       string         `json:"code,omitempty"`
+		StatusCode int            `json:"status_code,omitempty"`
 	} `json:"error"`
 }
