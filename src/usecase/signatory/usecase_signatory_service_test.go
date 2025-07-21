@@ -60,9 +60,14 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 			Create(gomock.Any()).
 			Return(nil)
 
+		mockResponse := &http.Response{
+			StatusCode: 201,
+			Body:       io.NopCloser(bytes.NewBufferString(`{"data":{"id":"test-signer-id","type":"signers"}}`)),
+		}
+		
 		mockClicksignClient.EXPECT().
 			Post(context.Background(), "/api/v3/envelopes/test-envelope-key/signers", gomock.Any()).
-			Return([]byte(`{"data":{"id":"test-signer-id","type":"signers"}}`), nil)
+			Return(mockResponse, nil)
 
 		mockSignatoryRepo.EXPECT().
 			Update(gomock.Any()).
