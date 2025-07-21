@@ -1,6 +1,10 @@
 package signatory
 
 import (
+	"bytes"
+	"context"
+	"io"
+	"net/http"
 	"testing"
 
 	"app/entity"
@@ -54,6 +58,14 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 
 		mockSignatoryRepo.EXPECT().
 			Create(gomock.Any()).
+			Return(nil)
+
+		mockClicksignClient.EXPECT().
+			Post(context.Background(), "/api/v3/envelopes/test-envelope-key/signers", gomock.Any()).
+			Return([]byte(`{"data":{"id":"test-signer-id","type":"signers"}}`), nil)
+
+		mockSignatoryRepo.EXPECT().
+			Update(gomock.Any()).
 			Return(nil)
 
 		// Act

@@ -296,7 +296,7 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Internal server error", errorResponse.Error)
-	assert.Equal(t, "Failed to create envelope", errorResponse.Message)
+	assert.Equal(t, "Failed to create envelope: database error", errorResponse.Message)
 }
 
 func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
@@ -317,7 +317,6 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
 		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory",
@@ -334,20 +333,29 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	}
 
 	expectedEnvelope := &entity.EntityEnvelope{
-		ID:              1,
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		Status:          "draft",
-		ClicksignKey:    "test-key",
-		SignatoryEmails: []string{"test@example.com"},
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		ID:           1,
+		Name:         "Test Envelope",
+		Description:  "Test Description",
+		Status:       "draft",
+		ClicksignKey: "test-key",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	// Mock envelope criado com sucesso, mas signatory falha
 	mockUsecaseEnvelope.EXPECT().
 		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
+		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
 		Times(1)
 
 	mockUsecaseSignatory.EXPECT().
@@ -380,7 +388,7 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Internal server error", errorResponse.Error)
-	assert.Contains(t, errorResponse.Message, "Failed to create signatory 1")
+	assert.Contains(t, errorResponse.Message, "duplicate email")
 }
 
 func TestCreateEnvelopeHandler_ValidationErrors(t *testing.T) {
@@ -450,9 +458,8 @@ func TestCreateEnvelopeHandler_DuplicateSignatoryEmails(t *testing.T) {
 
 	// Request DTO com emails duplicados de signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
+		Name:        "Test Envelope",
+		Description: "Test Description",
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory 1",
@@ -607,6 +614,16 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 		Return(expectedEnvelope, nil).
 		Times(1)
 
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
+		Times(1)
+
 	jsonData, err := json.Marshal(requestDTO)
 	assert.NoError(t, err)
 
@@ -677,6 +694,16 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 	mockUsecaseEnvelope.EXPECT().
 		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
+		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
 		Times(1)
 
 	jsonData, err := json.Marshal(requestDTO)
