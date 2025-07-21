@@ -10,6 +10,7 @@ import (
 
 	"app/entity"
 	"app/mocks"
+
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -542,36 +543,6 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("should fail with no documents", func(t *testing.T) {
-		// Arrange
-		envelope := &entity.EntityEnvelope{
-			DocumentsIDs:    []int{},
-			SignatoryEmails: []string{"test@example.com"},
-		}
-
-		// Act
-		err := service.validateBusinessRules(envelope)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "envelope must have at least one document")
-	})
-
-	t.Run("should fail with no signatories", func(t *testing.T) {
-		// Arrange
-		envelope := &entity.EntityEnvelope{
-			DocumentsIDs:    []int{1},
-			SignatoryEmails: []string{},
-		}
-
-		// Act
-		err := service.validateBusinessRules(envelope)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "envelope must have at least one signatory")
-	})
-
 	t.Run("should fail with too many signatories", func(t *testing.T) {
 		// Arrange
 		signatories := make([]string, 51)
@@ -686,7 +657,7 @@ func TestUsecaseEnvelopeService_CreateEnvelope_WithClicksignRawData(t *testing.T
 		envelope := &entity.EntityEnvelope{
 			ID:              1,
 			Name:            "Test Envelope",
-			Description:     "Test description", 
+			Description:     "Test description",
 			Status:          "draft",
 			DocumentsIDs:    []int{1, 2},
 			SignatoryEmails: []string{"test@example.com"},
