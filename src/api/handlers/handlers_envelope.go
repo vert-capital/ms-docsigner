@@ -12,8 +12,8 @@ import (
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
 	"app/pkg/utils"
-	"app/usecase/envelope"
 	usecase_document "app/usecase/document"
+	"app/usecase/envelope"
 	"app/usecase/requirement"
 	"app/usecase/signatory"
 
@@ -54,13 +54,9 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.Info("Creating envelope request received")
-
 	var requestDTO dtos.EnvelopeCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.Error("Invalid request payload")
-
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -72,8 +68,6 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 
 	// Validação customizada do DTO
 	if err := requestDTO.Validate(); err != nil {
-		h.Logger.Error("Custom validation failed")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
 			Message: err.Error(),
@@ -84,8 +78,6 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	// Converter DTO para entidade
 	envelope, documents, err := h.mapCreateRequestToEntity(requestDTO)
 	if err != nil {
-		h.Logger.Error("Failed to map request to entity")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid request",
 			Message: err.Error(),
@@ -117,10 +109,8 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		// Criar envelope com IDs de documentos existentes
 		createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelope(envelope)
 	}
-	
-	if err != nil {
-		h.Logger.Error("Failed to create envelope")
 
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to create envelope",
@@ -131,34 +121,28 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Envelope created successfully")
-
 	// Criar signatários se fornecidos no request
 	var createdSignatories []entity.EntitySignatory
 	if len(requestDTO.Signatories) > 0 {
-		h.Logger.Info("Creating signatories for envelope")
-
 		for i, signatoryRequest := range requestDTO.Signatories {
 			// Converter EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
 			signatoryDTO := signatoryRequest.ToSignatoryCreateRequestDTO(createdEnvelope.ID)
-			
+
 			// Converter DTO para entidade
 			signatoryEntity := signatoryDTO.ToEntity()
-			
+
 			// Criar signatário através do use case
 			createdSignatory, sigErr := h.UsecaseSignatory.CreateSignatory(&signatoryEntity)
 			if sigErr != nil {
-				h.Logger.Error("Failed to create signatory, rolling back envelope")
-
 				// FIXME: Rollback automático de envelope não implementado
 				// Considerar implementação futura de transação distribuída
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
 					Message: fmt.Sprintf("Failed to create signatory %d: %v. ATENÇÃO: Envelope %d foi criado mas signatários falharam", i+1, sigErr, createdEnvelope.ID),
 					Details: map[string]interface{}{
-						"correlation_id":     correlationID,
-						"envelope_id":        createdEnvelope.ID,
-						"failed_signatory":   i + 1,
+						"correlation_id":      correlationID,
+						"envelope_id":         createdEnvelope.ID,
+						"failed_signatory":    i + 1,
 						"partial_transaction": true,
 					},
 				})
@@ -166,24 +150,19 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 			}
 
 			createdSignatories = append(createdSignatories, *createdSignatory)
-			
-			h.Logger.Info("Signatory created successfully")
 		}
 
-		h.Logger.Info("All signatories created successfully")
 	}
 
 	// Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(createdEnvelope, createdSignatories)
 
 	// Log da persistência dos dados brutos do Clicksign
-	rawDataPersisted := createdEnvelope.ClicksignRawData != nil
-	var rawDataSize int
-	if rawDataPersisted {
-		rawDataSize = len(*createdEnvelope.ClicksignRawData)
-	}
-
-	h.Logger.Info("Envelope created successfully with Clicksign raw data persistence")
+	// rawDataPersisted := createdEnvelope.ClicksignRawData != nil
+	// var rawDataSize int
+	// if rawDataPersisted {
+	// 	rawDataSize = len(*createdEnvelope.ClicksignRawData)
+	// }
 
 	c.JSON(http.StatusCreated, responseDTO)
 }
@@ -208,8 +187,6 @@ func (h *EnvelopeHandlers) GetEnvelopeHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Error("Invalid envelope ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Envelope ID must be a valid integer",
@@ -217,12 +194,8 @@ func (h *EnvelopeHandlers) GetEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Getting envelope request received")
-
 	envelope, err := h.UsecaseEnvelope.GetEnvelope(id)
 	if err != nil {
-		h.Logger.Error("Failed to get envelope")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Envelope not found",
 			Message: "The requested envelope does not exist",
@@ -231,8 +204,6 @@ func (h *EnvelopeHandlers) GetEnvelopeHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(envelope)
-
-	h.Logger.Info("Envelope retrieved successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -255,8 +226,6 @@ func (h *EnvelopeHandlers) GetEnvelopesHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.Info("Getting envelopes list request received")
-
 	var filters entity.EntityEnvelopeFilters
 	filters.Search = c.Query("search")
 	filters.Status = c.Query("status")
@@ -264,8 +233,6 @@ func (h *EnvelopeHandlers) GetEnvelopesHandler(c *gin.Context) {
 
 	envelopes, err := h.UsecaseEnvelope.GetEnvelopes(filters)
 	if err != nil {
-		h.Logger.Error("Failed to get envelopes")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to retrieve envelopes",
@@ -274,8 +241,6 @@ func (h *EnvelopeHandlers) GetEnvelopesHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEnvelopeListToResponse(envelopes)
-
-	h.Logger.Info("Envelopes retrieved successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -301,8 +266,6 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Error("Invalid envelope ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Envelope ID must be a valid integer",
@@ -310,12 +273,8 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Activating envelope request received")
-
 	envelope, err := h.UsecaseEnvelope.ActivateEnvelope(id)
 	if err != nil {
-		h.Logger.Error("Failed to activate envelope")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to activate envelope",
@@ -327,8 +286,6 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(envelope)
-
-	h.Logger.Info("Envelope activated successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -367,7 +324,7 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 	}
 
 	var documents []*entity.EntityDocument
-	
+
 	// Processar documentos base64 se fornecidos
 	for _, docRequest := range dto.Documents {
 		// Processar base64

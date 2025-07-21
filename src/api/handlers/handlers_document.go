@@ -53,13 +53,9 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.Info("Creating document request received")
-
 	var requestDTO dtos.DocumentCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.Error("Invalid request payload")
-
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -71,8 +67,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	// Validação customizada do DTO
 	if err := requestDTO.Validate(); err != nil {
-		h.Logger.Error("Custom validation failed")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
 			Message: err.Error(),
@@ -91,12 +85,9 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	// Processar base64 ou file_path
 	if requestDTO.FileContentBase64 != "" {
-		h.Logger.Info("Processing document from base64")
-
 		// Processar base64
 		fileInfo, base64Err := utils.DecodeBase64File(requestDTO.FileContentBase64)
 		if base64Err != nil {
-			h.Logger.Error("Failed to process base64 content")
 
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Invalid base64",
@@ -108,7 +99,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		// Validar MIME type
 		if validateErr := utils.ValidateMimeType(fileInfo.MimeType); validateErr != nil {
 			utils.CleanupTempFile(fileInfo.TempPath)
-			h.Logger.Error("Unsupported MIME type")
 
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Unsupported file type",
@@ -123,8 +113,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		document.IsFromBase64 = true
 		tempPath = fileInfo.TempPath
 
-		h.Logger.Info("Base64 file processed successfully")
-
 	} else {
 		// Usar file_path tradicional
 		document.FilePath = requestDTO.FilePath
@@ -132,7 +120,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 		document.MimeType = requestDTO.MimeType
 		document.IsFromBase64 = false
 
-		h.Logger.Info("Processing document from file path")
 	}
 
 	// Limpar arquivo temporário em caso de erro ou sucesso
@@ -148,7 +135,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 
 	err = h.UsecaseDocument.Create(document)
 	if err != nil {
-		h.Logger.Error("Failed to create document")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -161,8 +147,6 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(document)
-
-	h.Logger.Info("Document created successfully")
 
 	jsonResponse(c, http.StatusCreated, responseDTO)
 }
@@ -188,7 +172,6 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Error("Invalid document ID")
 
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
@@ -197,11 +180,8 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Getting document request received")
-
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.Error("Failed to get document")
 
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
@@ -211,8 +191,6 @@ func (h DocumentHandlers) GetDocumentHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(document)
-
-	h.Logger.Info("Document retrieved successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -236,8 +214,6 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 
-	h.Logger.Info("Getting documents list request received")
-
 	var filters entity.EntityDocumentFilters
 	filters.Search = c.Query("search")
 	filters.Status = c.Query("status")
@@ -245,7 +221,6 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 
 	documents, err := h.UsecaseDocument.GetDocuments(filters)
 	if err != nil {
-		h.Logger.Error("Failed to get documents")
 
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
@@ -263,8 +238,6 @@ func (h DocumentHandlers) GetDocumentsHandler(c *gin.Context) {
 		Documents: responseDTOs,
 		Total:     len(responseDTOs),
 	}
-
-	h.Logger.Info("Documents retrieved successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -292,8 +265,6 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Error("Invalid document ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Document ID must be a valid integer",
@@ -301,12 +272,8 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Updating document request received")
-
 	var requestDTO dtos.DocumentUpdateRequestDTO
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.Error("Invalid request payload")
-
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -318,8 +285,6 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.Error("Document not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
 			Message: "The requested document does not exist",
@@ -336,8 +301,6 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 	if requestDTO.Status != nil {
 		err := document.SetStatus(*requestDTO.Status)
 		if err != nil {
-			h.Logger.Error("Invalid status transition")
-
 			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 				Error:   "Invalid status",
 				Message: "Invalid status transition",
@@ -348,8 +311,6 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 
 	err = h.UsecaseDocument.Update(document)
 	if err != nil {
-		h.Logger.Error("Failed to update document")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to update document",
@@ -361,8 +322,6 @@ func (h DocumentHandlers) UpdateDocumentHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(document)
-
-	h.Logger.Info("Document updated successfully")
 
 	jsonResponse(c, http.StatusOK, responseDTO)
 }
@@ -388,8 +347,6 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Error("Invalid document ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Document ID must be a valid integer",
@@ -397,12 +354,8 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Info("Deleting document request received")
-
 	document, err := h.UsecaseDocument.GetDocument(id)
 	if err != nil {
-		h.Logger.Error("Document not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Document not found",
 			Message: "The requested document does not exist",
@@ -412,8 +365,6 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 
 	err = h.UsecaseDocument.Delete(document)
 	if err != nil {
-		h.Logger.Error("Failed to delete document")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to delete document",
@@ -423,8 +374,6 @@ func (h DocumentHandlers) DeleteDocumentHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	h.Logger.Info("Document deleted successfully")
 
 	jsonResponse(c, http.StatusOK, gin.H{"message": "Documento deletado com sucesso"})
 }
@@ -485,7 +434,7 @@ func (h DocumentHandlers) getValidationErrorMessage(fieldError validator.FieldEr
 func MountDocumentHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
 	// Inicializar cliente Clicksign
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
-	
+
 	documentHandlers := NewDocumentHandler(
 		usecase_document.NewUsecaseDocumentServiceWithClicksign(
 			repository.NewRepositoryDocument(conn),

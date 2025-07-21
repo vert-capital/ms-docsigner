@@ -46,14 +46,10 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	}
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
-	h.Logger.Info("Starting requirement creation request")
-
 	// Parse envelope_id from URL
 	envelopeIDParam := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDParam)
 	if err != nil {
-		h.Logger.Error("Failed to parse envelope_id parameter")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "envelope_id deve ser um número inteiro válido",
 			Error:   "invalid_envelope_id",
@@ -65,8 +61,6 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	// Parse request body
 	var request dtos.RequirementCreateRequestDTO
 	if err := c.ShouldBindJSON(&request); err != nil {
-		h.Logger.Error("Failed to bind request JSON")
-
 		validationErrors := h.extractValidationErrors(err)
 		if len(validationErrors) > 0 {
 			validationResponse := &dtos.ValidationErrorResponseDTO{
@@ -88,8 +82,6 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 
 	// Validate business rules
 	if err := request.Validate(); err != nil {
-		h.Logger.Error("Business rule validation failed")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: err.Error(),
 			Error:   "validation_error",
@@ -98,16 +90,12 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.Debug("Request validation completed successfully")
-
 	// Convert DTO to entity
 	requirementEntity := request.ToEntity(envelopeID)
 
 	// Create requirement
 	createdRequirement, err := h.UsecaseRequirement.CreateRequirement(ctx, requirementEntity)
 	if err != nil {
-		h.Logger.Error("Failed to create requirement")
-
 		// Check if it's a validation error (envelope not found, etc.)
 		if contains(err.Error(), "envelope not found") {
 			errorResponse := &dtos.ErrorResponseDTO{
@@ -139,8 +127,6 @@ func (h *RequirementHandlers) CreateRequirementHandler(c *gin.Context) {
 	responseDTO := &dtos.RequirementResponseDTO{}
 	response := responseDTO.FromEntity(createdRequirement)
 
-	h.Logger.Info("Requirement created successfully")
-
 	c.JSON(http.StatusCreated, response)
 }
 
@@ -162,14 +148,10 @@ func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	}
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
-	h.Logger.Info("Starting get requirements by envelope request")
-
 	// Parse envelope_id from URL
 	envelopeIDParam := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDParam)
 	if err != nil {
-		h.Logger.Error("Failed to parse envelope_id parameter")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "envelope_id deve ser um número inteiro válido",
 			Error:   "invalid_envelope_id",
@@ -181,8 +163,6 @@ func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	// Get requirements
 	requirements, err := h.UsecaseRequirement.GetRequirementsByEnvelopeID(ctx, envelopeID)
 	if err != nil {
-		h.Logger.Error("Failed to fetch requirements")
-
 		if contains(err.Error(), "envelope not found") {
 			errorResponse := &dtos.ErrorResponseDTO{
 				Message: "Envelope não encontrado",
@@ -203,8 +183,6 @@ func (h *RequirementHandlers) GetRequirementsByEnvelopeHandler(c *gin.Context) {
 	// Convert to response DTO
 	responseDTO := &dtos.RequirementListResponseDTO{}
 	response := responseDTO.FromEntityList(requirements)
-
-	h.Logger.Info("Requirements fetched successfully")
 
 	c.JSON(http.StatusOK, response)
 }
@@ -227,14 +205,10 @@ func (h *RequirementHandlers) GetRequirementHandler(c *gin.Context) {
 	}
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
-	h.Logger.Debug("Starting get requirement request")
-
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")
 	requirementID, err := strconv.Atoi(requirementIDParam)
 	if err != nil {
-		h.Logger.Error("Failed to parse requirement_id parameter")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "requirement_id deve ser um número inteiro válido",
 			Error:   "invalid_requirement_id",
@@ -246,8 +220,6 @@ func (h *RequirementHandlers) GetRequirementHandler(c *gin.Context) {
 	// Get requirement
 	requirement, err := h.UsecaseRequirement.GetRequirement(ctx, requirementID)
 	if err != nil {
-		h.Logger.Error("Failed to fetch requirement")
-
 		if contains(err.Error(), "failed to fetch requirement") {
 			errorResponse := &dtos.ErrorResponseDTO{
 				Message: "Requisito não encontrado",
@@ -268,8 +240,6 @@ func (h *RequirementHandlers) GetRequirementHandler(c *gin.Context) {
 	// Convert to response DTO
 	responseDTO := &dtos.RequirementResponseDTO{}
 	response := responseDTO.FromEntity(requirement)
-
-	h.Logger.Debug("Requirement fetched successfully")
 
 	c.JSON(http.StatusOK, response)
 }
@@ -294,14 +264,10 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	}
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
-	h.Logger.Info("Starting requirement update request")
-
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")
 	requirementID, err := strconv.Atoi(requirementIDParam)
 	if err != nil {
-		h.Logger.Error("Failed to parse requirement_id parameter")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "requirement_id deve ser um número inteiro válido",
 			Error:   "invalid_requirement_id",
@@ -313,8 +279,6 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	// Parse request body
 	var request dtos.RequirementUpdateRequestDTO
 	if err := c.ShouldBindJSON(&request); err != nil {
-		h.Logger.Error("Failed to bind request JSON")
-
 		validationErrors := h.extractValidationErrors(err)
 		if len(validationErrors) > 0 {
 			validationResponse := &dtos.ValidationErrorResponseDTO{
@@ -337,8 +301,6 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	// Get existing requirement
 	requirement, err := h.UsecaseRequirement.GetRequirement(ctx, requirementID)
 	if err != nil {
-		h.Logger.Error("Failed to fetch requirement for update")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "Requisito não encontrado",
 			Error:   "requirement_not_found",
@@ -355,8 +317,6 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	// Update requirement
 	updatedRequirement, err := h.UsecaseRequirement.UpdateRequirement(ctx, requirement)
 	if err != nil {
-		h.Logger.Error("Failed to update requirement")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "Falha ao atualizar requisito",
 			Error:   "update_failed",
@@ -368,8 +328,6 @@ func (h *RequirementHandlers) UpdateRequirementHandler(c *gin.Context) {
 	// Convert to response DTO
 	responseDTO := &dtos.RequirementResponseDTO{}
 	response := responseDTO.FromEntity(updatedRequirement)
-
-	h.Logger.Info("Requirement updated successfully")
 
 	c.JSON(http.StatusOK, response)
 }
@@ -392,14 +350,10 @@ func (h *RequirementHandlers) DeleteRequirementHandler(c *gin.Context) {
 	}
 	ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
 
-	h.Logger.Info("Starting requirement deletion request")
-
 	// Parse requirement_id from URL
 	requirementIDParam := c.Param("requirement_id")
 	requirementID, err := strconv.Atoi(requirementIDParam)
 	if err != nil {
-		h.Logger.Error("Failed to parse requirement_id parameter")
-
 		errorResponse := &dtos.ErrorResponseDTO{
 			Message: "requirement_id deve ser um número inteiro válido",
 			Error:   "invalid_requirement_id",
@@ -411,8 +365,6 @@ func (h *RequirementHandlers) DeleteRequirementHandler(c *gin.Context) {
 	// Delete requirement
 	err = h.UsecaseRequirement.DeleteRequirement(ctx, requirementID)
 	if err != nil {
-		h.Logger.Error("Failed to delete requirement")
-
 		if contains(err.Error(), "failed to fetch requirement for deletion") {
 			errorResponse := &dtos.ErrorResponseDTO{
 				Message: "Requisito não encontrado",
@@ -429,8 +381,6 @@ func (h *RequirementHandlers) DeleteRequirementHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errorResponse)
 		return
 	}
-
-	h.Logger.Info("Requirement deleted successfully")
 
 	c.Status(http.StatusNoContent)
 }
