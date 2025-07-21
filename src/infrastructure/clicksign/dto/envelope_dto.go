@@ -88,7 +88,7 @@ type EnvelopeUpdateRequestWrapper struct {
 }
 type EnvelopeUpdateRequestWrapperAttributes struct {
 	Status     string `json:"status"`
-	DeadlineAt string `json:"deadline_at"`
+	DeadlineAt string `json:"deadline_at,omitempty"`
 }
 type EnvelopeUpdateRequestWrapperData struct {
 	ID         string                                 `json:"id"`

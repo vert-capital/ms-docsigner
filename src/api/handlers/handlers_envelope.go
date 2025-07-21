@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -267,9 +268,10 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		// Ativar envelope se aprovado
 		createdEnvelope, err = h.UsecaseEnvelope.ActivateEnvelope(createdEnvelope.ID)
 		if err != nil {
+			log.Println("Failed to activate envelope____________________________:", err)
 			c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 				Error:   "Internal server error",
-				Message: fmt.Sprintf("Failed to activate envelope %d: %v", createdEnvelope.ID, err),
+				Message: fmt.Sprintf("Failed to activate envelope %v: %v", createdEnvelope.ClicksignKey, err),
 				Details: map[string]interface{}{
 					"correlation_id": correlationID,
 				},
