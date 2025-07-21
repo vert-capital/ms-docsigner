@@ -231,6 +231,21 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		}
 	}
 
+	if requestDTO.Approved {
+		// Ativar envelope se aprovado
+		createdEnvelope, err = h.UsecaseEnvelope.ActivateEnvelope(createdEnvelope.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+				Error:   "Internal server error",
+				Message: fmt.Sprintf("Failed to activate envelope %d: %v", createdEnvelope.ID, err),
+				Details: map[string]interface{}{
+					"correlation_id": correlationID,
+				},
+			})
+			return
+		}
+	}
+
 	// // Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(createdEnvelope, createdSignatories)
 
