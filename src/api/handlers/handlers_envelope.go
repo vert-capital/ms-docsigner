@@ -12,6 +12,7 @@ import (
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
 	"app/pkg/utils"
+	"app/usecase/document"
 	usecase_document "app/usecase/document"
 	"app/usecase/envelope"
 	"app/usecase/requirement"
@@ -24,16 +25,20 @@ import (
 )
 
 type EnvelopeHandlers struct {
-	UsecaseEnvelope  envelope.IUsecaseEnvelope
-	UsecaseSignatory signatory.IUsecaseSignatory
-	Logger           *logrus.Logger
+	UsecaseEnvelope    envelope.IUsecaseEnvelope
+	UsecaseDocuments   document.IUsecaseDocument
+	UsecaseRequirement requirement.IUsecaseRequirement
+	UsecaseSignatory   signatory.IUsecaseSignatory
+	Logger             *logrus.Logger
 }
 
-func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
+func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseDocuments document.IUsecaseDocument, usecaseRequirement requirement.IUsecaseRequirement, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
 	return &EnvelopeHandlers{
-		UsecaseEnvelope:  usecaseEnvelope,
-		UsecaseSignatory: usecaseSignatory,
-		Logger:           logger,
+		UsecaseEnvelope:    usecaseEnvelope,
+		UsecaseDocuments:   usecaseDocuments,
+		UsecaseRequirement: usecaseRequirement,
+		UsecaseSignatory:   usecaseSignatory,
+		Logger:             logger,
 	}
 }
 
@@ -102,23 +107,63 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 
 	// Criar envelope através do use case
 	var createdEnvelope *entity.EntityEnvelope
-	if len(documents) > 0 {
-		// Criar envelope com documentos base64
-		createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelopeWithDocuments(envelope, documents)
-	} else {
-		// Criar envelope com IDs de documentos existentes
-		createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelope(envelope)
-	}
+
+	createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelope(envelope)
+
+	// if len(documents) > 0 {
+	// 	// Criar envelope com documentos base64
+	// 	createdEnvelope, err = h.UsecaseEnvelope.CreateEnvelopeWithDocuments(envelope, documents)
+	// } else {
+	// 	// Criar envelope com IDs de documentos existentes
+
+	// }
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
-			Message: "Failed to create envelope",
+			Message: "Failed to create envelope: " + err.Error(),
 			Details: map[string]interface{}{
 				"correlation_id": correlationID,
 			},
 		})
 		return
+	}
+
+	// cria o envelope com documentos base64
+	if documents != nil && len(documents) > 0 {
+
+		for _, doc := range documents {
+
+			err := h.UsecaseDocuments.Create(doc)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+					Error:   "Internal server error",
+					Message: fmt.Sprintf("Failed to create document '%s': %v", doc.Name, err),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+					},
+				})
+				return
+			}
+			envelope.DocumentsIDs = append(envelope.DocumentsIDs, doc.ID)
+
+			doc.ClicksignKey, err = h.UsecaseEnvelope.CreateDocument(
+				c.Request.Context(),
+				createdEnvelope.ClicksignKey,
+				doc,
+			)
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+					Error:   "Internal server error",
+					Message: fmt.Sprintf("Failed to upload document '%s' to Clicksign: %v", doc.Name, err),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+					},
+				})
+				return
+			}
+		}
 	}
 
 	// Criar signatários se fornecidos no request
@@ -151,18 +196,50 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 
 			createdSignatories = append(createdSignatories, *createdSignatory)
 		}
-
 	}
 
-	// Converter entidade para DTO de resposta
+	// cria os requirements se fornecidos no request
+	if len(requestDTO.Requirements) > 0 {
+		for i, requirementRequest := range requestDTO.Requirements {
+
+			signatory := createdSignatories[i]
+
+			for _, document := range documents {
+				// Converter RequirementCreateRequest para EntityRequirement
+				_, err := h.UsecaseRequirement.CreateRequirement(c.Request.Context(), &entity.EntityRequirement{
+					EnvelopeID:   createdEnvelope.ID,
+					ClicksignKey: createdEnvelope.ClicksignKey,
+					DocumentID:   &document.ClicksignKey,
+					SignerID:     &signatory.ClicksignKey,
+					Action:       requirementRequest.Action,
+					Role:         requirementRequest.Role,
+					Auth:         requirementRequest.Auth,
+				})
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"envelope_id":    createdEnvelope.ID,
+						},
+					})
+					return
+				}
+			}
+		}
+	}
+
+	// // Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(createdEnvelope, createdSignatories)
 
-	// Log da persistência dos dados brutos do Clicksign
-	// rawDataPersisted := createdEnvelope.ClicksignRawData != nil
-	// var rawDataSize int
-	// if rawDataPersisted {
-	// 	rawDataSize = len(*createdEnvelope.ClicksignRawData)
-	// }
+	// // Log da persistência dos dados brutos do Clicksign
+	// // rawDataPersisted := createdEnvelope.ClicksignRawData != nil
+	// // var rawDataSize int
+	// // if rawDataPersisted {
+	// // 	rawDataSize = len(*createdEnvelope.ClicksignRawData)
+	// // }
 
 	c.JSON(http.StatusCreated, responseDTO)
 }
@@ -467,6 +544,8 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 			usecaseRequirement,
 			logger,
 		),
+		usecaseDocument,
+		usecaseRequirement,
 		usecaseSignatory,
 		logger,
 	)

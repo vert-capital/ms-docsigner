@@ -137,7 +137,7 @@ func (u *UsecaseDocumentService) UploadToClicksign(document *entity.EntityDocume
 	}
 
 	ctx := context.Background()
-	correlationID := fmt.Sprintf("doc_%d_%d", document.ID, document.CreatedAt.Unix())
+	correlationID := fmt.Sprintf("doc_%d", document.CreatedAt.Unix())
 	ctx = context.WithValue(ctx, "correlation_id", correlationID)
 
 	clicksignDocID, err := u.documentService.UploadDocument(ctx, document)

@@ -9,17 +9,18 @@ import (
 	clicksignInterface "app/usecase/clicksign"
 	usecase_document "app/usecase/document"
 	usecase_requirement "app/usecase/requirement"
+
 	"github.com/sirupsen/logrus"
 )
 
 type UsecaseEnvelopeService struct {
-	repositoryEnvelope  IRepositoryEnvelope
-	clicksignClient     clicksignInterface.ClicksignClientInterface
-	envelopeService     *clicksign.EnvelopeService
-	documentService     *clicksign.DocumentService
-	usecaseDocument     usecase_document.IUsecaseDocument
-	usecaseRequirement  usecase_requirement.IUsecaseRequirement
-	logger              *logrus.Logger
+	repositoryEnvelope IRepositoryEnvelope
+	clicksignClient    clicksignInterface.ClicksignClientInterface
+	envelopeService    *clicksign.EnvelopeService
+	documentService    *clicksign.DocumentService
+	usecaseDocument    usecase_document.IUsecaseDocument
+	usecaseRequirement usecase_requirement.IUsecaseRequirement
+	logger             *logrus.Logger
 }
 
 func NewUsecaseEnvelopeService(
@@ -87,11 +88,6 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 
 func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.EntityEnvelope, documents []*entity.EntityDocument) (*entity.EntityEnvelope, error) {
 	ctx := context.Background()
-
-	// Validar documentos
-	if len(documents) == 0 {
-		return nil, fmt.Errorf("envelope must have at least one document")
-	}
 
 	for i, doc := range documents {
 		if err := doc.Validate(); err != nil {
@@ -163,6 +159,10 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 	}
 
 	return envelope, nil
+}
+
+func (u *UsecaseEnvelopeService) CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument) (string, error) {
+	return u.documentService.CreateDocument(ctx, envelopeID, document)
 }
 
 func (u *UsecaseEnvelopeService) GetEnvelope(id int) (*entity.EntityEnvelope, error) {
@@ -290,16 +290,6 @@ func (u *UsecaseEnvelopeService) ActivateEnvelope(id int) (*entity.EntityEnvelop
 }
 
 func (u *UsecaseEnvelopeService) validateBusinessRules(envelope *entity.EntityEnvelope) error {
-	// Validar que os documentos existem
-	if len(envelope.DocumentsIDs) == 0 {
-		return fmt.Errorf("envelope must have at least one document")
-	}
-
-	// Validar que os signatários existem
-	if len(envelope.SignatoryEmails) == 0 {
-		return fmt.Errorf("envelope must have at least one signatory")
-	}
-
 	// Validar limite de signatários (exemplo: máximo 50)
 	if len(envelope.SignatoryEmails) > 50 {
 		return fmt.Errorf("envelope cannot have more than 50 signatories")
@@ -323,16 +313,6 @@ func (u *UsecaseEnvelopeService) validateBusinessRules(envelope *entity.EntityEn
 }
 
 func (u *UsecaseEnvelopeService) validateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error {
-	// Validar que os documentos existem
-	if len(envelope.DocumentsIDs) == 0 {
-		return fmt.Errorf("envelope must have at least one document")
-	}
-
-	// Validar que os signatários existem
-	if len(envelope.SignatoryEmails) == 0 {
-		return fmt.Errorf("envelope must have at least one signatory")
-	}
-
 	// Validar limite de signatários (exemplo: máximo 50)
 	if len(envelope.SignatoryEmails) > 50 {
 		return fmt.Errorf("envelope cannot have more than 50 signatories")

@@ -7,6 +7,7 @@ import (
 	"app/entity"
 	"app/infrastructure/clicksign"
 	clicksignInterface "app/usecase/clicksign"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,9 +16,9 @@ type UsecaseRequirementService struct {
 	repositoryEnvelope    interface {
 		GetByID(id int) (*entity.EntityEnvelope, error)
 	}
-	clicksignClient     clicksignInterface.ClicksignClientInterface
-	requirementService  *clicksign.RequirementService
-	logger              *logrus.Logger
+	clicksignClient    clicksignInterface.ClicksignClientInterface
+	requirementService *clicksign.RequirementService
+	logger             *logrus.Logger
 }
 
 func NewUsecaseRequirementService(
@@ -74,6 +75,7 @@ func (u *UsecaseRequirementService) CreateRequirement(ctx context.Context, requi
 	}
 
 	clicksignKey, err := u.requirementService.CreateRequirement(ctx, envelope.ClicksignKey, reqData)
+
 	if err != nil {
 		// Rollback: remover requirement do banco local
 		deleteErr := u.repositoryRequirement.Delete(ctx, createdRequirement)
