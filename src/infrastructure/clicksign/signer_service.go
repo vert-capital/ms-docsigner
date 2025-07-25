@@ -61,6 +61,35 @@ func (s *SignerService) CreateSigner(ctx context.Context, envelopeID string, sig
 	return createResponse.Data.ID, nil
 }
 
+// DeleteSigner deleta um signatário do envelope no Clicksign
+func (s *SignerService) DeleteSigner(ctx context.Context, envelopeID string, signerID string) error {
+	// Fazer chamada para API do Clicksign usando o endpoint correto para deletar signatário
+	endpoint := fmt.Sprintf("/api/v3/envelopes/%s/signers/%s", envelopeID, signerID)
+	resp, err := s.clicksignClient.Delete(ctx, endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to delete signer from Clicksign envelope: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Verificar se houve erro na resposta
+	if resp.StatusCode >= 400 {
+		// Ler resposta para obter detalhes do erro
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("Clicksign API error (status %d): failed to read response", resp.StatusCode)
+		}
+
+		var errorResp dto.ClicksignErrorResponse
+		if err := json.Unmarshal(body, &errorResp); err != nil {
+			return fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+		}
+
+		return fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
+	}
+
+	return nil
+}
+
 // mapSignerDataToCreateRequest mapeia os dados do signatário para a estrutura JSON API
 func (s *SignerService) mapSignerDataToCreateRequest(signerData SignerData) *dto.SignerCreateRequestWrapper {
 	req := &dto.SignerCreateRequestWrapper{

@@ -204,10 +204,41 @@ func (u *UsecaseSignatoryService) DeleteSignatory(id int) error {
 		return fmt.Errorf("cannot delete signatory from envelope in '%s' status", envelope.Status)
 	}
 
+	// Se o signatário foi criado no Clicksign, deletar de lá primeiro
+	if signatory.ClicksignKey != "" && envelope.ClicksignKey != "" {
+		ctx := context.Background()
+		err = u.signerService.DeleteSigner(ctx, envelope.ClicksignKey, signatory.ClicksignKey)
+		if err != nil {
+			u.logger.WithFields(logrus.Fields{
+				"signatory_id":      signatory.ID,
+				"envelope_id":       envelope.ID,
+				"clicksign_key":     signatory.ClicksignKey,
+				"envelope_key":      envelope.ClicksignKey,
+				"error":            err.Error(),
+			}).Error("Failed to delete signatory from Clicksign")
+			return fmt.Errorf("failed to delete signatory from Clicksign: %w", err)
+		}
+
+		u.logger.WithFields(logrus.Fields{
+			"signatory_id":      signatory.ID,
+			"envelope_id":       envelope.ID,
+			"clicksign_key":     signatory.ClicksignKey,
+			"envelope_key":      envelope.ClicksignKey,
+		}).Info("Signatory successfully deleted from Clicksign")
+	}
+
+	// Deletar do banco local apenas se conseguiu deletar da Clicksign (ou se não estava na Clicksign)
 	err = u.repositorySignatory.Delete(signatory)
 	if err != nil {
 		return fmt.Errorf("failed to delete signatory: %w", err)
 	}
+
+	u.logger.WithFields(logrus.Fields{
+		"signatory_id": signatory.ID,
+		"envelope_id":  envelope.ID,
+		"email":        signatory.Email,
+		"name":         signatory.Name,
+	}).Info("Signatory successfully deleted locally")
 
 	return nil
 }
