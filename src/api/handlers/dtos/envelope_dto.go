@@ -7,35 +7,37 @@ import (
 
 // EnvelopeCreateRequestDTO representa a estrutura de request para criação de envelope
 type EnvelopeCreateRequestDTO struct {
-	Name            string                          `json:"name" binding:"required,min=3,max=255"`
-	Description     string                          `json:"description,omitempty" binding:"max=1000"`
-	DocumentsIDs    []int                           `json:"documents_ids,omitempty"`
-	Documents       []EnvelopeDocumentRequest       `json:"documents,omitempty"`
-	SignatoryEmails []string                        `json:"signatory_emails,omitempty"`
-	Signatories     []EnvelopeSignatoryRequest      `json:"signatories,omitempty"`
-	Requirements    []EnvelopeRequirementRequest    `json:"requirements,omitempty"`
-	Message         string                          `json:"message,omitempty" binding:"max=500"`
-	DeadlineAt      *time.Time                      `json:"deadline_at,omitempty"`
-	RemindInterval  int                             `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
-	AutoClose       bool                            `json:"auto_close,omitempty"`
+	Name            string                       `json:"name" binding:"required,min=3,max=255"`
+	Description     string                       `json:"description,omitempty" binding:"max=1000"`
+	DocumentsIDs    []int                        `json:"documents_ids,omitempty"`
+	Documents       []EnvelopeDocumentRequest    `json:"documents,omitempty"`
+	SignatoryEmails []string                     `json:"signatory_emails,omitempty"`
+	Signatories     []EnvelopeSignatoryRequest   `json:"signatories,omitempty"`
+	Requirements    []EnvelopeRequirementRequest `json:"requirements,omitempty"`
+	Qualifiers      []EnvelopeRequirementRequest `json:"qualifiers,omitempty"` // Qualificadores para o envelope, como "sign", "agree", etc.
+	Message         string                       `json:"message,omitempty" binding:"max=500"`
+	DeadlineAt      *time.Time                   `json:"deadline_at,omitempty"`
+	RemindInterval  int                          `json:"remind_interval,omitempty" binding:"omitempty,min=1,max=30"`
+	AutoClose       bool                         `json:"auto_close,omitempty"`
+	Approved        bool                         `json:"approved,omitempty"` // Indica se o envelope foi aprovado
 }
 
 // EnvelopeDocumentRequest representa um documento a ser criado junto com o envelope
 type EnvelopeDocumentRequest struct {
-	Name               string `json:"name" binding:"required,min=3,max=255"`
-	FileContentBase64  string `json:"file_content_base64" binding:"required"`
-	Description        string `json:"description,omitempty"`
+	Name              string `json:"name" binding:"required,min=3,max=255"`
+	FileContentBase64 string `json:"file_content_base64" binding:"required"`
+	Description       string `json:"description,omitempty"`
 }
 
 // EnvelopeSignatoryRequest representa um signatário a ser criado junto com o envelope
 type EnvelopeSignatoryRequest struct {
-	Name              string                        `json:"name" binding:"required,min=2,max=255"`
-	Email             string                        `json:"email" binding:"required,email"`
-	Birthday          *string                       `json:"birthday,omitempty"`
-	PhoneNumber       *string                       `json:"phone_number,omitempty"`
-	HasDocumentation  *bool                         `json:"has_documentation,omitempty"`
-	Refusable         *bool                         `json:"refusable,omitempty"`
-	Group             *int                          `json:"group,omitempty"`
+	Name              string                         `json:"name" binding:"required,min=2,max=255"`
+	Email             string                         `json:"email" binding:"required,email"`
+	Birthday          *string                        `json:"birthday,omitempty"`
+	PhoneNumber       *string                        `json:"phone_number,omitempty"`
+	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
+	Refusable         *bool                          `json:"refusable,omitempty"`
+	Group             *int                           `json:"group,omitempty"`
 	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
 }
 
@@ -90,33 +92,33 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 	if len(dto.DocumentsIDs) == 0 && len(dto.Documents) == 0 {
 		return fmt.Errorf("deve fornecer pelo menos um documento (documents_ids ou documents)")
 	}
-	
+
 	// Não pode ter ambos ao mesmo tempo
 	if len(dto.DocumentsIDs) > 0 && len(dto.Documents) > 0 {
 		return fmt.Errorf("não é possível fornecer documents_ids e documents ao mesmo tempo")
 	}
-	
+
 	// Deve ter pelo menos um tipo de signatário (emails ou signatários estruturados)
 	if len(dto.SignatoryEmails) == 0 && len(dto.Signatories) == 0 {
 		return fmt.Errorf("deve fornecer pelo menos um signatário (signatory_emails ou signatories)")
 	}
-	
+
 	// Não pode ter ambos ao mesmo tempo
 	if len(dto.SignatoryEmails) > 0 && len(dto.Signatories) > 0 {
 		return fmt.Errorf("não é possível fornecer signatory_emails e signatories ao mesmo tempo")
 	}
-	
+
 	// Validar signatários se fornecidos
 	if len(dto.Signatories) > 0 {
 		emailsMap := make(map[string]int) // valor é o índice do primeiro signatário com este email
 		for i, signatory := range dto.Signatories {
 			// Verificar emails únicos primeiro (mais eficiente)
 			if firstIndex, exists := emailsMap[signatory.Email]; exists {
-				return fmt.Errorf("email duplicado encontrado nos signatários: %s (posições %d e %d)", 
+				return fmt.Errorf("email duplicado encontrado nos signatários: %s (posições %d e %d)",
 					signatory.Email, firstIndex+1, i+1)
 			}
 			emailsMap[signatory.Email] = i
-			
+
 			// Reutilizar validação da estrutura SignatoryCreateRequestDTO
 			tempSignatory := &SignatoryCreateRequestDTO{
 				Name:              signatory.Name,
@@ -129,13 +131,13 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 				Group:             signatory.Group,
 				CommunicateEvents: signatory.CommunicateEvents,
 			}
-			
+
 			if err := tempSignatory.Validate(); err != nil {
 				return fmt.Errorf("erro na validação do signatário %d (%s): %v", i+1, signatory.Email, err)
 			}
 		}
 	}
-	
+
 	// Validar requirements se fornecidos
 	if len(dto.Requirements) > 0 {
 		for i, requirement := range dto.Requirements {
@@ -144,7 +146,7 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -163,21 +165,21 @@ type EnvelopeUpdateRequestDTO struct {
 // EnvelopeResponseDTO representa a estrutura de response para envelope
 // O campo clicksign_raw_data contém os dados brutos retornados pela API do Clicksign
 type EnvelopeResponseDTO struct {
-	ID               int                     `json:"id"`
-	Name             string                  `json:"name"`
-	Description      string                  `json:"description"`
-	Status           string                  `json:"status"`
-	ClicksignKey     string                  `json:"clicksign_key"`
-	ClicksignRawData *string                 `json:"clicksign_raw_data,omitempty"`
-	DocumentsIDs     []int                   `json:"documents_ids"`
-	SignatoryEmails  []string                `json:"signatory_emails"`
-	Signatories      []SignatoryResponseDTO  `json:"signatories,omitempty"`
-	Message          string                  `json:"message"`
-	DeadlineAt       *time.Time              `json:"deadline_at"`
-	RemindInterval   int                     `json:"remind_interval"`
-	AutoClose        bool                    `json:"auto_close"`
-	CreatedAt        time.Time               `json:"created_at"`
-	UpdatedAt        time.Time               `json:"updated_at"`
+	ID               int                    `json:"id"`
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description"`
+	Status           string                 `json:"status"`
+	ClicksignKey     string                 `json:"clicksign_key"`
+	ClicksignRawData *string                `json:"clicksign_raw_data,omitempty"`
+	DocumentsIDs     []int                  `json:"documents_ids"`
+	SignatoryEmails  []string               `json:"signatory_emails"`
+	Signatories      []SignatoryResponseDTO `json:"signatories,omitempty"`
+	Message          string                 `json:"message"`
+	DeadlineAt       *time.Time             `json:"deadline_at"`
+	RemindInterval   int                    `json:"remind_interval"`
+	AutoClose        bool                   `json:"auto_close"`
+	CreatedAt        time.Time              `json:"created_at"`
+	UpdatedAt        time.Time              `json:"updated_at"`
 }
 
 // EnvelopeListResponseDTO representa a estrutura de response para lista de envelopes

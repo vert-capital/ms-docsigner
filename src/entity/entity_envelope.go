@@ -21,7 +21,7 @@ type EntityEnvelope struct {
 	Status           string     `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft sent pending completed cancelled"`
 	ClicksignKey     string     `json:"clicksign_key" gorm:"index"`
 	ClicksignRawData *string    `json:"clicksign_raw_data" gorm:"type:text"`
-	DocumentsIDs     []int      `json:"documents_ids" gorm:"serializer:json" validate:"required,min=1"`
+	DocumentsIDs     []int      `json:"documents_ids" gorm:"serializer:json" validate:"-"`
 	SignatoryEmails  []string   `json:"signatory_emails" gorm:"serializer:json"`
 	Message          string     `json:"message" validate:"max=500"`
 	DeadlineAt       *time.Time `json:"deadline_at"`

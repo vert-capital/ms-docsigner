@@ -23,6 +23,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 type SignatoryHandlers struct {
 	UsecaseSignatory signatory.IUsecaseSignatory
 	UsecaseEnvelope  envelope.IUsecaseEnvelope
@@ -63,12 +64,6 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeIDStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid envelope ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Envelope ID must be a valid integer",
@@ -76,21 +71,9 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-		"endpoint":       "POST /api/v1/envelopes/{id}/signatories",
-		"envelope_id":    envelopeID,
-	}).Info("Creating signatory request received")
-
 	var requestDTO dtos.SignatoryCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"correlation_id": correlationID,
-			"envelope_id":    envelopeID,
-		}).Error("Invalid request payload")
-
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -105,12 +88,6 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 
 	// Validação customizada do DTO
 	if err := requestDTO.Validate(); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"correlation_id": correlationID,
-			"envelope_id":    envelopeID,
-		}).Error("Custom validation failed")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
 			Message: err.Error(),
@@ -121,12 +98,6 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 	// Verificar se o envelope existe
 	_, err = h.UsecaseEnvelope.GetEnvelope(envelopeID)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Envelope not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Envelope not found",
 			Message: "The specified envelope does not exist",
@@ -140,13 +111,6 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 	// Criar signatário através do use case
 	createdSignatory, err := h.UsecaseSignatory.CreateSignatory(&signatoryEntity)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":           err.Error(),
-			"envelope_id":     envelopeID,
-			"signatory_email": requestDTO.Email,
-			"correlation_id":  correlationID,
-		}).Error("Failed to create signatory")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to create signatory",
@@ -159,13 +123,6 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 
 	// Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(createdSignatory)
-
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":    createdSignatory.ID,
-		"envelope_id":     envelopeID,
-		"signatory_email": createdSignatory.Email,
-		"correlation_id":  correlationID,
-	}).Info("Signatory created successfully")
 
 	c.JSON(http.StatusCreated, responseDTO)
 }
@@ -183,20 +140,11 @@ func (h *SignatoryHandlers) CreateSignatoryHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes/{id}/signatories [get]
 func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeIDStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid envelope ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Envelope ID must be a valid integer",
@@ -204,21 +152,9 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-		"endpoint":       "GET /api/v1/envelopes/{id}/signatories",
-		"envelope_id":    envelopeID,
-	}).Info("Getting signatories request received")
-
 	// Verificar se o envelope existe
 	_, err = h.UsecaseEnvelope.GetEnvelope(envelopeID)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Envelope not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Envelope not found",
 			Message: "The specified envelope does not exist",
@@ -229,12 +165,6 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 	// Buscar signatários do envelope
 	signatories, err := h.UsecaseSignatory.GetSignatoriesByEnvelope(envelopeID)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Failed to get signatories")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to retrieve signatories",
@@ -243,12 +173,6 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapSignatoryListToResponse(signatories)
-
-	h.Logger.WithFields(logrus.Fields{
-		"envelope_id":        envelopeID,
-		"signatories_count":  len(signatories),
-		"correlation_id":     correlationID,
-	}).Info("Signatories retrieved successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -266,20 +190,11 @@ func (h *SignatoryHandlers) GetSignatoriesHandler(c *gin.Context) {
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/signatories/{id} [get]
 func (h *SignatoryHandlers) GetSignatoryHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
-	}
+	_ = c.GetHeader("X-Correlation-ID")
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid signatory ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Signatory ID must be a valid integer",
@@ -287,20 +202,8 @@ func (h *SignatoryHandlers) GetSignatoryHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":   id,
-		"correlation_id": correlationID,
-		"endpoint":       "GET /api/v1/signatories/{id}",
-	}).Info("Getting signatory request received")
-
 	signatory, err := h.UsecaseSignatory.GetSignatory(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Failed to get signatory")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Signatory not found",
 			Message: "The requested signatory does not exist",
@@ -309,13 +212,6 @@ func (h *SignatoryHandlers) GetSignatoryHandler(c *gin.Context) {
 	}
 
 	responseDTO := h.mapEntityToResponse(signatory)
-
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":    signatory.ID,
-		"signatory_email": signatory.Email,
-		"envelope_id":     signatory.EnvelopeID,
-		"correlation_id":  correlationID,
-	}).Info("Signatory retrieved successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -342,12 +238,6 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid signatory ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Signatory ID must be a valid integer",
@@ -355,21 +245,9 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":   id,
-		"correlation_id": correlationID,
-		"endpoint":       "PUT /api/v1/signatories/{id}",
-	}).Info("Updating signatory request received")
-
 	var requestDTO dtos.SignatoryUpdateRequestDTO
 
 	if err := c.ShouldBindJSON(&requestDTO); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Invalid request payload")
-
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -381,12 +259,6 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 
 	// Validação customizada do DTO
 	if err := requestDTO.Validate(); err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Custom validation failed")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
 			Message: err.Error(),
@@ -397,12 +269,6 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 	// Buscar signatário existente
 	existingSignatory, err := h.UsecaseSignatory.GetSignatory(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Signatory not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Signatory not found",
 			Message: "The requested signatory does not exist",
@@ -416,12 +282,6 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 	// Atualizar signatário através do use case
 	err = h.UsecaseSignatory.UpdateSignatory(existingSignatory)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Failed to update signatory")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to update signatory",
@@ -434,13 +294,6 @@ func (h *SignatoryHandlers) UpdateSignatoryHandler(c *gin.Context) {
 
 	// Converter entidade para DTO de resposta
 	responseDTO := h.mapEntityToResponse(existingSignatory)
-
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":    existingSignatory.ID,
-		"signatory_email": existingSignatory.Email,
-		"envelope_id":     existingSignatory.EnvelopeID,
-		"correlation_id":  correlationID,
-	}).Info("Signatory updated successfully")
 
 	c.JSON(http.StatusOK, responseDTO)
 }
@@ -466,12 +319,6 @@ func (h *SignatoryHandlers) DeleteSignatoryHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"id":             idStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid signatory ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Signatory ID must be a valid integer",
@@ -479,21 +326,9 @@ func (h *SignatoryHandlers) DeleteSignatoryHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":   id,
-		"correlation_id": correlationID,
-		"endpoint":       "DELETE /api/v1/signatories/{id}",
-	}).Info("Deleting signatory request received")
-
 	// Verificar se o signatário existe antes de tentar deletar
 	_, err = h.UsecaseSignatory.GetSignatory(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Signatory not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Signatory not found",
 			Message: "The requested signatory does not exist",
@@ -504,12 +339,6 @@ func (h *SignatoryHandlers) DeleteSignatoryHandler(c *gin.Context) {
 	// Deletar signatário através do use case
 	err = h.UsecaseSignatory.DeleteSignatory(id)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"signatory_id":   id,
-			"correlation_id": correlationID,
-		}).Error("Failed to delete signatory")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to delete signatory",
@@ -519,11 +348,6 @@ func (h *SignatoryHandlers) DeleteSignatoryHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	h.Logger.WithFields(logrus.Fields{
-		"signatory_id":   id,
-		"correlation_id": correlationID,
-	}).Info("Signatory deleted successfully")
 
 	c.Status(http.StatusNoContent)
 }
@@ -549,12 +373,6 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 	envelopeIDStr := c.Param("id")
 	envelopeID, err := strconv.Atoi(envelopeIDStr)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeIDStr,
-			"correlation_id": correlationID,
-		}).Error("Invalid envelope ID")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid ID",
 			Message: "Envelope ID must be a valid integer",
@@ -562,21 +380,9 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 		return
 	}
 
-	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-		"endpoint":       "POST /api/v1/envelopes/{id}/send",
-		"envelope_id":    envelopeID,
-	}).Info("Sending signatories to Clicksign request received")
-
 	// Verificar se o envelope existe e obter suas informações
 	envelope, err := h.UsecaseEnvelope.GetEnvelope(envelopeID)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Envelope not found")
-
 		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
 			Error:   "Envelope not found",
 			Message: "The specified envelope does not exist",
@@ -586,12 +392,6 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 
 	// Validar se o envelope pode ser enviado (deve ter ClicksignKey)
 	if envelope.ClicksignKey == "" {
-		h.Logger.WithFields(logrus.Fields{
-			"envelope_id":    envelopeID,
-			"envelope_status": envelope.Status,
-			"correlation_id": correlationID,
-		}).Error("Envelope not ready for sending - missing Clicksign key")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Envelope not ready",
 			Message: "Envelope must be created in Clicksign before sending signatories",
@@ -602,12 +402,6 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 	// Buscar signatários do envelope
 	signatories, err := h.UsecaseSignatory.GetSignatoriesByEnvelope(envelopeID)
 	if err != nil {
-		h.Logger.WithFields(logrus.Fields{
-			"error":          err.Error(),
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Error("Failed to get signatories for envelope")
-
 		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 			Error:   "Internal server error",
 			Message: "Failed to retrieve signatories for envelope",
@@ -616,11 +410,6 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 	}
 
 	if len(signatories) == 0 {
-		h.Logger.WithFields(logrus.Fields{
-			"envelope_id":    envelopeID,
-			"correlation_id": correlationID,
-		}).Warn("No signatories found for envelope")
-
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "No signatories",
 			Message: "Envelope must have at least one signatory before sending",
@@ -636,19 +425,11 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 	// Enviar cada signatário para o Clicksign
 	var successCount int
 	var errors []string
-	
-	for _, signatory := range signatories {
-		h.Logger.WithFields(logrus.Fields{
-			"signatory_id":    signatory.ID,
-			"signatory_email": signatory.Email,
-			"envelope_id":     envelopeID,
-			"clicksign_key":   envelope.ClicksignKey,
-			"correlation_id":  correlationID,
-		}).Info("Sending signatory to Clicksign")
 
+	for _, signatory := range signatories {
 		// Mapear entidade para estrutura Clicksign
 		createRequest := signatoryMapper.ToClicksignCreateRequest(&signatory)
-		
+
 		// Converter para SignerData (estrutura esperada pelo SignerService)
 		signerData := clicksign.SignerData{
 			Name:             createRequest.Data.Attributes.Name,
@@ -669,72 +450,41 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 		}
 
 		// Criar contexto com correlation ID
-		ctx := context.WithValue(context.Background(), "correlation_id", correlationID)
-		
+		ctx := context.WithValue(context.Background(), correlationIDKey, correlationID)
+
 		// Enviar para Clicksign
-		clicksignSignerID, err := signerService.CreateSigner(ctx, envelope.ClicksignKey, signerData)
+		_, err := signerService.CreateSigner(ctx, envelope.ClicksignKey, signerData)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Failed to send signatory %s (%s) to Clicksign: %v", signatory.Name, signatory.Email, err)
 			errors = append(errors, errorMsg)
-			
-			h.Logger.WithFields(logrus.Fields{
-				"error":           err.Error(),
-				"signatory_id":    signatory.ID,
-				"signatory_email": signatory.Email,
-				"envelope_id":     envelopeID,
-				"clicksign_key":   envelope.ClicksignKey,
-				"correlation_id":  correlationID,
-			}).Error("Failed to send signatory to Clicksign")
+
 			continue
 		}
 
 		successCount++
-		h.Logger.WithFields(logrus.Fields{
-			"signatory_id":       signatory.ID,
-			"signatory_email":    signatory.Email,
-			"clicksign_signer_id": clicksignSignerID,
-			"envelope_id":        envelopeID,
-			"clicksign_key":      envelope.ClicksignKey,
-			"correlation_id":     correlationID,
-		}).Info("Signatory sent to Clicksign successfully")
 	}
 
 	// Preparar resposta
 	responseDTO := h.mapSignatoryListToResponse(signatories)
-	
+
 	if len(errors) > 0 {
 		// Houveram erros parciais
-		h.Logger.WithFields(logrus.Fields{
-			"envelope_id":        envelopeID,
-			"total_signatories":  len(signatories),
-			"successful_sends":   successCount,
-			"failed_sends":       len(errors),
-			"correlation_id":     correlationID,
-		}).Warn("Signatories sent to Clicksign with partial failures")
-
 		c.JSON(http.StatusOK, map[string]interface{}{
-			"signatories":     responseDTO.Signatories,
-			"total":           responseDTO.Total,
+			"signatories":      responseDTO.Signatories,
+			"total":            responseDTO.Total,
 			"successful_sends": successCount,
-			"failed_sends":    len(errors),
-			"errors":          errors,
+			"failed_sends":     len(errors),
+			"errors":           errors,
 		})
 		return
 	}
 
 	// Todos os signatários foram enviados com sucesso
-	h.Logger.WithFields(logrus.Fields{
-		"envelope_id":        envelopeID,
-		"total_signatories":  len(signatories),
-		"successful_sends":   successCount,
-		"correlation_id":     correlationID,
-	}).Info("All signatories sent to Clicksign successfully")
-
 	c.JSON(http.StatusOK, map[string]interface{}{
-		"signatories":     responseDTO.Signatories,
-		"total":           responseDTO.Total,
+		"signatories":      responseDTO.Signatories,
+		"total":            responseDTO.Total,
 		"successful_sends": successCount,
-		"message":         "All signatories sent to Clicksign successfully",
+		"message":          "All signatories sent to Clicksign successfully",
 	})
 }
 
@@ -797,7 +547,7 @@ func (h *SignatoryHandlers) getValidationErrorMessage(fieldError validator.Field
 func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
 	// Criar clientes e repositórios
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
-	
+
 	// Criar usecase de documento para envelopes
 	usecaseDocument := document.NewUsecaseDocumentServiceWithClicksign(
 		repository.NewRepositoryDocument(conn),

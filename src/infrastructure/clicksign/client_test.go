@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"app/config"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +33,7 @@ func TestClicksignClient_Get(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
-		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "test-api-key", r.Header.Get("Authorization"))
 		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Accept"))
 
@@ -63,7 +64,7 @@ func TestClicksignClient_Post(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
-		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "test-api-key", r.Header.Get("Authorization"))
 		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Content-Type"))
 
 		w.WriteHeader(http.StatusCreated)
@@ -94,7 +95,7 @@ func TestClicksignClient_Put(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
-		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "test-api-key", r.Header.Get("Authorization"))
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "updated"}`))
@@ -124,7 +125,7 @@ func TestClicksignClient_Delete(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "DELETE", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
-		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "test-api-key", r.Header.Get("Authorization"))
 
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -152,7 +153,7 @@ func TestClicksignClient_Patch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PATCH", r.Method)
 		assert.Equal(t, "/test", r.URL.Path)
-		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "test-api-key", r.Header.Get("Authorization"))
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": "patched"}`))

@@ -24,13 +24,17 @@ func TestNewEnvelopeHandler(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockUsecaseEnvelope, handler.UsecaseEnvelope)
+	assert.Equal(t, mockUsecaseDocument, handler.UsecaseDocuments)
+	assert.Equal(t, mockUsecaseRequirement, handler.UsecaseRequirement)
 	assert.Equal(t, mockUsecaseSignatory, handler.UsecaseSignatory)
 	assert.Equal(t, logger, handler.Logger)
 }
@@ -42,11 +46,13 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO sem signatários (compatibilidade retroativa)
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -76,9 +82,19 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 
 	// Configurar expectativas do mock
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", nil).
+		AnyTimes()
 
 	// Preparar request
 	jsonData, err := json.Marshal(requestDTO)
@@ -96,7 +112,6 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 
 	// Executar handler
 	handler.CreateEnvelopeHandler(c)
-
 
 	// Verificar response
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -119,17 +134,18 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
+		Name:        "Test Envelope",
+		Description: "Test Description",
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory",
@@ -147,14 +163,13 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 
 	// Mock entities esperadas
 	expectedEnvelope := &entity.EntityEnvelope{
-		ID:              1,
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		Status:          "draft",
-		ClicksignKey:    "test-key",
-		SignatoryEmails: []string{"test@example.com"},
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		ID:           1,
+		Name:         "Test Envelope",
+		Description:  "Test Description",
+		Status:       "draft",
+		ClicksignKey: "test-key",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	expectedSignatory := &entity.EntitySignatory{
@@ -168,9 +183,19 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 
 	// Configurar expectativas dos mocks
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", nil).
+		AnyTimes()
 
 	mockUsecaseSignatory.EXPECT().
 		CreateSignatory(gomock.Any()).
@@ -219,11 +244,13 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -240,7 +267,7 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 
 	// Mock falha na criação do envelope
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(nil, fmt.Errorf("database error")).
 		Times(1)
 
@@ -269,7 +296,7 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Internal server error", errorResponse.Error)
-	assert.Equal(t, "Failed to create envelope", errorResponse.Message)
+	assert.Equal(t, "Failed to create envelope: database error", errorResponse.Message)
 }
 
 func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
@@ -279,16 +306,17 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
 		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory",
@@ -305,20 +333,29 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	}
 
 	expectedEnvelope := &entity.EntityEnvelope{
-		ID:              1,
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		Status:          "draft",
-		ClicksignKey:    "test-key",
-		SignatoryEmails: []string{"test@example.com"},
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		ID:           1,
+		Name:         "Test Envelope",
+		Description:  "Test Description",
+		Status:       "draft",
+		ClicksignKey: "test-key",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	// Mock envelope criado com sucesso, mas signatory falha
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
+		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
 		Times(1)
 
 	mockUsecaseSignatory.EXPECT().
@@ -351,7 +388,7 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Internal server error", errorResponse.Error)
-	assert.Contains(t, errorResponse.Message, "Failed to create signatory 1")
+	assert.Contains(t, errorResponse.Message, "duplicate email")
 }
 
 func TestCreateEnvelopeHandler_ValidationErrors(t *testing.T) {
@@ -361,11 +398,13 @@ func TestCreateEnvelopeHandler_ValidationErrors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com dados inválidos
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
@@ -409,17 +448,18 @@ func TestCreateEnvelopeHandler_DuplicateSignatoryEmails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel) // Suprimir logs durante teste
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	// Request DTO com emails duplicados de signatários
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
-		Name:            "Test Envelope",
-		Description:     "Test Description",
-		SignatoryEmails: []string{"test@example.com"},
+		Name:        "Test Envelope",
+		Description: "Test Description",
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory 1",
@@ -535,11 +575,13 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel)
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -568,8 +610,18 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 	}
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
+		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
 		Times(1)
 
 	jsonData, err := json.Marshal(requestDTO)
@@ -606,11 +658,13 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel)
 
-	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseSignatory, logger)
+	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
 		Name:            "Test Envelope",
@@ -638,8 +692,18 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 	}
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateEnvelopeWithDocuments(gomock.Any(), gomock.Any()).
+		CreateEnvelope(gomock.Any()).
 		Return(expectedEnvelope, nil).
+		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Create(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	mockUsecaseEnvelope.EXPECT().
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-document-key", nil).
 		Times(1)
 
 	jsonData, err := json.Marshal(requestDTO)

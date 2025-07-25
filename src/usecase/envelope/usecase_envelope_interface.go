@@ -17,6 +17,7 @@ type IRepositoryEnvelope interface {
 
 //go:generate mockgen -destination=../../mocks/mock_usecase_envelope.go -package=mocks app/usecase/envelope IUsecaseEnvelope
 type IUsecaseEnvelope interface {
+	CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument) (string, error)
 	CreateEnvelope(envelope *entity.EntityEnvelope) (*entity.EntityEnvelope, error)
 	CreateEnvelopeWithDocuments(envelope *entity.EntityEnvelope, documents []*entity.EntityDocument) (*entity.EntityEnvelope, error)
 	CreateEnvelopeWithRequirements(ctx context.Context, envelope *entity.EntityEnvelope, requirements []*entity.EntityRequirement) (*entity.EntityEnvelope, error)
