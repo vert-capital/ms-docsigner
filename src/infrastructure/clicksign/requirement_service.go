@@ -172,13 +172,15 @@ func (s *RequirementService) mapBulkOperationsToBulkRequest(operations []BulkOpe
 				ID:   op.RequirementID,
 			}
 		} else if op.Operation == "add" && op.RequirementData != nil {
+			attributes := dto.RequirementCreateAttributes{
+				Action: op.RequirementData.Action,
+				Auth:   op.RequirementData.Auth,
+				Role:   op.RequirementData.Role,
+			}
+
 			atomicOp.Data = &dto.RequirementCreateData{
-				Type: "requirements",
-				Attributes: dto.RequirementCreateAttributes{
-					Action: op.RequirementData.Action,
-					Role:   op.RequirementData.Role,
-					Auth:   op.RequirementData.Auth,
-				},
+				Type:       "requirements",
+				Attributes: attributes,
 			}
 
 			// Adicionar relacionamentos para operação add
