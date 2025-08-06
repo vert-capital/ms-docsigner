@@ -202,6 +202,19 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	if len(requestDTO.Requirements) > 0 {
 		for i, requirementRequest := range requestDTO.Requirements {
 
+			// Verificar se há signatários suficientes
+			if i >= len(createdSignatories) {
+				c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+					Error:   "Bad Request",
+					Message: fmt.Sprintf("Não há signatários suficientes para o requirement %d. Enviados: %d, Necessários: %d", i+1, len(createdSignatories), len(requestDTO.Requirements)),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+						"envelope_id":    createdEnvelope.ID,
+					},
+				})
+				return
+			}
+
 			signatory := createdSignatories[i]
 
 			for _, document := range documents {
@@ -212,8 +225,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					DocumentID:   &document.ClicksignKey,
 					SignerID:     &signatory.ClicksignKey,
 					Action:       requirementRequest.Action,
-					Role:         requirementRequest.Role,
-					Auth:         nil,
+					Auth:         requirementRequest.Auth,
 				})
 
 				if err != nil {
@@ -234,6 +246,19 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 	// cria os qualificadores se fornecidos no request
 	if len(requestDTO.Qualifiers) > 0 {
 		for i, qualifierRequest := range requestDTO.Qualifiers {
+			// Verificar se há signatários suficientes
+			if i >= len(createdSignatories) {
+				c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+					Error:   "Bad Request",
+					Message: fmt.Sprintf("Não há signatários suficientes para o qualifier %d. Enviados: %d, Necessários: %d", i+1, len(createdSignatories), len(requestDTO.Qualifiers)),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+						"envelope_id":    createdEnvelope.ID,
+					},
+				})
+				return
+			}
+
 			signatory := createdSignatories[i]
 
 			for _, document := range documents {
@@ -245,8 +270,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					DocumentID:   &document.ClicksignKey,
 					SignerID:     &signatory.ClicksignKey,
 					Action:       qualifierRequest.Action,
-					Role:         "",
-					Auth:         qualifierRequest.Auth,
+					Role:         qualifierRequest.Role,
 				})
 
 				if err != nil {
