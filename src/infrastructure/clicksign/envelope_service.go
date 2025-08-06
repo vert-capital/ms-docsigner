@@ -137,6 +137,43 @@ func (s *EnvelopeService) ActivateEnvelope(ctx context.Context, clicksignKey str
 	return nil
 }
 
+func (s *EnvelopeService) NotifyEnvelope(ctx context.Context, clicksignKey string, message string) error {
+	// Estrutura da requisição de notificação
+	notificationRequest := map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "notifications",
+			"attributes": map[string]interface{}{
+				"message": message,
+			},
+		},
+	}
+
+	endpoint := fmt.Sprintf("/api/v3/envelopes/%s/notifications", clicksignKey)
+	resp, err := s.clicksignClient.Post(ctx, endpoint, notificationRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send notification to Clicksign: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Ler resposta
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response from Clicksign: %w", err)
+	}
+
+	// Verificar se houve erro na resposta
+	if resp.StatusCode >= 400 {
+		var errorResp dto.ClicksignErrorResponse
+		if err := json.Unmarshal(body, &errorResp); err != nil {
+			return fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+		}
+
+		return fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
+	}
+
+	return nil
+}
+
 func (s *EnvelopeService) mapEntityToCreateRequest(envelope *entity.EntityEnvelope) *dto.EnvelopeCreateRequestWrapper {
 	req := &dto.EnvelopeCreateRequestWrapper{
 		Data: dto.EnvelopeCreateData{

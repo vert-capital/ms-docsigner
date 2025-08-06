@@ -334,3 +334,29 @@ func (u *UsecaseEnvelopeService) validateBusinessRulesWithDocuments(envelope *en
 
 	return nil
 }
+
+func (u *UsecaseEnvelopeService) NotifyEnvelope(ctx context.Context, envelopeID int, message string) error {
+	// Buscar envelope no banco de dados
+	envelope, err := u.repositoryEnvelope.GetByID(envelopeID)
+	if err != nil {
+		return fmt.Errorf("failed to get envelope: %w", err)
+	}
+
+	// Verificar se o envelope existe
+	if envelope == nil {
+		return fmt.Errorf("envelope not found")
+	}
+
+	// Verificar se o envelope tem chave do Clicksign
+	if envelope.ClicksignKey == "" {
+		return fmt.Errorf("envelope does not have Clicksign key")
+	}
+
+	// Enviar notificação para o Clicksign
+	err = u.envelopeService.NotifyEnvelope(ctx, envelope.ClicksignKey, message)
+	if err != nil {
+		return fmt.Errorf("failed to send notification: %w", err)
+	}
+
+	return nil
+}

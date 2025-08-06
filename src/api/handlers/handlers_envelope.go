@@ -410,6 +410,68 @@ func (h *EnvelopeHandlers) ActivateEnvelopeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, responseDTO)
 }
 
+// @Summary Notify envelope
+// @Description Send notification to envelope signatories
+// @Tags envelopes
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Envelope ID"
+// @Param request body dtos.EnvelopeNotificationRequestDTO true "Notification data"
+// @Success 200 {object} dtos.EnvelopeNotificationResponseDTO
+// @Failure 400 {object} dtos.ErrorResponseDTO
+// @Failure 404 {object} dtos.ErrorResponseDTO
+// @Failure 500 {object} dtos.ErrorResponseDTO
+// @Router /api/v1/envelopes/{id}/notify [post]
+func (h *EnvelopeHandlers) NotifyEnvelopeHandler(c *gin.Context) {
+	correlationID := c.GetHeader("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid ID",
+			Message: "Envelope ID must be a valid integer",
+		})
+		return
+	}
+
+	var requestDTO dtos.EnvelopeNotificationRequestDTO
+
+	if err := c.ShouldBindJSON(&requestDTO); err != nil {
+		validationErrors := h.extractValidationErrors(err)
+		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: "Invalid request payload",
+			Details: validationErrors,
+		})
+		return
+	}
+
+	// Enviar notificação através do use case
+	err = h.UsecaseEnvelope.NotifyEnvelope(c.Request.Context(), id, requestDTO.Message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "Failed to send notification: " + err.Error(),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
+
+	responseDTO := dtos.EnvelopeNotificationResponseDTO{
+		Success: true,
+		Message: "Notification sent successfully",
+	}
+
+	c.JSON(http.StatusOK, responseDTO)
+}
+
 // Helper methods
 
 func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateRequestDTO) (*entity.EntityEnvelope, []*entity.EntityDocument, error) {
@@ -603,6 +665,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 	group.GET("/:id", envelopeHandlers.GetEnvelopeHandler)
 	group.GET("/", envelopeHandlers.GetEnvelopesHandler)
 	group.POST("/:id/activate", envelopeHandlers.ActivateEnvelopeHandler)
+	group.POST("/:id/notify", envelopeHandlers.NotifyEnvelopeHandler)
 
 	// Rotas de requirements por envelope
 	group.POST("/:id/requirements", requirementHandlers.CreateRequirementHandler)

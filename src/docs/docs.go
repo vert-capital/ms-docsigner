@@ -830,6 +830,181 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/envelopes/{id}/notify": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Send notification to envelope signatories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes"
+                ],
+                "summary": "Notify envelope",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Notification data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeNotificationRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeNotificationResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/envelopes/{id}/requirements": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all requirements for a specific envelope",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "requirements"
+                ],
+                "summary": "Get requirements by envelope",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Requirements retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementListResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Envelope not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new requirement for an envelope in Clicksign. Requirements define actions (agree, sign, provide_evidence) that signers must complete, along with authentication methods when needed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "requirements"
+                ],
+                "summary": "Create requirement",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Requirement data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementCreateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Requirement created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid request data or business rule violation",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Envelope not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error - requirement creation failed",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/envelopes/{id}/send": {
             "post": {
                 "security": [
@@ -995,6 +1170,161 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/requirements/{requirement_id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a specific requirement by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "requirements"
+                ],
+                "summary": "Get requirement by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Requirement ID",
+                        "name": "requirement_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Requirement retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Requirement not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a specific requirement (currently only status can be updated)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "requirements"
+                ],
+                "summary": "Update requirement",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Requirement ID",
+                        "name": "requirement_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Requirement update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementUpdateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Requirement updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RequirementResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Requirement not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a specific requirement",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "requirements"
+                ],
+                "summary": "Delete requirement",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Requirement ID",
+                        "name": "requirement_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Requirement deleted successfully"
+                    },
+                    "404": {
+                        "description": "Requirement not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/dtos.ErrorResponseDTO"
                         }
@@ -1284,6 +1614,10 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "approved": {
+                    "description": "Indica se o envelope foi aprovado",
+                    "type": "boolean"
+                },
                 "auto_close": {
                     "type": "boolean"
                 },
@@ -1315,10 +1649,23 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3
                 },
+                "qualifiers": {
+                    "description": "Qualificadores para o envelope, como \"sign\", \"agree\", etc.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeRequirementRequest"
+                    }
+                },
                 "remind_interval": {
                     "type": "integer",
                     "maximum": 30,
                     "minimum": 1
+                },
+                "requirements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeRequirementRequest"
+                    }
                 },
                 "signatories": {
                     "type": "array",
@@ -1365,6 +1712,64 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dtos.EnvelopeNotificationRequestDTO": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "maxLength": 500
+                }
+            }
+        },
+        "dtos.EnvelopeNotificationResponseDTO": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtos.EnvelopeRequirementRequest": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "agree",
+                        "sign",
+                        "provide_evidence"
+                    ]
+                },
+                "auth": {
+                    "type": "string",
+                    "enum": [
+                        "email",
+                        "icp_brasil"
+                    ]
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "sign"
+                    ]
+                },
+                "signer_id": {
+                    "type": "string"
                 }
             }
         },
@@ -1474,6 +1879,105 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.RequirementCreateRequestDTO": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "agree",
+                        "sign",
+                        "provide_evidence"
+                    ]
+                },
+                "auth": {
+                    "type": "string",
+                    "enum": [
+                        "email",
+                        "icp_brasil"
+                    ]
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "sign"
+                    ]
+                },
+                "signer_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RequirementListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "requirements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RequirementResponseDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.RequirementResponseDTO": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "string"
+                },
+                "clicksign_key": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "envelope_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "signer_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RequirementUpdateRequestDTO": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "completed"
+                    ]
                 }
             }
         },

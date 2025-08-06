@@ -76,6 +76,9 @@ definitions:
     type: object
   dtos.EnvelopeCreateRequestDTO:
     properties:
+      approved:
+        description: Indica se o envelope foi aprovado
+        type: boolean
       auto_close:
         type: boolean
       deadline_at:
@@ -98,10 +101,19 @@ definitions:
         maxLength: 255
         minLength: 3
         type: string
+      qualifiers:
+        description: Qualificadores para o envelope, como "sign", "agree", etc.
+        items:
+          $ref: '#/definitions/dtos.EnvelopeRequirementRequest'
+        type: array
       remind_interval:
         maximum: 30
         minimum: 1
         type: integer
+      requirements:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeRequirementRequest'
+        type: array
       signatories:
         items:
           $ref: '#/definitions/dtos.EnvelopeSignatoryRequest'
@@ -135,6 +147,45 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  dtos.EnvelopeNotificationRequestDTO:
+    properties:
+      message:
+        maxLength: 500
+        type: string
+    required:
+    - message
+    type: object
+  dtos.EnvelopeNotificationResponseDTO:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dtos.EnvelopeRequirementRequest:
+    properties:
+      action:
+        enum:
+        - agree
+        - sign
+        - provide_evidence
+        type: string
+      auth:
+        enum:
+        - email
+        - icp_brasil
+        type: string
+      document_id:
+        type: string
+      role:
+        enum:
+        - sign
+        type: string
+      signer_id:
+        type: string
+    required:
+    - action
     type: object
   dtos.EnvelopeResponseDTO:
     properties:
@@ -207,6 +258,72 @@ definitions:
       error:
         type: string
       message:
+        type: string
+    type: object
+  dtos.RequirementCreateRequestDTO:
+    properties:
+      action:
+        enum:
+        - agree
+        - sign
+        - provide_evidence
+        type: string
+      auth:
+        enum:
+        - email
+        - icp_brasil
+        type: string
+      document_id:
+        type: string
+      role:
+        enum:
+        - sign
+        type: string
+      signer_id:
+        type: string
+    required:
+    - action
+    type: object
+  dtos.RequirementListResponseDTO:
+    properties:
+      requirements:
+        items:
+          $ref: '#/definitions/dtos.RequirementResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.RequirementResponseDTO:
+    properties:
+      action:
+        type: string
+      auth:
+        type: string
+      clicksign_key:
+        type: string
+      created_at:
+        type: string
+      document_id:
+        type: string
+      envelope_id:
+        type: integer
+      id:
+        type: integer
+      role:
+        type: string
+      signer_id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dtos.RequirementUpdateRequestDTO:
+    properties:
+      status:
+        enum:
+        - pending
+        - completed
         type: string
     type: object
   dtos.SignatoryCommunicateEventsDTO:
@@ -891,6 +1008,120 @@ paths:
       summary: Activate envelope
       tags:
       - envelopes
+  /api/v1/envelopes/{id}/notify:
+    post:
+      consumes:
+      - application/json
+      description: Send notification to envelope signatories
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Notification data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.EnvelopeNotificationRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeNotificationResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Notify envelope
+      tags:
+      - envelopes
+  /api/v1/envelopes/{id}/requirements:
+    get:
+      consumes:
+      - application/json
+      description: Get all requirements for a specific envelope
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Requirements retrieved successfully
+          schema:
+            $ref: '#/definitions/dtos.RequirementListResponseDTO'
+        "404":
+          description: Envelope not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get requirements by envelope
+      tags:
+      - requirements
+    post:
+      consumes:
+      - application/json
+      description: Create a new requirement for an envelope in Clicksign. Requirements
+        define actions (agree, sign, provide_evidence) that signers must complete,
+        along with authentication methods when needed.
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Requirement data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RequirementCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Requirement created successfully
+          schema:
+            $ref: '#/definitions/dtos.RequirementResponseDTO'
+        "400":
+          description: Validation error - invalid request data or business rule violation
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "404":
+          description: Envelope not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error - requirement creation failed
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Create requirement
+      tags:
+      - requirements
   /api/v1/envelopes/{id}/send:
     post:
       consumes:
@@ -1001,6 +1232,105 @@ paths:
       summary: Create signatory
       tags:
       - signatories
+  /api/v1/requirements/{requirement_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific requirement
+      parameters:
+      - description: Requirement ID
+        in: path
+        name: requirement_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Requirement deleted successfully
+        "404":
+          description: Requirement not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete requirement
+      tags:
+      - requirements
+    get:
+      consumes:
+      - application/json
+      description: Get a specific requirement by its ID
+      parameters:
+      - description: Requirement ID
+        in: path
+        name: requirement_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Requirement retrieved successfully
+          schema:
+            $ref: '#/definitions/dtos.RequirementResponseDTO'
+        "404":
+          description: Requirement not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get requirement by ID
+      tags:
+      - requirements
+    put:
+      consumes:
+      - application/json
+      description: Update a specific requirement (currently only status can be updated)
+      parameters:
+      - description: Requirement ID
+        in: path
+        name: requirement_id
+        required: true
+        type: integer
+      - description: Requirement update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RequirementUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Requirement updated successfully
+          schema:
+            $ref: '#/definitions/dtos.RequirementResponseDTO'
+        "400":
+          description: Validation error - invalid request data
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "404":
+          description: Requirement not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Update requirement
+      tags:
+      - requirements
   /api/v1/signatories/{id}:
     delete:
       consumes:

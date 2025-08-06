@@ -213,3 +213,14 @@ type ValidationErrorDetail struct {
 	Message string `json:"message"`
 	Value   string `json:"value,omitempty"`
 }
+
+// EnvelopeNotificationRequestDTO representa a estrutura de request para notificação de envelope
+type EnvelopeNotificationRequestDTO struct {
+	Message string `json:"message" binding:"required,max=500"`
+}
+
+// EnvelopeNotificationResponseDTO representa a estrutura de response para notificação de envelope
+type EnvelopeNotificationResponseDTO struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
