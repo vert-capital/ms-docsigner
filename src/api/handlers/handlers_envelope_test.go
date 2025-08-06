@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -315,8 +316,8 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 	handler := NewEnvelopeHandler(mockUsecaseEnvelope, mockUsecaseDocument, mockUsecaseRequirement, mockUsecaseSignatory, logger)
 
 	requestDTO := dtos.EnvelopeCreateRequestDTO{
-		Name:            "Test Envelope",
-		Description:     "Test Description",
+		Name:        "Test Envelope",
+		Description: "Test Description",
 		Signatories: []dtos.EnvelopeSignatoryRequest{
 			{
 				Name:  "Test Signatory",
@@ -782,4 +783,104 @@ func TestMapEntityToResponse_WithoutClicksignRawData(t *testing.T) {
 	assert.Equal(t, envelope.Name, result.Name)
 	assert.Equal(t, envelope.ClicksignKey, result.ClicksignKey)
 	assert.Nil(t, result.ClicksignRawData)
+}
+
+func TestNotifyEnvelopeHandler(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gin.SetMode(gin.TestMode)
+
+	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
+	mockUsecaseDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockUsecaseRequirement := mocks.NewMockIUsecaseRequirement(ctrl)
+	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
+	logger := logrus.New()
+
+	handler := NewEnvelopeHandler(
+		mockUsecaseEnvelope,
+		mockUsecaseDocument,
+		mockUsecaseRequirement,
+		mockUsecaseSignatory,
+		logger,
+	)
+
+	tests := []struct {
+		name           string
+		envelopeID     string
+		requestBody    string
+		expectedStatus int
+		mockSetup      func()
+	}{
+		{
+			name:       "Success",
+			envelopeID: "1",
+			requestBody: `{
+				"message": "Test notification message"
+			}`,
+			expectedStatus: http.StatusOK,
+			mockSetup: func() {
+				mockUsecaseEnvelope.EXPECT().
+					NotifyEnvelope(gomock.Any(), 1, "Test notification message").
+					Return(nil).
+					Times(1)
+			},
+		},
+		{
+			name:       "Invalid envelope ID",
+			envelopeID: "invalid",
+			requestBody: `{
+				"message": "Test notification message"
+			}`,
+			expectedStatus: http.StatusBadRequest,
+			mockSetup:      func() {},
+		},
+		{
+			name:       "Invalid request body",
+			envelopeID: "1",
+			requestBody: `{
+				"message": ""
+			}`,
+			expectedStatus: http.StatusBadRequest,
+			mockSetup:      func() {},
+		},
+		{
+			name:       "Notification failed",
+			envelopeID: "1",
+			requestBody: `{
+				"message": "Test notification message"
+			}`,
+			expectedStatus: http.StatusInternalServerError,
+			mockSetup: func() {
+				mockUsecaseEnvelope.EXPECT().
+					NotifyEnvelope(gomock.Any(), 1, "Test notification message").
+					Return(fmt.Errorf("notification failed")).
+					Times(1)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock
+			tt.mockSetup()
+
+			// Create request
+			req, _ := http.NewRequest("POST", "/api/v1/envelopes/"+tt.envelopeID+"/notify", strings.NewReader(tt.requestBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			// Create response recorder
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
+			c.Params = gin.Params{{Key: "id", Value: tt.envelopeID}}
+
+			// Execute handler
+			handler.NotifyEnvelopeHandler(c)
+
+			// Assertions
+			assert.Equal(t, tt.expectedStatus, w.Code)
+		})
+	}
 }

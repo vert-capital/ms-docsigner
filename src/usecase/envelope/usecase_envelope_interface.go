@@ -26,4 +26,5 @@ type IUsecaseEnvelope interface {
 	UpdateEnvelope(envelope *entity.EntityEnvelope) error
 	DeleteEnvelope(id int) error
 	ActivateEnvelope(id int) (*entity.EntityEnvelope, error)
+	NotifyEnvelope(ctx context.Context, envelopeID int, message string) error
 }

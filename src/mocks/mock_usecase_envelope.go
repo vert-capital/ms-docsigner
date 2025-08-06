@@ -154,6 +154,20 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) GetEnvelopes(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvelopes", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).GetEnvelopes), arg0)
 }
 
+// NotifyEnvelope mocks base method.
+func (m *MockIUsecaseEnvelope) NotifyEnvelope(arg0 context.Context, arg1 int, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NotifyEnvelope", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// NotifyEnvelope indicates an expected call of NotifyEnvelope.
+func (mr *MockIUsecaseEnvelopeMockRecorder) NotifyEnvelope(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).NotifyEnvelope), arg0, arg1, arg2)
+}
+
 // UpdateEnvelope mocks base method.
 func (m *MockIUsecaseEnvelope) UpdateEnvelope(arg0 *entity.EntityEnvelope) error {
 	m.ctrl.T.Helper()
