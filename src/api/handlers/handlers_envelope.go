@@ -147,6 +147,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 			}
 			envelope.DocumentsIDs = append(envelope.DocumentsIDs, doc.ID)
 
+			// Enviar documento para o Clicksign e obter o clicksign_key
 			doc.ClicksignKey, err = h.UsecaseEnvelope.CreateDocument(
 				c.Request.Context(),
 				createdEnvelope.ClicksignKey,
@@ -157,6 +158,19 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
 					Message: fmt.Sprintf("Failed to upload document '%s' to Clicksign: %v", doc.Name, err),
+					Details: map[string]interface{}{
+						"correlation_id": correlationID,
+					},
+				})
+				return
+			}
+
+			// Atualizar documento no banco com o clicksign_key
+			err = h.UsecaseDocuments.Update(doc)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+					Error:   "Internal server error",
+					Message: fmt.Sprintf("Failed to update document '%s' with Clicksign key: %v", doc.Name, err),
 					Details: map[string]interface{}{
 						"correlation_id": correlationID,
 					},
