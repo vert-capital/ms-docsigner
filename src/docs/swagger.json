@@ -1487,6 +1487,355 @@
                     }
                 }
             }
+        },
+        "/api/v1/webhooks": {
+            "get": {
+                "description": "Retorna uma lista de webhooks com filtros opcionais",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Lista webhooks",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Nome do evento",
+                        "name": "event_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Chave do documento",
+                        "name": "document_key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Chave da conta",
+                        "name": "account_key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status do webhook",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Página (padrão: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limite por página (padrão: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Recebe e processa webhooks enviados pelo Clicksign",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Recebe webhook do Clicksign",
+                "parameters": [
+                    {
+                        "description": "Dados do webhook",
+                        "name": "webhook",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/document/{document_key}": {
+            "get": {
+                "description": "Retorna webhooks de um documento específico",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Busca webhooks por document key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chave do documento",
+                        "name": "document_key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/failed": {
+            "get": {
+                "description": "Retorna webhooks que falharam no processamento",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Lista webhooks que falharam",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/pending": {
+            "get": {
+                "description": "Retorna webhooks que estão pendentes de processamento",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Lista webhooks pendentes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/{id}": {
+            "get": {
+                "description": "Retorna um webhook específico pelo ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Busca webhook por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do webhook",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove um webhook do sistema",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Deleta webhook",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do webhook",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookProcessResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/{id}/retry": {
+            "post": {
+                "description": "Tenta reprocessar um webhook que falhou",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Reprocessa webhook",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do webhook",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookProcessResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2139,6 +2488,277 @@
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookDocumentDTO": {
+            "type": "object",
+            "required": [
+                "account_key",
+                "key",
+                "status"
+            ],
+            "properties": {
+                "account_key": {
+                    "type": "string"
+                },
+                "attachments": {
+                    "type": "array",
+                    "items": {}
+                },
+                "auto_close": {
+                    "type": "boolean"
+                },
+                "block_after_refusal": {
+                    "type": "boolean"
+                },
+                "deadline_at": {
+                    "type": "string"
+                },
+                "downloads": {
+                    "$ref": "#/definitions/dtos.WebhookDownloadsDTO"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.WebhookEventDTO"
+                    }
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "links": {
+                    "$ref": "#/definitions/dtos.WebhookLinksDTO"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "path": {
+                    "type": "string"
+                },
+                "preview": {
+                    "type": "boolean"
+                },
+                "remind_interval": {
+                    "type": "integer"
+                },
+                "sequence_enabled": {
+                    "type": "boolean"
+                },
+                "signable_group": {
+                    "type": "string"
+                },
+                "signers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.WebhookSignerDTO"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "uploaded_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookDownloadsDTO": {
+            "type": "object",
+            "properties": {
+                "original_file_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookEventDTO": {
+            "type": "object",
+            "required": [
+                "name",
+                "occurred_at"
+            ],
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "occurred_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookLinksDTO": {
+            "type": "object",
+            "properties": {
+                "self": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "total": {
+                    "type": "integer"
+                },
+                "webhooks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.WebhookResponseDTO"
+                    }
+                }
+            }
+        },
+        "dtos.WebhookProcessResponseDTO": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtos.WebhookRequestDTO": {
+            "type": "object",
+            "required": [
+                "document",
+                "event"
+            ],
+            "properties": {
+                "document": {
+                    "$ref": "#/definitions/dtos.WebhookDocumentDTO"
+                },
+                "event": {
+                    "$ref": "#/definitions/dtos.WebhookEventDTO"
+                }
+            }
+        },
+        "dtos.WebhookResponseDTO": {
+            "type": "object",
+            "properties": {
+                "account_key": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document_key": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "event_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "processed_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WebhookSignerDTO": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "auths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "birthday": {
+                    "type": "string"
+                },
+                "communicate_by": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "documentation": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "facial_biometrics_enabled": {
+                    "type": "boolean"
+                },
+                "federal_data_validation": {
+                    "type": "string"
+                },
+                "handwritten_enabled": {
+                    "type": "boolean"
+                },
+                "has_documentation": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "string"
+                },
+                "list_key": {
+                    "type": "string"
+                },
+                "liveness_enabled": {
+                    "type": "boolean"
+                },
+                "longitude": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "official_document_enabled": {
+                    "type": "boolean"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "phone_number_hash": {
+                    "type": "string"
+                },
+                "selfie_enabled": {
+                    "type": "boolean"
+                },
+                "sign_as": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
