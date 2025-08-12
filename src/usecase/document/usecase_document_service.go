@@ -102,6 +102,15 @@ func (u *UsecaseDocumentService) GetDocument(id int) (*entity.EntityDocument, er
 	return document, nil
 }
 
+func (u *UsecaseDocumentService) GetDocumentByClicksignKey(key string) (*entity.EntityDocument, error) {
+	document, err := u.repositoryDocument.GetByClicksignKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("document not found: %w", err)
+	}
+
+	return document, nil
+}
+
 func (u *UsecaseDocumentService) GetDocuments(filters entity.EntityDocumentFilters) ([]entity.EntityDocument, error) {
 	documents, err := u.repositoryDocument.GetDocuments(filters)
 	if err != nil {
