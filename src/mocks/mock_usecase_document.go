@@ -77,6 +77,21 @@ func (mr *MockIUsecaseDocumentMockRecorder) GetDocument(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDocument", reflect.TypeOf((*MockIUsecaseDocument)(nil).GetDocument), arg0)
 }
 
+// GetDocumentByClicksignKey mocks base method.
+func (m *MockIUsecaseDocument) GetDocumentByClicksignKey(arg0 string) (*entity.EntityDocument, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDocumentByClicksignKey", arg0)
+	ret0, _ := ret[0].(*entity.EntityDocument)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDocumentByClicksignKey indicates an expected call of GetDocumentByClicksignKey.
+func (mr *MockIUsecaseDocumentMockRecorder) GetDocumentByClicksignKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDocumentByClicksignKey", reflect.TypeOf((*MockIUsecaseDocument)(nil).GetDocumentByClicksignKey), arg0)
+}
+
 // GetDocuments mocks base method.
 func (m *MockIUsecaseDocument) GetDocuments(arg0 entity.EntityDocumentFilters) ([]entity.EntityDocument, error) {
 	m.ctrl.T.Helper()

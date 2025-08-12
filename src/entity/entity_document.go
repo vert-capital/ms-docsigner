@@ -67,8 +67,9 @@ func (d *EntityDocument) Validate() error {
 		return err
 	}
 
-	// Validar se arquivo existe apenas quando não for base64
-	if !d.IsFromBase64 {
+	// Validar se arquivo existe apenas quando não for base64 E quando o documento ainda não tem clicksign_key
+	// (após o upload para Clicksign, o arquivo temporário pode ser limpo)
+	if !d.IsFromBase64 && d.ClicksignKey == "" {
 		if err := d.validateFileExists(); err != nil {
 			return err
 		}

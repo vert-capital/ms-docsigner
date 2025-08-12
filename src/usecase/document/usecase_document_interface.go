@@ -18,6 +18,7 @@ type IUsecaseDocument interface {
 	Update(document *entity.EntityDocument) error
 	Delete(document *entity.EntityDocument) error
 	GetDocument(id int) (*entity.EntityDocument, error)
+	GetDocumentByClicksignKey(key string) (*entity.EntityDocument, error)
 	GetDocuments(filters entity.EntityDocumentFilters) ([]entity.EntityDocument, error)
 	PrepareForSigning(id int) (*entity.EntityDocument, error)
 	UploadToClicksign(document *entity.EntityDocument) (string, error)

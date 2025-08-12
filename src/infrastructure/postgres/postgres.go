@@ -30,6 +30,7 @@ func Migrations() {
 	db.AutoMigrate(&entity.EntityEnvelope{})
 	db.AutoMigrate(&entity.EntitySignatory{})
 	db.AutoMigrate(&entity.EntityRequirement{})
+	db.AutoMigrate(&entity.EntityWebhook{})
 }
 
 func conn() *gorm.DB {

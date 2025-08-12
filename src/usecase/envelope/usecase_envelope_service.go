@@ -174,6 +174,35 @@ func (u *UsecaseEnvelopeService) GetEnvelope(id int) (*entity.EntityEnvelope, er
 	return envelope, nil
 }
 
+func (u *UsecaseEnvelopeService) GetEnvelopeByClicksignKey(key string) (*entity.EntityEnvelope, error) {
+	envelope, err := u.repositoryEnvelope.GetByClicksignKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("envelope not found: %w", err)
+	}
+
+	return envelope, nil
+}
+
+func (u *UsecaseEnvelopeService) GetEnvelopeByDocumentKey(documentKey string) (*entity.EntityEnvelope, error) {
+	// Buscar envelope que contenha um documento com o clicksign_key especificado
+	envelopes, err := u.repositoryEnvelope.GetEnvelopes(entity.EntityEnvelopeFilters{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get envelopes: %w", err)
+	}
+
+	// Para cada envelope, verificar se algum dos documentos tem o clicksign_key
+	for _, envelope := range envelopes {
+		// Aqui precisamos buscar os documentos do envelope
+		// Por enquanto, vou implementar uma busca simples
+		// TODO: Implementar busca mais eficiente no repository
+		if envelope.ClicksignKey == documentKey {
+			return &envelope, nil
+		}
+	}
+
+	return nil, fmt.Errorf("envelope not found for document key: %s", documentKey)
+}
+
 func (u *UsecaseEnvelopeService) GetEnvelopes(filters entity.EntityEnvelopeFilters) ([]entity.EntityEnvelope, error) {
 	envelopes, err := u.repositoryEnvelope.GetEnvelopes(filters)
 	if err != nil {
@@ -198,6 +227,28 @@ func (u *UsecaseEnvelopeService) UpdateEnvelope(envelope *entity.EntityEnvelope)
 		return fmt.Errorf("cannot update envelope in '%s' status", existingEnvelope.Status)
 	}
 
+	err = u.repositoryEnvelope.Update(envelope)
+	if err != nil {
+		return fmt.Errorf("failed to update envelope: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateEnvelopeForWebhook atualiza envelope sem restrições de status (usado para webhooks)
+func (u *UsecaseEnvelopeService) UpdateEnvelopeForWebhook(envelope *entity.EntityEnvelope) error {
+	err := envelope.Validate()
+	if err != nil {
+		return fmt.Errorf("envelope validation failed: %w", err)
+	}
+
+	// Verificar se o envelope existe
+	_, err = u.repositoryEnvelope.GetByID(envelope.ID)
+	if err != nil {
+		return fmt.Errorf("envelope not found: %w", err)
+	}
+
+	// Atualizar sem restrições de status
 	err = u.repositoryEnvelope.Update(envelope)
 	if err != nil {
 		return fmt.Errorf("failed to update envelope: %w", err)

@@ -139,6 +139,36 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) GetEnvelope(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).GetEnvelope), arg0)
 }
 
+// GetEnvelopeByClicksignKey mocks base method.
+func (m *MockIUsecaseEnvelope) GetEnvelopeByClicksignKey(arg0 string) (*entity.EntityEnvelope, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnvelopeByClicksignKey", arg0)
+	ret0, _ := ret[0].(*entity.EntityEnvelope)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEnvelopeByClicksignKey indicates an expected call of GetEnvelopeByClicksignKey.
+func (mr *MockIUsecaseEnvelopeMockRecorder) GetEnvelopeByClicksignKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvelopeByClicksignKey", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).GetEnvelopeByClicksignKey), arg0)
+}
+
+// GetEnvelopeByDocumentKey mocks base method.
+func (m *MockIUsecaseEnvelope) GetEnvelopeByDocumentKey(arg0 string) (*entity.EntityEnvelope, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnvelopeByDocumentKey", arg0)
+	ret0, _ := ret[0].(*entity.EntityEnvelope)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEnvelopeByDocumentKey indicates an expected call of GetEnvelopeByDocumentKey.
+func (mr *MockIUsecaseEnvelopeMockRecorder) GetEnvelopeByDocumentKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvelopeByDocumentKey", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).GetEnvelopeByDocumentKey), arg0)
+}
+
 // GetEnvelopes mocks base method.
 func (m *MockIUsecaseEnvelope) GetEnvelopes(arg0 entity.EntityEnvelopeFilters) ([]entity.EntityEnvelope, error) {
 	m.ctrl.T.Helper()
@@ -180,4 +210,18 @@ func (m *MockIUsecaseEnvelope) UpdateEnvelope(arg0 *entity.EntityEnvelope) error
 func (mr *MockIUsecaseEnvelopeMockRecorder) UpdateEnvelope(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).UpdateEnvelope), arg0)
+}
+
+// UpdateEnvelopeForWebhook mocks base method.
+func (m *MockIUsecaseEnvelope) UpdateEnvelopeForWebhook(arg0 *entity.EntityEnvelope) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEnvelopeForWebhook", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateEnvelopeForWebhook indicates an expected call of UpdateEnvelopeForWebhook.
+func (mr *MockIUsecaseEnvelopeMockRecorder) UpdateEnvelopeForWebhook(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvelopeForWebhook", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).UpdateEnvelopeForWebhook), arg0)
 }

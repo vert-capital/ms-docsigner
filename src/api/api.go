@@ -53,6 +53,7 @@ func setupRouter(conn *gorm.DB) *gin.Engine {
 	handlers.MountEnvelopeHandlers(r, conn, logger)
 	handlers.MountSignatoryHandlers(r, conn, logger)
 	handlers.MountRequirementHandlers(r, conn, logger)
+	handlers.MountWebhookHandlers(r, conn, logger)
 
 	return r
 }

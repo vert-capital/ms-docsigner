@@ -22,8 +22,11 @@ type IUsecaseEnvelope interface {
 	CreateEnvelopeWithDocuments(envelope *entity.EntityEnvelope, documents []*entity.EntityDocument) (*entity.EntityEnvelope, error)
 	CreateEnvelopeWithRequirements(ctx context.Context, envelope *entity.EntityEnvelope, requirements []*entity.EntityRequirement) (*entity.EntityEnvelope, error)
 	GetEnvelope(id int) (*entity.EntityEnvelope, error)
+	GetEnvelopeByClicksignKey(key string) (*entity.EntityEnvelope, error)
+	GetEnvelopeByDocumentKey(documentKey string) (*entity.EntityEnvelope, error)
 	GetEnvelopes(filters entity.EntityEnvelopeFilters) ([]entity.EntityEnvelope, error)
 	UpdateEnvelope(envelope *entity.EntityEnvelope) error
+	UpdateEnvelopeForWebhook(envelope *entity.EntityEnvelope) error
 	DeleteEnvelope(id int) error
 	ActivateEnvelope(id int) (*entity.EntityEnvelope, error)
 	NotifyEnvelope(ctx context.Context, envelopeID int, message string) error
