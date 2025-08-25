@@ -120,7 +120,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
                         withCredentials([string(credentialsId: "argocd-homolog", variable: 'ARGOCD_AUTH_TOKEN')]) {
-                            sh "argocd --grpc-web app actions run ms-gocusign-prd restart --kind Deployment --all"
+                            sh "argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all"
                         }
                     }
                 }
@@ -138,7 +138,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
                         withCredentials([string(credentialsId: "argocd-production", variable: 'ARGOCD_AUTH_TOKEN')]) {
-                            sh "argocd --grpc-web app actions run ms-gocusign-prd restart --kind Deployment --all"
+                            sh "argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all"
                         }
                     }
                 }
