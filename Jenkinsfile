@@ -16,7 +16,6 @@ def cancelPreviousBuilds() {
 }
 
 pipeline {
-
     environment {
         registry = "197272534240.dkr.ecr.us-east-1.amazonaws.com"
         registryCredential = "ecr:us-east-1:aws_vert"
