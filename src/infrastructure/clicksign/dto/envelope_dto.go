@@ -138,9 +138,10 @@ type DocumentTemplate struct {
 
 // DocumentMetadata representa metadados do documento conforme especificação oficial
 type DocumentMetadata struct {
-	Type string `json:"type"`
-	ID   int    `json:"id"`
-	User int    `json:"user"`
+	Type       string `json:"type"`
+	ID         int    `json:"id"`
+	User       int    `json:"user"`
+	EnvelopeID int    `json:"envelope_id"`
 }
 
 // DocumentUploadRequestWrapper representa a estrutura JSON API para upload de documento (DEPRECATED)

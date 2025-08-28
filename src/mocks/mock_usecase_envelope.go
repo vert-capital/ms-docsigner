@@ -51,18 +51,18 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) ActivateEnvelope(arg0 interface{}) *
 }
 
 // CreateDocument mocks base method.
-func (m *MockIUsecaseEnvelope) CreateDocument(arg0 context.Context, arg1 string, arg2 *entity.EntityDocument) (string, error) {
+func (m *MockIUsecaseEnvelope) CreateDocument(arg0 context.Context, arg1 string, arg2 *entity.EntityDocument, arg3 int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateDocument", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CreateDocument", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateDocument indicates an expected call of CreateDocument.
-func (mr *MockIUsecaseEnvelopeMockRecorder) CreateDocument(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockIUsecaseEnvelopeMockRecorder) CreateDocument(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDocument", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateDocument), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDocument", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CreateDocument), arg0, arg1, arg2, arg3)
 }
 
 // CreateEnvelope mocks base method.

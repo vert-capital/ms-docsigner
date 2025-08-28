@@ -130,7 +130,7 @@ func (u *UsecaseWebhookService) ProcessAutoCloseEvent(webhookDTO *dtos.WebhookRe
 	// Buscar envelope pelo ID que está no metadata do documento
 	var envelopeID int
 	if webhookDTO.Document.Metadata != nil {
-		if id, ok := webhookDTO.Document.Metadata["id"].(float64); ok {
+		if id, ok := webhookDTO.Document.Metadata["envelope_id"].(float64); ok {
 			envelopeID = int(id)
 		}
 	}

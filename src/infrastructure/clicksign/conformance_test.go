@@ -12,6 +12,7 @@ import (
 
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -86,7 +87,7 @@ func TestEnvelopeCreateRequestConformance(t *testing.T) {
 			AutoClose:      true,
 			RemindInterval: 3,
 		}
-		
+
 		_, _, err := service.CreateEnvelope(context.Background(), (*entity.EntityEnvelope)(envelope))
 
 		// Assert
@@ -141,18 +142,18 @@ func TestDocumentCreateRequestConformance(t *testing.T) {
 
 		// Act
 		document := &MockEntityDocument{
-			ID:            1,
-			Name:          "test",
-			MimeType:      "application/pdf",
-			IsFromBase64:  false,
-			FilePath:      "/tmp/test.pdf",
+			ID:           1,
+			Name:         "test",
+			MimeType:     "application/pdf",
+			IsFromBase64: false,
+			FilePath:     "/tmp/test.pdf",
 		}
 
 		// Criar arquivo temporário para o teste
 		testContent := []byte("test pdf content")
 		CreateTempFile(t, document.FilePath, testContent)
 
-		_, err := service.CreateDocument(context.Background(), "test-envelope", (*entity.EntityDocument)(document))
+		_, err := service.CreateDocument(context.Background(), "test-envelope", (*entity.EntityDocument)(document), 1)
 
 		// Assert
 		assert.NoError(t, err)

@@ -10,14 +10,14 @@ import (
 
 // SignatoryCreateRequestDTO representa a estrutura de request para criação de signatário
 type SignatoryCreateRequestDTO struct {
-	Name              string                        `json:"name" binding:"required,min=2,max=255"`
-	Email             string                        `json:"email" binding:"required,email"`
-	EnvelopeID        int                           `json:"envelope_id" binding:"required"`
-	Birthday          *string                       `json:"birthday,omitempty"`
-	PhoneNumber       *string                       `json:"phone_number,omitempty"`
-	HasDocumentation  *bool                         `json:"has_documentation,omitempty"`
-	Refusable         *bool                         `json:"refusable,omitempty"`
-	Group             *int                          `json:"group,omitempty"`
+	Name              string                         `json:"name" binding:"required,min=2,max=255"`
+	Email             string                         `json:"email" binding:"required,email"`
+	EnvelopeID        int                            `json:"envelope_id" binding:"required"`
+	Birthday          *string                        `json:"birthday,omitempty"`
+	PhoneNumber       *string                        `json:"phone_number,omitempty"`
+	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
+	Refusable         *bool                          `json:"refusable,omitempty"`
+	Group             *int                           `json:"group,omitempty"`
 	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
 }
 
@@ -64,7 +64,7 @@ func (dto *SignatoryCreateRequestDTO) Validate() error {
 	// Validar communicate events se fornecido
 	if dto.CommunicateEvents != nil {
 		validEvents := []string{"email", "sms", "none"}
-		
+
 		if !isValidEventType(dto.CommunicateEvents.DocumentSigned, validEvents) {
 			return fmt.Errorf("invalid document_signed event type: %s", dto.CommunicateEvents.DocumentSigned)
 		}
@@ -165,7 +165,7 @@ func (dto *SignatoryUpdateRequestDTO) Validate() error {
 	// Validar communicate events se fornecido
 	if dto.CommunicateEvents != nil {
 		validEvents := []string{"email", "sms", "none"}
-		
+
 		if !isValidEventType(dto.CommunicateEvents.DocumentSigned, validEvents) {
 			return fmt.Errorf("invalid document_signed event type: %s", dto.CommunicateEvents.DocumentSigned)
 		}
@@ -224,6 +224,7 @@ type SignatoryResponseDTO struct {
 	Name              string                         `json:"name"`
 	Email             string                         `json:"email"`
 	EnvelopeID        int                            `json:"envelope_id"`
+	ClicksignKey      string                         `json:"clicksign_key,omitempty"`
 	Birthday          *string                        `json:"birthday,omitempty"`
 	PhoneNumber       *string                        `json:"phone_number,omitempty"`
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
@@ -240,12 +241,13 @@ func (dto *SignatoryResponseDTO) FromEntity(signatory *entity.EntitySignatory) {
 	dto.Name = signatory.Name
 	dto.Email = signatory.Email
 	dto.EnvelopeID = signatory.EnvelopeID
+	dto.ClicksignKey = signatory.ClicksignKey
 	dto.Birthday = signatory.Birthday
 	dto.PhoneNumber = signatory.PhoneNumber
 	dto.HasDocumentation = signatory.HasDocumentation
 	dto.Refusable = signatory.Refusable
 	dto.Group = signatory.Group
-	
+
 	if signatory.CommunicateEvents != nil {
 		dto.CommunicateEvents = &SignatoryCommunicateEventsDTO{
 			DocumentSigned:    signatory.CommunicateEvents.DocumentSigned,
@@ -253,7 +255,7 @@ func (dto *SignatoryResponseDTO) FromEntity(signatory *entity.EntitySignatory) {
 			SignatureReminder: signatory.CommunicateEvents.SignatureReminder,
 		}
 	}
-	
+
 	dto.CreatedAt = signatory.CreatedAt
 	dto.UpdatedAt = signatory.UpdatedAt
 }
