@@ -8,11 +8,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
 	"app/pkg/utils"
 	"app/usecase/clicksign"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -119,7 +122,16 @@ func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string,
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
-		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
+		// Construir mensagem de erro mais informativa
+		errorMsg := fmt.Sprintf("status %d", resp.StatusCode)
+		if errorResp.Error.Type != "" {
+			errorMsg = fmt.Sprintf("%s - %s", errorResp.Error.Type, errorResp.Error.Message)
+		} else if string(body) != "" {
+			// Se não conseguiu fazer parse do erro estruturado, usar a resposta bruta
+			errorMsg = string(body)
+		}
+
+		return "", fmt.Errorf("Clicksign API error: %s", errorMsg)
 	}
 
 	// Fazer parse da resposta de sucesso usando estrutura JSON API
@@ -240,7 +252,33 @@ func (s *DocumentService) prepareFilePathUpload(document *entity.EntityDocument)
 // generateFilename gera um nome de arquivo baseado no documento e extensão do MIME type
 func (s *DocumentService) generateFilename(document *entity.EntityDocument) string {
 	extension := utils.GetFileExtensionFromMimeType(document.MimeType)
-	return fmt.Sprintf("%s_%d%s", document.Name, document.ID, extension)
+	sanitizedName := s.sanitizeFilename(document.Name)
+	return fmt.Sprintf("%s_%d%s", sanitizedName, document.ID, extension)
+}
+
+// sanitizeFilename remove caracteres especiais que não são válidos para nomes de arquivo no Clicksign
+func (s *DocumentService) sanitizeFilename(filename string) string {
+	// Substituir caracteres especiais problemáticos por underscores ou remover
+	result := filename
+
+	// Caracteres que devem ser substituídos por underscores
+	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	for _, char := range invalidChars {
+		result = strings.ReplaceAll(result, char, "_")
+	}
+
+	// Remover múltiplos underscores consecutivos
+	result = regexp.MustCompile("_+").ReplaceAllString(result, "_")
+
+	// Remover underscores no início e fim
+	result = strings.Trim(result, "_")
+
+	// Se ficou vazio após sanitização, usar um nome padrão
+	if result == "" {
+		result = "documento"
+	}
+
+	return result
 }
 
 // generateDataURI gera um data URI com o prefixo correto baseado no MIME type
