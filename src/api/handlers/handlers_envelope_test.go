@@ -92,9 +92,18 @@ func TestCreateEnvelopeHandler_WithoutSignatories_Success(t *testing.T) {
 		Return(nil).
 		AnyTimes()
 
+	mockUsecaseDocument.EXPECT().
+		Update(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
 	mockUsecaseEnvelope.EXPECT().
-		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return("", nil).
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-doc-key", nil)
+
+	mockUsecaseEnvelope.EXPECT().
+		UpdateEnvelope(gomock.Any()).
+		Return(nil).
 		AnyTimes()
 
 	// Preparar request
@@ -193,9 +202,18 @@ func TestCreateEnvelopeHandler_WithSignatories_Success(t *testing.T) {
 		Return(nil).
 		AnyTimes()
 
+	mockUsecaseDocument.EXPECT().
+		Update(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
 	mockUsecaseEnvelope.EXPECT().
-		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return("", nil).
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-doc-key", nil)
+
+	mockUsecaseEnvelope.EXPECT().
+		UpdateEnvelope(gomock.Any()).
+		Return(nil).
 		AnyTimes()
 
 	mockUsecaseSignatory.EXPECT().
@@ -355,9 +373,19 @@ func TestCreateEnvelopeHandler_SignatoryCreationFails(t *testing.T) {
 		Times(1)
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("test-document-key", nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Update(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		UpdateEnvelope(gomock.Any()).
+		Return(nil).
+		AnyTimes()
 
 	mockUsecaseSignatory.EXPECT().
 		CreateSignatory(gomock.Any()).
@@ -621,9 +649,19 @@ func TestCreateEnvelopeHandler_WithClicksignRawData_Success(t *testing.T) {
 		Times(1)
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("test-document-key", nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Update(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		UpdateEnvelope(gomock.Any()).
+		Return(nil).
+		AnyTimes()
 
 	jsonData, err := json.Marshal(requestDTO)
 	assert.NoError(t, err)
@@ -703,9 +741,19 @@ func TestCreateEnvelopeHandler_WithoutClicksignRawData_Success(t *testing.T) {
 		Times(1)
 
 	mockUsecaseEnvelope.EXPECT().
-		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateDocument(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("test-document-key", nil).
 		Times(1)
+
+	mockUsecaseDocument.EXPECT().
+		Update(gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mockUsecaseEnvelope.EXPECT().
+		UpdateEnvelope(gomock.Any()).
+		Return(nil).
+		AnyTimes()
 
 	jsonData, err := json.Marshal(requestDTO)
 	assert.NoError(t, err)

@@ -84,18 +84,18 @@ func (s *DocumentService) UploadDocument(ctx context.Context, document *entity.E
 }
 
 // CreateDocument cria um documento no envelope usando a estrutura JSON API correta
-func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument) (string, error) {
+func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument, internalEnvelopeID int) (string, error) {
 
 	var createRequest *dto.DocumentCreateRequestWrapper
 	var err error
 
 	if document.IsFromBase64 {
-		createRequest, err = s.prepareBase64CreateRequest(document)
+		createRequest, err = s.prepareBase64CreateRequest(document, internalEnvelopeID)
 		if err != nil {
 			return "", fmt.Errorf("failed to prepare base64 create request: %w", err)
 		}
 	} else {
-		createRequest, err = s.prepareFilePathCreateRequest(document)
+		createRequest, err = s.prepareFilePathCreateRequest(document, internalEnvelopeID)
 		if err != nil {
 			return "", fmt.Errorf("failed to prepare file path create request: %w", err)
 		}
@@ -122,16 +122,7 @@ func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string,
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
-		// Construir mensagem de erro mais informativa
-		errorMsg := fmt.Sprintf("status %d", resp.StatusCode)
-		if errorResp.Error.Type != "" {
-			errorMsg = fmt.Sprintf("%s - %s", errorResp.Error.Type, errorResp.Error.Message)
-		} else if string(body) != "" {
-			// Se não conseguiu fazer parse do erro estruturado, usar a resposta bruta
-			errorMsg = string(body)
-		}
-
-		return "", fmt.Errorf("Clicksign API error: %s", errorMsg)
+		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
 	// Fazer parse da resposta de sucesso usando estrutura JSON API
@@ -144,7 +135,7 @@ func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string,
 }
 
 // prepareBase64CreateRequest prepara a requisição de criação de documento que veio de base64
-func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocument) (*dto.DocumentCreateRequestWrapper, error) {
+func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocument, internalEnvelopeID int) (*dto.DocumentCreateRequestWrapper, error) {
 	// Ler arquivo temporário e converter para base64
 	fileData, err := os.ReadFile(document.FilePath)
 	if err != nil {
@@ -161,9 +152,10 @@ func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocu
 				Filename:      filename,
 				ContentBase64: base64Content,
 				Metadata: &dto.DocumentMetadata{
-					Type: "private",
-					ID:   int(document.ID),
-					User: 1, // TODO: Mapear user correto quando tivermos contexto de usuário
+					Type:       "private",
+					ID:         int(document.ID),
+					User:       1, // TODO: Mapear user correto quando tivermos contexto de usuário
+					EnvelopeID: internalEnvelopeID,
 				},
 			},
 		},
@@ -173,7 +165,7 @@ func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocu
 }
 
 // prepareFilePathCreateRequest prepara a requisição de criação de documento que veio de file_path
-func (s *DocumentService) prepareFilePathCreateRequest(document *entity.EntityDocument) (*dto.DocumentCreateRequestWrapper, error) {
+func (s *DocumentService) prepareFilePathCreateRequest(document *entity.EntityDocument, internalEnvelopeID int) (*dto.DocumentCreateRequestWrapper, error) {
 	// Ler arquivo do sistema e converter para base64
 	fileData, err := os.ReadFile(document.FilePath)
 	if err != nil {
@@ -190,9 +182,10 @@ func (s *DocumentService) prepareFilePathCreateRequest(document *entity.EntityDo
 				Filename:      filename,
 				ContentBase64: base64Content,
 				Metadata: &dto.DocumentMetadata{
-					Type: "private",
-					ID:   int(document.ID),
-					User: 1, // TODO: Mapear user correto quando tivermos contexto de usuário
+					Type:       "private",
+					ID:         int(document.ID),
+					User:       1, // TODO: Mapear user correto quando tivermos contexto de usuário
+					EnvelopeID: internalEnvelopeID,
 				},
 			},
 		},

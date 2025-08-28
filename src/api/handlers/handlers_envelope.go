@@ -153,6 +153,7 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 				c.Request.Context(),
 				createdEnvelope.ClicksignKey,
 				doc,
+				createdEnvelope.ID,
 			)
 
 			if err != nil {

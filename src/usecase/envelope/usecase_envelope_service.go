@@ -138,7 +138,7 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 
 	// Criar documentos no Clicksign dentro do envelope
 	for _, doc := range documents {
-		clicksignDocID, err := u.documentService.CreateDocument(ctx, clicksignKey, doc)
+		clicksignDocID, err := u.documentService.CreateDocument(ctx, clicksignKey, doc, envelope.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create document '%s' in Clicksign: %w", doc.Name, err)
 		}
@@ -161,8 +161,8 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 	return envelope, nil
 }
 
-func (u *UsecaseEnvelopeService) CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument) (string, error) {
-	return u.documentService.CreateDocument(ctx, envelopeID, document)
+func (u *UsecaseEnvelopeService) CreateDocument(ctx context.Context, envelopeID string, document *entity.EntityDocument, internalEnvelopeID int) (string, error) {
+	return u.documentService.CreateDocument(ctx, envelopeID, document, internalEnvelopeID)
 }
 
 func (u *UsecaseEnvelopeService) GetEnvelope(id int) (*entity.EntityEnvelope, error) {
