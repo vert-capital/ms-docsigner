@@ -3,6 +3,7 @@ package clicksign
 import (
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
+	"strings"
 )
 
 // SignatoryMapper fornece funções para mapear entre entidades internas e DTOs do Clicksign
@@ -15,8 +16,11 @@ func NewSignatoryMapper() *SignatoryMapper {
 
 // ToClicksignCreateRequest mapeia uma entidade Signatory para o DTO de criação do Clicksign
 func (m *SignatoryMapper) ToClicksignCreateRequest(signatory *entity.EntitySignatory) *dto.SignerCreateRequestWrapper {
+	// Normalizar nome para garantir que tenha sobrenome (requisito do Clicksign)
+	normalizedName := m.normalizeNameForClicksign(signatory.Name)
+
 	attributes := dto.SignerCreateAttributes{
-		Name:             signatory.Name,
+		Name:             normalizedName,
 		Email:            signatory.Email,
 		HasDocumentation: false, // default
 		Refusable:        true,  // default
@@ -121,11 +125,11 @@ func isValidBirthdayFormat(birthday string) bool {
 	if len(birthday) != 10 {
 		return false
 	}
-	
+
 	if birthday[4] != '-' || birthday[7] != '-' {
 		return false
 	}
-	
+
 	// Verificar se os caracteres são dígitos nas posições corretas
 	for i, char := range birthday {
 		if i == 4 || i == 7 {
@@ -135,8 +139,26 @@ func isValidBirthdayFormat(birthday string) bool {
 			return false
 		}
 	}
-	
+
 	return true
+}
+
+// normalizeNameForClicksign normaliza o nome para garantir que tenha sobrenome (requisito do Clicksign)
+func (m *SignatoryMapper) normalizeNameForClicksign(name string) string {
+	if name == "" {
+		return "Nome Não Informado"
+	}
+
+	// Remover espaços extras no início e fim
+	name = strings.TrimSpace(name)
+
+	// Verificar se o nome contém espaços (indicando que tem sobrenome)
+	if !strings.Contains(name, " ") {
+		// Se não tem sobrenome, adicionar um sobrenome genérico
+		return name + " N/A"
+	}
+
+	return name
 }
 
 // ClicksignValidationError representa um erro de validação específico para Clicksign

@@ -8,6 +8,7 @@ import (
 
 	"app/infrastructure/clicksign/dto"
 	"app/usecase/clicksign"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -67,13 +68,13 @@ func (s *SignerService) mapSignerDataToCreateRequest(signerData SignerData) *dto
 		Data: dto.SignerCreateData{
 			Type: "signers",
 			Attributes: dto.SignerCreateAttributes{
-				Name:              signerData.Name,
-				Email:             signerData.Email,
-				Birthday:          signerData.Birthday,
-				PhoneNumber:       signerData.PhoneNumber,
-				HasDocumentation:  signerData.HasDocumentation,
-				Refusable:         signerData.Refusable,
-				Group:             signerData.Group,
+				Name:             signerData.Name,
+				Email:            signerData.Email,
+				Birthday:         signerData.Birthday,
+				PhoneNumber:      signerData.PhoneNumber,
+				HasDocumentation: signerData.HasDocumentation,
+				Refusable:        signerData.Refusable,
+				Group:            signerData.Group,
 			},
 		},
 	}
