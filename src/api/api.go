@@ -54,6 +54,7 @@ func setupRouter(conn *gorm.DB) *gin.Engine {
 	handlers.MountSignatoryHandlers(r, conn, logger)
 	handlers.MountRequirementHandlers(r, conn, logger)
 	handlers.MountWebhookHandlers(r, conn, logger)
+	handlers.MountAutoSignatureTermHandlers(r, conn, logger)
 
 	return r
 }

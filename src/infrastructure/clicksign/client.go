@@ -11,6 +11,7 @@ import (
 
 	"app/config"
 	"app/usecase/clicksign"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -186,7 +187,6 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 		req.Header.Set("X-Correlation-ID", correlationID.(string))
 	}
 
-
 	resp, err := c.httpClient.Do(req)
 
 	if err != nil {
@@ -199,8 +199,6 @@ func (c *ClicksignClient) executeRequest(ctx context.Context, method, url string
 			Original: err,
 		}
 	}
-
-
 
 	return resp, nil
 }
