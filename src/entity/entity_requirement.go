@@ -12,7 +12,7 @@ type EntityRequirement struct {
 	ClicksignKey string    `json:"clicksign_key" gorm:"index"`
 	Action       string    `json:"action" gorm:"not null" validate:"required,oneof=agree sign provide_evidence"`
 	Role         string    `json:"role" gorm:"not null" validate:"omitempty,oneof=sign"`
-	Auth         *string   `json:"auth" validate:"omitempty,oneof=email icp_brasil"`
+	Auth         *string   `json:"auth" validate:"omitempty,oneof=email icp_brasil auto_signature"`
 	DocumentID   *string   `json:"document_id" gorm:"index"`
 	SignerID     *string   `json:"signer_id" gorm:"index"`
 	Status       string    `json:"status" gorm:"not null;default:'pending'" validate:"required,oneof=pending completed"`
@@ -121,7 +121,7 @@ func (r *EntityRequirement) IsValidAction(action string) bool {
 }
 
 func (r *EntityRequirement) IsValidAuth(auth string) bool {
-	validAuths := []string{"email", "icp_brasil"}
+	validAuths := []string{"email", "icp_brasil", "auto_signature"}
 	for _, validAuth := range validAuths {
 		if auth == validAuth {
 			return true

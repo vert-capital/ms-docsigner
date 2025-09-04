@@ -71,6 +71,9 @@ func (s *DocumentService) UploadDocument(ctx context.Context, document *entity.E
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
+		if errorResp.Error.Type == "" && errorResp.Error.Message == "" {
+			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+		}
 		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 
@@ -122,6 +125,9 @@ func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string,
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
+		if errorResp.Error.Type == "" && errorResp.Error.Message == "" {
+			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+		}
 		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 

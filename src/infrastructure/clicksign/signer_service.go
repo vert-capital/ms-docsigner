@@ -50,6 +50,9 @@ func (s *SignerService) CreateSigner(ctx context.Context, envelopeID string, sig
 			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
 		}
 
+		if errorResp.Error.Type == "" && errorResp.Error.Message == "" {
+			return "", fmt.Errorf("Clicksign API error (status %d): %s", resp.StatusCode, string(body))
+		}
 		return "", fmt.Errorf("Clicksign API error: %s - %s", errorResp.Error.Type, errorResp.Error.Message)
 	}
 

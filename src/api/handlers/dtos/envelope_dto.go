@@ -45,7 +45,7 @@ type EnvelopeSignatoryRequest struct {
 type EnvelopeRequirementRequest struct {
 	Action     string  `json:"action" binding:"required,oneof=agree sign provide_evidence"`
 	Role       string  `json:"role,omitempty" binding:"omitempty,oneof=sign"`
-	Auth       *string `json:"auth,omitempty" binding:"omitempty,oneof=email icp_brasil"`
+	Auth       *string `json:"auth,omitempty" binding:"omitempty,oneof=email icp_brasil auto_signature"`
 	DocumentID *string `json:"document_id,omitempty"`
 	SignerID   *string `json:"signer_id,omitempty"`
 }
