@@ -109,6 +109,24 @@ pipeline {
             }
         }
 
+        stage('Deploy to Staging Environment') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'master'
+                }
+            }
+
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
+                        withCredentials([string(credentialsId: "argocd-homolog", variable: 'ARGOCD_AUTH_TOKEN')]) {
+                            sh "argocd --grpc-web app actions run ms-docsigner-stg restart --kind Deployment --all"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Deploy to Homolog Environment') {
             when {
                 expression {
