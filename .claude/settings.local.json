@@ -1,39 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)",
-      "Bash(go test:*)",
-      "Bash(go build:*)",
-      "mcp__ide__getDiagnostics",
-      "Bash(find:*)",
-      "Bash(make test:*)",
-      "Bash(docker-compose build:*)",
-      "Bash(docker-compose:*)",
       "Bash(make:*)",
-      "Bash(mv:*)",
-      "Bash(go mod:*)",
-      "Bash(go generate:*)",
-      "Bash(go install:*)",
-      "Bash(go fmt:*)",
-      "WebFetch(domain:developers.clicksign.com)",
-      "WebFetch(domain:developers.clicksign.com)",
-      "WebFetch(domain:developers.clicksign.com)",
-      "Bash(ls:*)",
-      "Bash(grep:*)",
-      "Bash(mockgen:*)",
-      "Bash(rm:*)",
-      "Bash(go vet:*)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "cd:*",
-      "go:*",
-      "Bash(cd:*)",
-      "Bash(go:*)",
-      "Bash(swag:*)",
-      "Bash(curl:*)",
-      "Bash(docker:*)",
-      "Bash(curl:*)",
-      "curl:*"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
-    "deny": []
+    "deny": [],
+    "ask": []
   }
 }
