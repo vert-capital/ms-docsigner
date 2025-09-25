@@ -761,7 +761,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 
 	// Criar usecase de webhook
 	usecaseWebhook := webhook.NewUsecaseWebhookService(
-		repository.NewRepositoryWebhook(conn, logger),
+		repository.NewRepositoryWebhook(conn),
 		envelopeUsecase,
 		usecaseDocument,
 		logger,

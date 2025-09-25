@@ -5,7 +5,7 @@ import (
 	"app/entity"
 	"app/infrastructure/repository"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	"app/usecase/interfaces"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -15,14 +15,14 @@ import (
 
 type UsecaseWebhookService struct {
 	webhookRepository *repository.RepositoryWebhook
-	envelopeUsecase   envelope.IUsecaseEnvelope
+	envelopeUsecase   interfaces.UsecaseEnvelopeMinimalInterface
 	documentUsecase   document.IUsecaseDocument
 	logger            *logrus.Logger
 }
 
 func NewUsecaseWebhookService(
 	webhookRepository *repository.RepositoryWebhook,
-	envelopeUsecase envelope.IUsecaseEnvelope,
+	envelopeUsecase interfaces.UsecaseEnvelopeMinimalInterface,
 	documentUsecase document.IUsecaseDocument,
 	logger *logrus.Logger,
 ) *UsecaseWebhookService {

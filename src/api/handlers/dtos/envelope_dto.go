@@ -195,9 +195,11 @@ type EnvelopeActivateRequestDTO struct {
 
 // ErrorResponseDTO representa a estrutura de response para erros
 type ErrorResponseDTO struct {
-	Error   string                 `json:"error"`
-	Message string                 `json:"message,omitempty"`
-	Details map[string]interface{} `json:"details,omitempty"`
+	Error     string                 `json:"error"`
+	Message   string                 `json:"message,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	Type      string                 `json:"type,omitempty"`
+	Timestamp time.Time              `json:"timestamp,omitempty"`
 }
 
 // ValidationErrorResponseDTO representa a estrutura de response para erros de validação
