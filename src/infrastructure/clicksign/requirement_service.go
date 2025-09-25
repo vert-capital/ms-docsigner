@@ -7,17 +7,16 @@ import (
 	"io"
 
 	"app/infrastructure/clicksign/dto"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
 type RequirementService struct {
-	clicksignClient clicksign.ClicksignClientInterface
+	clicksignClient ClicksignClientInterface
 	logger          *logrus.Logger
 }
 
-func NewRequirementService(clicksignClient clicksign.ClicksignClientInterface, logger *logrus.Logger) *RequirementService {
+func NewRequirementService(clicksignClient ClicksignClientInterface, logger *logrus.Logger) *RequirementService {
 	return &RequirementService{
 		clicksignClient: clicksignClient,
 		logger:          logger,

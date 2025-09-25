@@ -2,7 +2,6 @@ package repository
 
 import (
 	"app/entity"
-	"app/usecase/envelope"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +10,7 @@ type RepositoryEnvelope struct {
 	db *gorm.DB
 }
 
-func NewRepositoryEnvelope(db *gorm.DB) envelope.IRepositoryEnvelope {
+func NewRepositoryEnvelope(db *gorm.DB) *RepositoryEnvelope {
 	return &RepositoryEnvelope{
 		db: db,
 	}

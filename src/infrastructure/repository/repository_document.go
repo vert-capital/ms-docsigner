@@ -2,7 +2,6 @@ package repository
 
 import (
 	"app/entity"
-	"app/usecase/document"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +10,7 @@ type RepositoryDocument struct {
 	db *gorm.DB
 }
 
-func NewRepositoryDocument(db *gorm.DB) document.IRepositoryDocument {
+func NewRepositoryDocument(db *gorm.DB) *RepositoryDocument {
 	return &RepositoryDocument{
 		db: db,
 	}

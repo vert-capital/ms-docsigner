@@ -12,7 +12,7 @@ import (
 	"app/entity"
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
-	"app/usecase/auto_signature_term"
+	usecase_auto_signature_term "app/usecase/auto_signature_term"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -21,11 +21,11 @@ import (
 )
 
 type AutoSignatureTermHandlers struct {
-	UsecaseAutoSignatureTerm auto_signature_term.IUsecaseAutoSignatureTerm
+	UsecaseAutoSignatureTerm usecase_auto_signature_term.IUsecaseAutoSignatureTerm
 	Logger                   *logrus.Logger
 }
 
-func NewAutoSignatureTermHandler(usecaseAutoSignatureTerm auto_signature_term.IUsecaseAutoSignatureTerm, logger *logrus.Logger) *AutoSignatureTermHandlers {
+func NewAutoSignatureTermHandler(usecaseAutoSignatureTerm usecase_auto_signature_term.IUsecaseAutoSignatureTerm, logger *logrus.Logger) *AutoSignatureTermHandlers {
 	return &AutoSignatureTermHandlers{
 		UsecaseAutoSignatureTerm: usecaseAutoSignatureTerm,
 		Logger:                   logger,
@@ -297,7 +297,7 @@ func MountAutoSignatureTermHandlers(gin *gin.Engine, conn *gorm.DB, logger *logr
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger).(*clicksign.ClicksignClient)
 
 	autoSignatureTermHandlers := NewAutoSignatureTermHandler(
-		auto_signature_term.NewUsecaseAutoSignatureTermService(
+		usecase_auto_signature_term.NewUsecaseAutoSignatureTermService(
 			repository.NewRepositoryAutoSignatureTerm(conn),
 			clicksignClient,
 			logger,

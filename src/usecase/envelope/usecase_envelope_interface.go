@@ -1,9 +1,7 @@
-package envelope
+package usecase_envelope
 
 import (
-	"app/api/handlers/dtos"
 	"app/entity"
-	"app/usecase/webhook"
 	"context"
 )
 
@@ -32,5 +30,7 @@ type IUsecaseEnvelope interface {
 	DeleteEnvelope(id int) error
 	ActivateEnvelope(id int) (*entity.EntityEnvelope, error)
 	NotifyEnvelope(ctx context.Context, envelopeID int, message string) error
-	CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int, webhookUsecase webhook.UsecaseWebhookInterface) (*dtos.WebhookProcessResponseDTO, error)
+	// CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int, webhookUsecase webhook.UsecaseWebhookInterface) (*dtos.WebhookProcessResponseDTO, error)
+	ValidateBusinessRules(envelope *entity.EntityEnvelope) error
+	ValidateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error
 }

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"app/entity"
-	"app/usecase/signatory"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +10,7 @@ type RepositorySignatory struct {
 	db *gorm.DB
 }
 
-func NewRepositorySignatory(db *gorm.DB) signatory.IRepositorySignatory {
+func NewRepositorySignatory(db *gorm.DB) *RepositorySignatory {
 	return &RepositorySignatory{
 		db: db,
 	}

@@ -1,4 +1,4 @@
-package envelope
+package usecase_envelope_test
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 
 	"app/entity"
 	"app/mocks"
+	usecase_envelope "app/usecase/envelope"
 
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,7 @@ func TestUsecaseEnvelopeService_CreateEnvelope(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise in tests
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, mockDocumentUsecase, mockRequirementUsecase, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, mockDocumentUsecase, mockRequirementUsecase, logger)
 
 	t.Run("should create envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -187,7 +188,7 @@ func TestUsecaseEnvelopeService_GetEnvelope(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should get envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -235,7 +236,7 @@ func TestUsecaseEnvelopeService_GetEnvelopes(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should get envelopes successfully", func(t *testing.T) {
 		// Arrange
@@ -290,7 +291,7 @@ func TestUsecaseEnvelopeService_UpdateEnvelope(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should update envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -380,7 +381,7 @@ func TestUsecaseEnvelopeService_DeleteEnvelope(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should delete envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -448,7 +449,7 @@ func TestUsecaseEnvelopeService_ActivateEnvelope(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should activate envelope successfully", func(t *testing.T) {
 		// Arrange
@@ -523,10 +524,12 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 
 	mockRepo := mocks.NewMockIRepositoryEnvelope(ctrl)
 	mockClicksignClient := mocks.NewMockClicksignClientInterface(ctrl)
+	mockDocument := mocks.NewMockIUsecaseDocument(ctrl)
+	mockRequirements := mocks.NewMockIUsecaseRequirement(ctrl)
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger).(*UsecaseEnvelopeService)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, mockDocument, mockRequirements, logger)
 
 	t.Run("should pass validation with valid envelope", func(t *testing.T) {
 		// Arrange
@@ -537,7 +540,7 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 		}
 
 		// Act
-		err := service.validateBusinessRules(envelope)
+		err := service.ValidateBusinessRules(envelope)
 
 		// Assert
 		assert.NoError(t, err)
@@ -556,7 +559,7 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 		}
 
 		// Act
-		err := service.validateBusinessRules(envelope)
+		err := service.ValidateBusinessRules(envelope)
 
 		// Assert
 		assert.Error(t, err)
@@ -571,7 +574,7 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 		}
 
 		// Act
-		err := service.validateBusinessRules(envelope)
+		err := service.ValidateBusinessRules(envelope)
 
 		// Assert
 		assert.Error(t, err)
@@ -587,7 +590,7 @@ func TestUsecaseEnvelopeService_ValidateBusinessRules(t *testing.T) {
 		}
 
 		// Act
-		err := service.validateBusinessRules(envelope)
+		err := service.ValidateBusinessRules(envelope)
 
 		// Assert
 		assert.Error(t, err)
@@ -604,7 +607,7 @@ func TestUsecaseEnvelopeService_CreateEnvelope_WithClicksignRawData(t *testing.T
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	service := NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
+	service := usecase_envelope.NewUsecaseEnvelopeService(mockRepo, mockClicksignClient, nil, nil, logger)
 
 	t.Run("should create envelope with raw data successfully", func(t *testing.T) {
 		// Arrange

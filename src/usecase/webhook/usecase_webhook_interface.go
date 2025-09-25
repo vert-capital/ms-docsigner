@@ -5,6 +5,23 @@ import (
 	"app/entity"
 )
 
+type IRepositoryWebhook interface {
+	Create(webhook *entity.EntityWebhook) error
+	GetByID(id int) (*entity.EntityWebhook, error)
+	GetByDocumentKey(documentKey string) ([]entity.EntityWebhook, error)
+	GetByAccountKey(accountKey string) ([]entity.EntityWebhook, error)
+	GetByEventName(eventName string) ([]entity.EntityWebhook, error)
+	GetByStatus(status string) ([]entity.EntityWebhook, error)
+	GetPending() ([]entity.EntityWebhook, error)
+	GetFailed() ([]entity.EntityWebhook, error)
+	GetAll(page, limit int) ([]entity.EntityWebhook, int64, error)
+	Update(webhook *entity.EntityWebhook) error
+	Delete(id int) error
+	MarkAsProcessed(id int) error
+	MarkAsFailed(id int, errorMsg string) error
+	GetByFilters(eventName, documentKey, accountKey, status string, page, limit int) ([]entity.EntityWebhook, int64, error)
+}
+
 type UsecaseWebhookInterface interface {
 	// ProcessWebhook processa um webhook recebido
 	ProcessWebhook(webhookDTO *dtos.WebhookRequestDTO, rawPayload string) (*entity.EntityWebhook, error)

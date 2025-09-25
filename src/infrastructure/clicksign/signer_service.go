@@ -7,17 +7,16 @@ import (
 	"io"
 
 	"app/infrastructure/clicksign/dto"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
 type SignerService struct {
-	clicksignClient clicksign.ClicksignClientInterface
+	clicksignClient ClicksignClientInterface
 	logger          *logrus.Logger
 }
 
-func NewSignerService(clicksignClient clicksign.ClicksignClientInterface, logger *logrus.Logger) *SignerService {
+func NewSignerService(clicksignClient ClicksignClientInterface, logger *logrus.Logger) *SignerService {
 	return &SignerService{
 		clicksignClient: clicksignClient,
 		logger:          logger,

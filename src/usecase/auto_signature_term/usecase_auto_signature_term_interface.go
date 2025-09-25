@@ -1,4 +1,4 @@
-package auto_signature_term
+package usecase_auto_signature_term
 
 import (
 	"app/entity"

@@ -225,3 +225,31 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) UpdateEnvelopeForWebhook(arg0 interf
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvelopeForWebhook", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).UpdateEnvelopeForWebhook), arg0)
 }
+
+// ValidateBusinessRules mocks base method.
+func (m *MockIUsecaseEnvelope) ValidateBusinessRules(arg0 *entity.EntityEnvelope) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateBusinessRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateBusinessRules indicates an expected call of ValidateBusinessRules.
+func (mr *MockIUsecaseEnvelopeMockRecorder) ValidateBusinessRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateBusinessRules", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).ValidateBusinessRules), arg0)
+}
+
+// ValidateBusinessRulesWithDocuments mocks base method.
+func (m *MockIUsecaseEnvelope) ValidateBusinessRulesWithDocuments(arg0 *entity.EntityEnvelope) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateBusinessRulesWithDocuments", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateBusinessRulesWithDocuments indicates an expected call of ValidateBusinessRulesWithDocuments.
+func (mr *MockIUsecaseEnvelopeMockRecorder) ValidateBusinessRulesWithDocuments(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateBusinessRulesWithDocuments", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).ValidateBusinessRulesWithDocuments), arg0)
+}

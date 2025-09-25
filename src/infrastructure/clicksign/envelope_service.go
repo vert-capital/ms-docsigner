@@ -8,17 +8,16 @@ import (
 
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
 type EnvelopeService struct {
-	clicksignClient clicksign.ClicksignClientInterface
+	clicksignClient ClicksignClientInterface
 	logger          *logrus.Logger
 }
 
-func NewEnvelopeService(clicksignClient clicksign.ClicksignClientInterface, logger *logrus.Logger) *EnvelopeService {
+func NewEnvelopeService(clicksignClient ClicksignClientInterface, logger *logrus.Logger) *EnvelopeService {
 	return &EnvelopeService{
 		clicksignClient: clicksignClient,
 		logger:          logger,
