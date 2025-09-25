@@ -5,6 +5,20 @@ import (
 	"context"
 )
 
+// CheckEventsResult é definido em usecase_envelope_events.go mas precisa estar disponível aqui
+type CheckEventsResult struct {
+	Events        []SignatureEventData `json:"events"`
+	ProcessedCount int                 `json:"processed_count"`
+	EnvelopeKey   string               `json:"envelope_key"`
+}
+
+type SignatureEventData struct {
+	SignerKey string `json:"signer_key"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	SignedAt  interface{} `json:"signed_at"` // interface{} para evitar import time
+}
+
 //go:generate mockgen -destination=../../mocks/mock_usecase_repository_envelope.go -package=mocks app/usecase/envelope IRepositoryEnvelope
 type IRepositoryEnvelope interface {
 	GetByID(id int) (*entity.EntityEnvelope, error)
@@ -30,7 +44,7 @@ type IUsecaseEnvelope interface {
 	DeleteEnvelope(id int) error
 	ActivateEnvelope(id int) (*entity.EntityEnvelope, error)
 	NotifyEnvelope(ctx context.Context, envelopeID int, message string) error
-	// CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int, webhookUsecase webhook.UsecaseWebhookInterface) (*dtos.WebhookProcessResponseDTO, error)
+	CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int) (*CheckEventsResult, error)
 	ValidateBusinessRules(envelope *entity.EntityEnvelope) error
 	ValidateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error
 }
