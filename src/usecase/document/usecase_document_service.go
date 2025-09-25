@@ -3,7 +3,6 @@ package document
 import (
 	"app/entity"
 	"app/infrastructure/clicksign"
-	clicksignInterface "app/usecase/clicksign"
 	"context"
 	"fmt"
 
@@ -12,12 +11,12 @@ import (
 
 type UsecaseDocumentService struct {
 	repositoryDocument IRepositoryDocument
-	clicksignClient    clicksignInterface.ClicksignClientInterface
+	clicksignClient    clicksign.ClicksignClientInterface
 	documentService    *clicksign.DocumentService
 	logger             *logrus.Logger
 }
 
-func NewUsecaseDocumentService(repositoryDocument IRepositoryDocument) IUsecaseDocument {
+func NewUsecaseDocumentService(repositoryDocument IRepositoryDocument) *UsecaseDocumentService {
 	return &UsecaseDocumentService{
 		repositoryDocument: repositoryDocument,
 	}
@@ -25,7 +24,7 @@ func NewUsecaseDocumentService(repositoryDocument IRepositoryDocument) IUsecaseD
 
 func NewUsecaseDocumentServiceWithClicksign(
 	repositoryDocument IRepositoryDocument,
-	clicksignClient clicksignInterface.ClicksignClientInterface,
+	clicksignClient clicksign.ClicksignClientInterface,
 	logger *logrus.Logger,
 ) IUsecaseDocument {
 	documentService := clicksign.NewDocumentService(clicksignClient, logger)

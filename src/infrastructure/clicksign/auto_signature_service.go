@@ -8,19 +8,26 @@ import (
 	"net/http"
 
 	"app/infrastructure/clicksign/dto"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
+type ClicksignClientInterface interface {
+	Get(ctx context.Context, endpoint string) (*http.Response, error)
+	Post(ctx context.Context, endpoint string, body interface{}) (*http.Response, error)
+	Put(ctx context.Context, endpoint string, body interface{}) (*http.Response, error)
+	Delete(ctx context.Context, endpoint string) (*http.Response, error)
+	Patch(ctx context.Context, endpoint string, body interface{}) (*http.Response, error)
+}
+
 // AutoSignatureService gerencia operações relacionadas ao termo de assinatura automática
 type AutoSignatureService struct {
-	client clicksign.ClicksignClientInterface
+	client ClicksignClientInterface
 	logger *logrus.Logger
 }
 
 // NewAutoSignatureService cria uma nova instância do AutoSignatureService
-func NewAutoSignatureService(client clicksign.ClicksignClientInterface, logger *logrus.Logger) *AutoSignatureService {
+func NewAutoSignatureService(client ClicksignClientInterface, logger *logrus.Logger) *AutoSignatureService {
 	return &AutoSignatureService{
 		client: client,
 		logger: logger,

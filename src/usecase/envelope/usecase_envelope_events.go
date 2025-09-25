@@ -1,4 +1,4 @@
-package envelope
+package usecase_envelope
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
-
 
 // CheckEventsFromClicksignAPI verifica eventos da API da Clicksign e retorna os eventos encontrados
 func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int) (*CheckEventsResult, error) {

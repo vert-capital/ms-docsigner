@@ -6,7 +6,6 @@ import (
 
 	"app/entity"
 	"app/infrastructure/clicksign"
-	clicksignInterface "app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +15,7 @@ type UsecaseRequirementService struct {
 	repositoryEnvelope    interface {
 		GetByID(id int) (*entity.EntityEnvelope, error)
 	}
-	clicksignClient    clicksignInterface.ClicksignClientInterface
+	clicksignClient    clicksign.ClicksignClientInterface
 	requirementService *clicksign.RequirementService
 	logger             *logrus.Logger
 }
@@ -26,9 +25,9 @@ func NewUsecaseRequirementService(
 	repositoryEnvelope interface {
 		GetByID(id int) (*entity.EntityEnvelope, error)
 	},
-	clicksignClient clicksignInterface.ClicksignClientInterface,
+	clicksignClient clicksign.ClicksignClientInterface,
 	logger *logrus.Logger,
-) IUsecaseRequirement {
+) *UsecaseRequirementService {
 	requirementService := clicksign.NewRequirementService(clicksignClient, logger)
 
 	return &UsecaseRequirementService{

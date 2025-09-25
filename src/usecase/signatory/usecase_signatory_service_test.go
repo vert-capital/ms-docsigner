@@ -9,6 +9,7 @@ import (
 
 	"app/entity"
 	"app/mocks"
+
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func TestUsecaseSignatoryService_CreateSignatory(t *testing.T) {
 			StatusCode: 201,
 			Body:       io.NopCloser(bytes.NewBufferString(`{"data":{"id":"test-signer-id","type":"signers"}}`)),
 		}
-		
+
 		mockClicksignClient.EXPECT().
 			Post(context.Background(), "/api/v3/envelopes/test-envelope-key/signers", gomock.Any()).
 			Return(mockResponse, nil)

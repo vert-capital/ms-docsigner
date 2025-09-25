@@ -3,7 +3,7 @@ package handlers
 import (
 	"app/infrastructure/repository"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	usecase_envelope "app/usecase/envelope"
 	"app/usecase/webhook"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +20,7 @@ func MountWebhookHandlers(r *gin.Engine, db *gorm.DB, logger *logrus.Logger) {
 
 	// Criar usecases
 	documentUsecase := document.NewUsecaseDocumentService(documentRepository)
-	envelopeUsecase := envelope.NewUsecaseEnvelopeService(
+	envelopeUsecase := usecase_envelope.NewUsecaseEnvelopeService(
 		envelopeRepository,
 		nil,             // clicksignClient - será configurado se necessário
 		documentUsecase, // usecaseDocument

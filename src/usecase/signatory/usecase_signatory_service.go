@@ -6,15 +6,15 @@ import (
 
 	"app/entity"
 	"app/infrastructure/clicksign"
-	clicksignInterface "app/usecase/clicksign"
 	usecase_envelope "app/usecase/envelope"
+
 	"github.com/sirupsen/logrus"
 )
 
 type UsecaseSignatoryService struct {
 	repositorySignatory IRepositorySignatory
 	repositoryEnvelope  usecase_envelope.IRepositoryEnvelope
-	clicksignClient     clicksignInterface.ClicksignClientInterface
+	clicksignClient     clicksign.ClicksignClientInterface
 	signerService       *clicksign.SignerService
 	signatoryMapper     *clicksign.SignatoryMapper
 	logger              *logrus.Logger
@@ -23,9 +23,9 @@ type UsecaseSignatoryService struct {
 func NewUsecaseSignatoryService(
 	repositorySignatory IRepositorySignatory,
 	repositoryEnvelope usecase_envelope.IRepositoryEnvelope,
-	clicksignClient clicksignInterface.ClicksignClientInterface,
+	clicksignClient clicksign.ClicksignClientInterface,
 	logger *logrus.Logger,
-) IUsecaseSignatory {
+) *UsecaseSignatoryService {
 	signerService := clicksign.NewSignerService(clicksignClient, logger)
 	signatoryMapper := clicksign.NewSignatoryMapper()
 

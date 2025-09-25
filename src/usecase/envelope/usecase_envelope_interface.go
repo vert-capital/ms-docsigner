@@ -1,4 +1,4 @@
-package envelope
+package usecase_envelope
 
 import (
 	"app/entity"
@@ -45,4 +45,6 @@ type IUsecaseEnvelope interface {
 	ActivateEnvelope(id int) (*entity.EntityEnvelope, error)
 	NotifyEnvelope(ctx context.Context, envelopeID int, message string) error
 	CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int) (*CheckEventsResult, error)
+	ValidateBusinessRules(envelope *entity.EntityEnvelope) error
+	ValidateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error
 }

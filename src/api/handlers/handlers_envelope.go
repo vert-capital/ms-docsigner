@@ -14,7 +14,7 @@ import (
 	"app/infrastructure/repository"
 	"app/pkg/utils"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	usecase_envelope "app/usecase/envelope"
 	"app/usecase/requirement"
 	"app/usecase/signatory"
 	"app/usecase/webhook"
@@ -26,7 +26,7 @@ import (
 )
 
 type EnvelopeHandlers struct {
-	UsecaseEnvelope    envelope.IUsecaseEnvelope
+	UsecaseEnvelope    usecase_envelope.IUsecaseEnvelope
 	UsecaseDocuments   document.IUsecaseDocument
 	UsecaseRequirement requirement.IUsecaseRequirement
 	UsecaseSignatory   signatory.IUsecaseSignatory
@@ -34,7 +34,7 @@ type EnvelopeHandlers struct {
 	Logger             *logrus.Logger
 }
 
-func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseDocuments document.IUsecaseDocument, usecaseRequirement requirement.IUsecaseRequirement, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
+func NewEnvelopeHandler(usecaseEnvelope usecase_envelope.IUsecaseEnvelope, usecaseDocuments document.IUsecaseDocument, usecaseRequirement requirement.IUsecaseRequirement, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
 	return &EnvelopeHandlers{
 		UsecaseEnvelope:    usecaseEnvelope,
 		UsecaseDocuments:   usecaseDocuments,
@@ -807,7 +807,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
-	envelopeUsecase := envelope.NewUsecaseEnvelopeService(
+	envelopeUsecase := usecase_envelope.NewUsecaseEnvelopeService(
 		repository.NewRepositoryEnvelope(conn),
 		clicksignClient,
 		usecaseDocument,
@@ -815,7 +815,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
-	// Criar usecase de webhook
+	// // Criar usecase de webhook
 	usecaseWebhook := webhook.NewUsecaseWebhookService(
 		repository.NewRepositoryWebhook(conn),
 		envelopeUsecase,
