@@ -24,18 +24,18 @@ func setupSignatoryHandlerTest(t *testing.T) (*gin.Engine, *mocks.MockIUsecaseSi
 	ctrl := gomock.NewController(t)
 	mockUsecaseSignatory := mocks.NewMockIUsecaseSignatory(ctrl)
 	mockUsecaseEnvelope := mocks.NewMockIUsecaseEnvelope(ctrl)
-	
+
 	// Configurar Gin em modo de teste
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	
+
 	// Criar logger silencioso para testes
 	logger := logrus.New()
 	logger.SetLevel(logrus.FatalLevel)
-	
+
 	// Criar handler
 	signatoryHandler := NewSignatoryHandler(mockUsecaseSignatory, mockUsecaseEnvelope, logger)
-	
+
 	// Configurar rotas de teste
 	router.POST("/api/v1/envelopes/:id/signatories", signatoryHandler.CreateSignatoryHandler)
 	router.GET("/api/v1/envelopes/:id/signatories", signatoryHandler.GetSignatoriesHandler)
@@ -43,7 +43,7 @@ func setupSignatoryHandlerTest(t *testing.T) (*gin.Engine, *mocks.MockIUsecaseSi
 	router.PUT("/api/v1/signatories/:id", signatoryHandler.UpdateSignatoryHandler)
 	router.DELETE("/api/v1/signatories/:id", signatoryHandler.DeleteSignatoryHandler)
 	router.POST("/api/v1/envelopes/:id/send", signatoryHandler.SendSignatoriesToClicksignHandler)
-	
+
 	return router, mockUsecaseSignatory, mockUsecaseEnvelope, ctrl
 }
 
@@ -109,7 +109,7 @@ func TestCreateSignatoryHandler_Success(t *testing.T) {
 func TestCreateSignatoryHandler_EnvelopeNotFound(t *testing.T) {
 	router, mockUsecaseSignatory, mockUsecaseEnvelope, ctrl := setupSignatoryHandlerTest(t)
 	defer ctrl.Finish()
-	
+
 	// Suprimir warning de variável não utilizada
 	_ = mockUsecaseSignatory
 
@@ -175,7 +175,7 @@ func TestCreateSignatoryHandler_InvalidEnvelopeID(t *testing.T) {
 func TestCreateSignatoryHandler_ValidationError(t *testing.T) {
 	router, mockUsecaseSignatory, mockUsecaseEnvelope, ctrl := setupSignatoryHandlerTest(t)
 	defer ctrl.Finish()
-	
+
 	// Suprimir warnings de variáveis não utilizadas
 	_ = mockUsecaseSignatory
 	_ = mockUsecaseEnvelope
@@ -375,7 +375,7 @@ func TestUpdateSignatoryHandler_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	assert.Equal(t, "João Santos", response.Name) // Nome atualizado
+	assert.Equal(t, "João Santos", response.Name)            // Nome atualizado
 	assert.Equal(t, existingSignatory.Email, response.Email) // Email inalterado
 }
 
@@ -495,7 +495,7 @@ func TestSendSignatoriesToClicksignHandler_Success(t *testing.T) {
 func TestSendSignatoriesToClicksignHandler_EnvelopeNotReady(t *testing.T) {
 	router, mockUsecaseSignatory, mockUsecaseEnvelope, ctrl := setupSignatoryHandlerTest(t)
 	defer ctrl.Finish()
-	
+
 	// Suprimir warning de variável não utilizada
 	_ = mockUsecaseSignatory
 

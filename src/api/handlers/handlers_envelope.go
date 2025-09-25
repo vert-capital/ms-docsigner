@@ -14,7 +14,7 @@ import (
 	"app/infrastructure/repository"
 	"app/pkg/utils"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	usecase_envelope "app/usecase/envelope"
 	"app/usecase/requirement"
 	"app/usecase/signatory"
 	"app/usecase/webhook"
@@ -26,7 +26,7 @@ import (
 )
 
 type EnvelopeHandlers struct {
-	UsecaseEnvelope    envelope.IUsecaseEnvelope
+	UsecaseEnvelope    usecase_envelope.IUsecaseEnvelope
 	UsecaseDocuments   document.IUsecaseDocument
 	UsecaseRequirement requirement.IUsecaseRequirement
 	UsecaseSignatory   signatory.IUsecaseSignatory
@@ -34,7 +34,7 @@ type EnvelopeHandlers struct {
 	Logger             *logrus.Logger
 }
 
-func NewEnvelopeHandler(usecaseEnvelope envelope.IUsecaseEnvelope, usecaseDocuments document.IUsecaseDocument, usecaseRequirement requirement.IUsecaseRequirement, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
+func NewEnvelopeHandler(usecaseEnvelope usecase_envelope.IUsecaseEnvelope, usecaseDocuments document.IUsecaseDocument, usecaseRequirement requirement.IUsecaseRequirement, usecaseSignatory signatory.IUsecaseSignatory, logger *logrus.Logger) *EnvelopeHandlers {
 	return &EnvelopeHandlers{
 		UsecaseEnvelope:    usecaseEnvelope,
 		UsecaseDocuments:   usecaseDocuments,
@@ -682,48 +682,46 @@ func (h *EnvelopeHandlers) getValidationErrorMessage(fieldError validator.FieldE
 // @Failure 404 {object} dtos.ErrorResponseDTO
 // @Failure 500 {object} dtos.ErrorResponseDTO
 // @Router /api/v1/envelopes/{id}/events/check [post]
-func (h *EnvelopeHandlers) CheckSignatureEventsHandler(c *gin.Context) {
-	idParam := c.Param("id")
-	envelopeID, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-			Message:   "Invalid envelope ID",
-			Type:      "validation_error",
-			Timestamp: time.Now(),
-		})
-		return
-	}
+// func (h *EnvelopeHandlers) CheckSignatureEventsHandler(c *gin.Context) {
+// 	idParam := c.Param("id")
+// 	envelopeID, err := strconv.Atoi(idParam)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+// 			Message: "Invalid envelope ID",
+// 		})
+// 		return
+// 	}
 
-	h.Logger.WithField("envelope_id", envelopeID).Info("Manual check: fetching signature events from Clicksign API")
+// 	h.Logger.WithField("envelope_id", envelopeID).Info("Manual check: fetching signature events from Clicksign API")
 
-	// Usar usecase para processar eventos
-	result, err := h.UsecaseEnvelope.CheckEventsFromClicksignAPI(c.Request.Context(), envelopeID, h.UsecaseWebhook)
-	if err != nil {
-		h.Logger.WithError(err).WithField("envelope_id", envelopeID).Error("Failed to check events from Clicksign API")
+// 	// Usar usecase para processar eventos
+// 	result, err := h.UsecaseEnvelope.CheckEventsFromClicksignAPI(c.Request.Context(), envelopeID, h.UsecaseWebhook)
+// 	if err != nil {
+// 		h.Logger.WithError(err).WithField("envelope_id", envelopeID).Error("Failed to check events from Clicksign API")
 
-		// Determinar tipo de erro para resposta apropriada
-		statusCode := http.StatusInternalServerError
-		errorType := "internal_error"
+// 		// Determinar tipo de erro para resposta apropriada
+// 		statusCode := http.StatusInternalServerError
+// 		errorType := "internal_error"
 
-		if err.Error() == "envelope not found" {
-			statusCode = http.StatusNotFound
-			errorType = "not_found_error"
-		} else if err.Error() == "envelope does not have clicksign_key" {
-			statusCode = http.StatusBadRequest
-			errorType = "validation_error"
-		}
+// 		if err.Error() == "envelope not found" {
+// 			statusCode = http.StatusNotFound
+// 			errorType = "not_found_error"
+// 		} else if err.Error() == "envelope does not have clicksign_key" {
+// 			statusCode = http.StatusBadRequest
+// 			errorType = "validation_error"
+// 		}
 
-		c.JSON(statusCode, dtos.ErrorResponseDTO{
-			Message:   err.Error(),
-			Type:      errorType,
-			Timestamp: time.Now(),
-		})
-		return
-	}
+// 		c.JSON(statusCode, dtos.ErrorResponseDTO{
+// 			Message:   err.Error(),
+// 			Type:      errorType,
+// 			Timestamp: time.Now(),
+// 		})
+// 		return
+// 	}
 
-	h.Logger.WithField("envelope_id", envelopeID).Info("Manual event check completed successfully")
-	c.JSON(http.StatusOK, result)
-}
+// 	h.Logger.WithField("envelope_id", envelopeID).Info("Manual event check completed successfully")
+// 	c.JSON(http.StatusOK, result)
+// }
 
 func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger)
@@ -751,7 +749,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
-	envelopeUsecase := envelope.NewUsecaseEnvelopeService(
+	envelopeUsecase := usecase_envelope.NewUsecaseEnvelopeService(
 		repository.NewRepositoryEnvelope(conn),
 		clicksignClient,
 		usecaseDocument,
@@ -759,9 +757,9 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 		logger,
 	)
 
-	// Criar usecase de webhook
+	// // Criar usecase de webhook
 	usecaseWebhook := webhook.NewUsecaseWebhookService(
-		repository.NewRepositoryWebhook(conn, logger),
+		repository.NewRepositoryWebhook(conn),
 		envelopeUsecase,
 		usecaseDocument,
 		logger,
@@ -791,7 +789,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 	group.POST("/:id/notify", envelopeHandlers.NotifyEnvelopeHandler)
 
 	// Rota de fallback para verificar eventos manualmente quando webhook falha
-	group.POST("/:id/events/check", envelopeHandlers.CheckSignatureEventsHandler)
+	// group.POST("/:id/events/check", envelopeHandlers.CheckSignatureEventsHandler)
 
 	// Rotas de requirements por envelope
 	group.POST("/:id/requirements", requirementHandlers.CreateRequirementHandler)

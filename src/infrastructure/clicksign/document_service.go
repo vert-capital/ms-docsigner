@@ -14,17 +14,16 @@ import (
 	"app/entity"
 	"app/infrastructure/clicksign/dto"
 	"app/pkg/utils"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
 type DocumentService struct {
-	clicksignClient clicksign.ClicksignClientInterface
+	clicksignClient ClicksignClientInterface
 	logger          *logrus.Logger
 }
 
-func NewDocumentService(clicksignClient clicksign.ClicksignClientInterface, logger *logrus.Logger) *DocumentService {
+func NewDocumentService(clicksignClient ClicksignClientInterface, logger *logrus.Logger) *DocumentService {
 	return &DocumentService{
 		clicksignClient: clicksignClient,
 		logger:          logger,

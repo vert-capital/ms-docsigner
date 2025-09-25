@@ -3,9 +3,8 @@ package webhook
 import (
 	"app/api/handlers/dtos"
 	"app/entity"
-	"app/infrastructure/repository"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	usecase_envelope "app/usecase/envelope"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -14,15 +13,15 @@ import (
 )
 
 type UsecaseWebhookService struct {
-	webhookRepository *repository.RepositoryWebhook
-	envelopeUsecase   envelope.IUsecaseEnvelope
+	webhookRepository IRepositoryWebhook
+	envelopeUsecase   usecase_envelope.IUsecaseEnvelope
 	documentUsecase   document.IUsecaseDocument
 	logger            *logrus.Logger
 }
 
 func NewUsecaseWebhookService(
-	webhookRepository *repository.RepositoryWebhook,
-	envelopeUsecase envelope.IUsecaseEnvelope,
+	webhookRepository IRepositoryWebhook,
+	envelopeUsecase usecase_envelope.IUsecaseEnvelope,
 	documentUsecase document.IUsecaseDocument,
 	logger *logrus.Logger,
 ) *UsecaseWebhookService {

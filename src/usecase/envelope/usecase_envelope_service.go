@@ -1,4 +1,4 @@
-package envelope
+package usecase_envelope
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"app/entity"
 	"app/infrastructure/clicksign"
-	clicksignInterface "app/usecase/clicksign"
 	usecase_document "app/usecase/document"
 	usecase_requirement "app/usecase/requirement"
 
@@ -15,7 +14,7 @@ import (
 
 type UsecaseEnvelopeService struct {
 	repositoryEnvelope IRepositoryEnvelope
-	clicksignClient    clicksignInterface.ClicksignClientInterface
+	clicksignClient    clicksign.ClicksignClientInterface
 	envelopeService    *clicksign.EnvelopeService
 	documentService    *clicksign.DocumentService
 	usecaseDocument    usecase_document.IUsecaseDocument
@@ -25,11 +24,11 @@ type UsecaseEnvelopeService struct {
 
 func NewUsecaseEnvelopeService(
 	repositoryEnvelope IRepositoryEnvelope,
-	clicksignClient clicksignInterface.ClicksignClientInterface,
+	clicksignClient clicksign.ClicksignClientInterface,
 	usecaseDocument usecase_document.IUsecaseDocument,
 	usecaseRequirement usecase_requirement.IUsecaseRequirement,
 	logger *logrus.Logger,
-) IUsecaseEnvelope {
+) *UsecaseEnvelopeService {
 	envelopeService := clicksign.NewEnvelopeService(clicksignClient, logger)
 	documentService := clicksign.NewDocumentService(clicksignClient, logger)
 
@@ -54,7 +53,7 @@ func (u *UsecaseEnvelopeService) CreateEnvelope(envelope *entity.EntityEnvelope)
 	}
 
 	// Validações específicas de negócio
-	if err := u.validateBusinessRules(envelope); err != nil {
+	if err := u.ValidateBusinessRules(envelope); err != nil {
 		return nil, fmt.Errorf("business rule validation failed: %w", err)
 	}
 
@@ -115,7 +114,7 @@ func (u *UsecaseEnvelopeService) CreateEnvelopeWithDocuments(envelope *entity.En
 	}
 
 	// Validações específicas de negócio para envelope com documentos
-	if err := u.validateBusinessRulesWithDocuments(envelope); err != nil {
+	if err := u.ValidateBusinessRulesWithDocuments(envelope); err != nil {
 		return nil, fmt.Errorf("business rule validation failed: %w", err)
 	}
 
@@ -340,7 +339,7 @@ func (u *UsecaseEnvelopeService) ActivateEnvelope(id int) (*entity.EntityEnvelop
 	return envelope, nil
 }
 
-func (u *UsecaseEnvelopeService) validateBusinessRules(envelope *entity.EntityEnvelope) error {
+func (u *UsecaseEnvelopeService) ValidateBusinessRules(envelope *entity.EntityEnvelope) error {
 	// Validar limite de signatários (exemplo: máximo 50)
 	if len(envelope.SignatoryEmails) > 50 {
 		return fmt.Errorf("envelope cannot have more than 50 signatories")
@@ -363,7 +362,7 @@ func (u *UsecaseEnvelopeService) validateBusinessRules(envelope *entity.EntityEn
 	return nil
 }
 
-func (u *UsecaseEnvelopeService) validateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error {
+func (u *UsecaseEnvelopeService) ValidateBusinessRulesWithDocuments(envelope *entity.EntityEnvelope) error {
 	// Validar limite de signatários (exemplo: máximo 50)
 	if len(envelope.SignatoryEmails) > 50 {
 		return fmt.Errorf("envelope cannot have more than 50 signatories")

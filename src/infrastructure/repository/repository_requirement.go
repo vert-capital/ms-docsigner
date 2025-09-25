@@ -2,7 +2,6 @@ package repository
 
 import (
 	"app/entity"
-	"app/usecase/requirement"
 	"context"
 
 	"gorm.io/gorm"
@@ -12,7 +11,7 @@ type RepositoryRequirement struct {
 	db *gorm.DB
 }
 
-func NewRepositoryRequirement(db *gorm.DB) requirement.IRepositoryRequirement {
+func NewRepositoryRequirement(db *gorm.DB) *RepositoryRequirement {
 	return &RepositoryRequirement{
 		db: db,
 	}

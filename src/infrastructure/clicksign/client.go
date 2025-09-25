@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"app/config"
-	"app/usecase/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
@@ -48,7 +47,7 @@ type ClicksignClient struct {
 	retryAttempts int
 }
 
-func NewClicksignClient(envVars config.EnvironmentVars, logger *logrus.Logger) clicksign.ClicksignClientInterface {
+func NewClicksignClient(envVars config.EnvironmentVars, logger *logrus.Logger) ClicksignClientInterface {
 	client := &http.Client{
 		Timeout: time.Duration(envVars.CLICKSIGN_TIMEOUT) * time.Second,
 	}

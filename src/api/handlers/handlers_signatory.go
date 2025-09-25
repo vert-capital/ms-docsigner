@@ -13,7 +13,7 @@ import (
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
 	"app/usecase/document"
-	"app/usecase/envelope"
+	usecase_envelope "app/usecase/envelope"
 	"app/usecase/requirement"
 	"app/usecase/signatory"
 
@@ -23,16 +23,15 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type SignatoryHandlers struct {
 	UsecaseSignatory signatory.IUsecaseSignatory
-	UsecaseEnvelope  envelope.IUsecaseEnvelope
+	UsecaseEnvelope  usecase_envelope.IUsecaseEnvelope
 	Logger           *logrus.Logger
 }
 
 func NewSignatoryHandler(
 	usecaseSignatory signatory.IUsecaseSignatory,
-	usecaseEnvelope envelope.IUsecaseEnvelope,
+	usecaseEnvelope usecase_envelope.IUsecaseEnvelope,
 	logger *logrus.Logger,
 ) *SignatoryHandlers {
 	return &SignatoryHandlers{
@@ -571,7 +570,7 @@ func MountSignatoryHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logge
 			clicksignClient,
 			logger,
 		),
-		envelope.NewUsecaseEnvelopeService(
+		usecase_envelope.NewUsecaseEnvelopeService(
 			repository.NewRepositoryEnvelope(conn),
 			clicksignClient,
 			usecaseDocument,

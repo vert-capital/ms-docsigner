@@ -27,76 +27,76 @@ init: _cp_env_file
 	go install golang.org/x/tools/gopls@latest
 
 _rebuild: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} down
-	docker-compose ${DOCKER_COMPOSE_FILE} build --no-cache --force-rm
+	docker compose ${DOCKER_COMPOSE_FILE} down
+	docker compose ${DOCKER_COMPOSE_FILE} build --no-cache --force-rm
 
 up: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} up -d --remove-orphans
+	docker compose ${DOCKER_COMPOSE_FILE} up -d --remove-orphans
 
 logf: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200 app
+	docker compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200 app
 
 log: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} logs --tail 80 app
+	docker compose ${DOCKER_COMPOSE_FILE} logs -f --tail 80 app
 
 logs: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200
+	docker compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200
 
 stop: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} stop
+	docker compose ${DOCKER_COMPOSE_FILE} stop
 
 status: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} ps
+	docker compose ${DOCKER_COMPOSE_FILE} ps
 
 restart: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} restart
+	docker compose ${DOCKER_COMPOSE_FILE} restart
 
 sh: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec ${ARGS} bash
+	docker compose ${DOCKER_COMPOSE_FILE} exec ${ARGS} bash
 
 run: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} run ${ARGS}
+	docker compose ${DOCKER_COMPOSE_FILE} run ${ARGS}
 
 chown_project:
 	sudo chown -R "${USER}:${USER}" ./
 
 dep_install: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go get ${ARGS}
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go get ${ARGS}
 	cd src && go get ${ARGS}
 
 auto_install: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go get ./...
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go get ./...
 	cd src && go get ./...
 
 generate: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go generate ./...
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go generate ./...
 	sudo chown -R "${USER}:${USER}" ./
 
 logger: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200 ${ARGS}
+	docker compose ${DOCKER_COMPOSE_FILE} logs -f --tail 200 ${ARGS}
 
 test-watch: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app gotestsum --watch
+	docker compose ${DOCKER_COMPOSE_FILE} exec app gotestsum --watch
 
 test-watch-web: show_env
 	go install github.com/smartystreets/goconvey@latest
 	cd src && goconvey -port 9090 -cover
 
 test: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app gotestsum
+	docker compose ${DOCKER_COMPOSE_FILE} exec app gotestsum
 
 mod_tidy: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go mod tidy
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go mod tidy
 
 coverage: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go test -v -coverprofile=coverage.out ./...
-	# docker-compose ${DOCKER_COMPOSE_FILE} exec app go tool cover -func=coverage.out
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app go tool cover -html=coverage.out -o coverage.html
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go test -v -coverprofile=coverage.out ./...
+	# docker compose ${DOCKER_COMPOSE_FILE} exec app go tool cover -func=coverage.out
+	docker compose ${DOCKER_COMPOSE_FILE} exec app go tool cover -html=coverage.out -o coverage.html
 	xdg-open http://localhost:9070/coverage.html
 	cd src && php -S 0:9070
 
 swagger: show_env
-	docker-compose ${DOCKER_COMPOSE_FILE} exec app swag init
+	docker compose ${DOCKER_COMPOSE_FILE} exec app swag init
 
 install_generator:
 	npm install -g generator-go-clean-architecture-crud
