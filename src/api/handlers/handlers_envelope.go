@@ -687,17 +687,16 @@ func (h *EnvelopeHandlers) CheckSignatureEventsHandler(c *gin.Context) {
 	envelopeID, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-			Message:   "Invalid envelope ID",
-			Type:      "validation_error",
-			Timestamp: time.Now(),
+			Error:   "validation_error",
+			Message: "Invalid envelope ID",
 		})
 		return
 	}
 
 	h.Logger.WithField("envelope_id", envelopeID).Info("Manual check: fetching signature events from Clicksign API")
 
-	// Usar usecase para processar eventos
-	result, err := h.UsecaseEnvelope.CheckEventsFromClicksignAPI(c.Request.Context(), envelopeID, h.UsecaseWebhook)
+	// Usar usecase para buscar eventos
+	eventsResult, err := h.UsecaseEnvelope.CheckEventsFromClicksignAPI(c.Request.Context(), envelopeID)
 	if err != nil {
 		h.Logger.WithError(err).WithField("envelope_id", envelopeID).Error("Failed to check events from Clicksign API")
 
@@ -714,15 +713,72 @@ func (h *EnvelopeHandlers) CheckSignatureEventsHandler(c *gin.Context) {
 		}
 
 		c.JSON(statusCode, dtos.ErrorResponseDTO{
-			Message:   err.Error(),
-			Type:      errorType,
-			Timestamp: time.Now(),
+			Error:   errorType,
+			Message: err.Error(),
 		})
 		return
 	}
 
-	h.Logger.WithField("envelope_id", envelopeID).Info("Manual event check completed successfully")
-	c.JSON(http.StatusOK, result)
+	// Processar os eventos encontrados via webhooks
+	processedEvents := 0
+	for _, event := range eventsResult.Events {
+		// Criar webhook DTO simulando evento de assinatura
+		webhookDTO := &dtos.WebhookRequestDTO{
+			Event: dtos.WebhookEventDTO{
+				Name:       "sign",
+				OccurredAt: fmt.Sprintf("%v", event.SignedAt), // Converter para string
+				Data: map[string]interface{}{
+					"signer": map[string]interface{}{
+						"key":   event.SignerKey,
+						"email": event.Email,
+						"name":  event.Name,
+					},
+				},
+			},
+			Document: dtos.WebhookDocumentDTO{
+				Key:        eventsResult.EnvelopeKey,
+				AccountKey: "api-fallback",
+				Status:     "running",
+			},
+		}
+
+		// Processar evento via webhook usecase
+		rawPayload := fmt.Sprintf(`{"source":"api_fallback","signer_key":"%s","envelope_id":%d}`,
+			event.SignerKey, envelopeID)
+
+		_, err := h.UsecaseWebhook.ProcessWebhook(webhookDTO, rawPayload)
+		if err != nil {
+			h.Logger.WithError(err).WithFields(logrus.Fields{
+				"signer_key":  event.SignerKey,
+				"envelope_id": envelopeID,
+			}).Error("Failed to process signature event via webhook")
+			continue
+		}
+
+		processedEvents++
+		h.Logger.WithFields(logrus.Fields{
+			"signer_key":  event.SignerKey,
+			"envelope_id": envelopeID,
+			"email":       event.Email,
+		}).Info("Successfully processed signature event via webhook")
+	}
+
+	// Montar resposta
+	message := fmt.Sprintf("Checked Clicksign API: found %d events, processed %d via webhooks",
+		len(eventsResult.Events), processedEvents)
+
+	response := &dtos.WebhookProcessResponseDTO{
+		Success: true,
+		Message: message,
+	}
+
+	h.Logger.WithFields(logrus.Fields{
+		"envelope_id":      envelopeID,
+		"events_found":     len(eventsResult.Events),
+		"events_processed": processedEvents,
+	}).Info("Manual event check completed successfully")
+
+	c.JSON(http.StatusOK, response)
 }
 
 func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
@@ -761,7 +817,7 @@ func MountEnvelopeHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger
 
 	// Criar usecase de webhook
 	usecaseWebhook := webhook.NewUsecaseWebhookService(
-		repository.NewRepositoryWebhook(conn, logger),
+		repository.NewRepositoryWebhook(conn),
 		envelopeUsecase,
 		usecaseDocument,
 		logger,
