@@ -73,6 +73,7 @@ func (s *SignerService) mapSignerDataToCreateRequest(signerData SignerData) *dto
 				Name:             signerData.Name,
 				Email:            signerData.Email,
 				Birthday:         signerData.Birthday,
+				Documentation:    signerData.Documentation,
 				PhoneNumber:      signerData.PhoneNumber,
 				HasDocumentation: signerData.HasDocumentation,
 				Refusable:        signerData.Refusable,
@@ -98,6 +99,7 @@ type SignerData struct {
 	Name              string
 	Email             string
 	Birthday          string
+	Documentation     *string
 	PhoneNumber       *string
 	HasDocumentation  bool
 	Refusable         bool

@@ -14,6 +14,7 @@ type SignatoryCreateRequestDTO struct {
 	Email             string                         `json:"email" binding:"required,email"`
 	EnvelopeID        int                            `json:"envelope_id" binding:"required"`
 	Birthday          *string                        `json:"birthday,omitempty"`
+	Documentation     *string                        `json:"documentation,omitempty"`
 	PhoneNumber       *string                        `json:"phone_number,omitempty"`
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
@@ -53,6 +54,16 @@ func (dto *SignatoryCreateRequestDTO) Validate() error {
 		phoneRegex := regexp.MustCompile(`^\+\d{8,15}$`)
 		if !phoneRegex.MatchString(*dto.PhoneNumber) {
 			return fmt.Errorf("phone number must be in international format (+xxxxxxxx), got: %s", *dto.PhoneNumber)
+		}
+	}
+
+	// Validar documentation se fornecido
+	if dto.Documentation != nil && *dto.Documentation != "" {
+		docRegex := regexp.MustCompile(`[^\d]`)
+		cleanDoc := docRegex.ReplaceAllString(*dto.Documentation, "")
+
+		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
+			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *dto.Documentation)
 		}
 	}
 
@@ -106,6 +117,7 @@ func (dto *SignatoryCreateRequestDTO) ToEntity() entity.EntitySignatory {
 		Email:             dto.Email,
 		EnvelopeID:        dto.EnvelopeID,
 		Birthday:          dto.Birthday,
+		Documentation:     dto.Documentation,
 		PhoneNumber:       dto.PhoneNumber,
 		HasDocumentation:  dto.HasDocumentation,
 		Refusable:         dto.Refusable,
@@ -120,6 +132,7 @@ type SignatoryUpdateRequestDTO struct {
 	Email             *string                        `json:"email,omitempty" binding:"omitempty,email"`
 	EnvelopeID        *int                           `json:"envelope_id,omitempty"`
 	Birthday          *string                        `json:"birthday,omitempty"`
+	Documentation     *string                        `json:"documentation,omitempty"`
 	PhoneNumber       *string                        `json:"phone_number,omitempty"`
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
@@ -154,6 +167,16 @@ func (dto *SignatoryUpdateRequestDTO) Validate() error {
 		phoneRegex := regexp.MustCompile(`^\+\d{8,15}$`)
 		if !phoneRegex.MatchString(*dto.PhoneNumber) {
 			return fmt.Errorf("phone number must be in international format (+xxxxxxxx), got: %s", *dto.PhoneNumber)
+		}
+	}
+
+	// Validar documentation se fornecido
+	if dto.Documentation != nil && *dto.Documentation != "" {
+		docRegex := regexp.MustCompile(`[^\d]`)
+		cleanDoc := docRegex.ReplaceAllString(*dto.Documentation, "")
+
+		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
+			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *dto.Documentation)
 		}
 	}
 
@@ -196,6 +219,9 @@ func (dto *SignatoryUpdateRequestDTO) ApplyToEntity(signatory *entity.EntitySign
 	if dto.Birthday != nil {
 		signatory.Birthday = dto.Birthday
 	}
+	if dto.Documentation != nil {
+		signatory.Documentation = dto.Documentation
+	}
 	if dto.PhoneNumber != nil {
 		signatory.PhoneNumber = dto.PhoneNumber
 	}
@@ -226,6 +252,7 @@ type SignatoryResponseDTO struct {
 	EnvelopeID        int                            `json:"envelope_id"`
 	ClicksignKey      string                         `json:"clicksign_key,omitempty"`
 	Birthday          *string                        `json:"birthday,omitempty"`
+	Documentation     *string                        `json:"documentation,omitempty"`
 	PhoneNumber       *string                        `json:"phone_number,omitempty"`
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
@@ -243,6 +270,7 @@ func (dto *SignatoryResponseDTO) FromEntity(signatory *entity.EntitySignatory) {
 	dto.EnvelopeID = signatory.EnvelopeID
 	dto.ClicksignKey = signatory.ClicksignKey
 	dto.Birthday = signatory.Birthday
+	dto.Documentation = signatory.Documentation
 	dto.PhoneNumber = signatory.PhoneNumber
 	dto.HasDocumentation = signatory.HasDocumentation
 	dto.Refusable = signatory.Refusable

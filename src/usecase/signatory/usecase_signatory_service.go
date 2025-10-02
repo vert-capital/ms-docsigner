@@ -84,6 +84,7 @@ func (u *UsecaseSignatoryService) CreateSignatory(signatory *entity.EntitySignat
 		Name:             clicksignRequest.Data.Attributes.Name,
 		Email:            clicksignRequest.Data.Attributes.Email,
 		Birthday:         clicksignRequest.Data.Attributes.Birthday,
+		Documentation:    clicksignRequest.Data.Attributes.Documentation,
 		PhoneNumber:      clicksignRequest.Data.Attributes.PhoneNumber,
 		HasDocumentation: clicksignRequest.Data.Attributes.HasDocumentation,
 		Refusable:        clicksignRequest.Data.Attributes.Refusable,

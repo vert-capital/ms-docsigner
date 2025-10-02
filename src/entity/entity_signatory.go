@@ -16,9 +16,9 @@ type EntitySignatoryFilters struct {
 }
 
 type CommunicateEvents struct {
-	DocumentSigned     string `json:"document_signed"`
-	SignatureRequest   string `json:"signature_request"`
-	SignatureReminder  string `json:"signature_reminder"`
+	DocumentSigned    string `json:"document_signed"`
+	SignatureRequest  string `json:"signature_request"`
+	SignatureReminder string `json:"signature_reminder"`
 }
 
 type EntitySignatory struct {
@@ -27,6 +27,7 @@ type EntitySignatory struct {
 	Email             string             `json:"email" gorm:"not null" validate:"required,email"`
 	EnvelopeID        int                `json:"envelope_id" gorm:"not null" validate:"required"`
 	Birthday          *string            `json:"birthday,omitempty"`
+	Documentation     *string            `json:"documentation,omitempty"`
 	PhoneNumber       *string            `json:"phone_number,omitempty"`
 	HasDocumentation  *bool              `json:"has_documentation,omitempty"`
 	Refusable         *bool              `json:"refusable,omitempty"`
@@ -75,6 +76,7 @@ func NewSignatory(signatoryParam EntitySignatory) (*EntitySignatory, error) {
 		Email:             signatoryParam.Email,
 		EnvelopeID:        signatoryParam.EnvelopeID,
 		Birthday:          signatoryParam.Birthday,
+		Documentation:     signatoryParam.Documentation,
 		PhoneNumber:       signatoryParam.PhoneNumber,
 		HasDocumentation:  signatoryParam.HasDocumentation,
 		Refusable:         signatoryParam.Refusable,
@@ -107,6 +109,10 @@ func (s *EntitySignatory) Validate() error {
 	}
 
 	if err := s.validatePhoneNumber(); err != nil {
+		return err
+	}
+
+	if err := s.validateDocumentation(); err != nil {
 		return err
 	}
 
@@ -156,6 +162,20 @@ func (s *EntitySignatory) validatePhoneNumber() error {
 	return nil
 }
 
+func (s *EntitySignatory) validateDocumentation() error {
+	if s.Documentation != nil && *s.Documentation != "" {
+		// Remove caracteres não numéricos para validação
+		docRegex := regexp.MustCompile(`[^\d]`)
+		cleanDoc := docRegex.ReplaceAllString(*s.Documentation, "")
+
+		// Validar CPF (11 dígitos) ou CNPJ (14 dígitos)
+		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
+			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *s.Documentation)
+		}
+	}
+	return nil
+}
+
 func (s *EntitySignatory) validateGroup() error {
 	if s.Group != nil && *s.Group <= 0 {
 		return fmt.Errorf("group must be a positive integer, got: %d", *s.Group)
@@ -166,7 +186,7 @@ func (s *EntitySignatory) validateGroup() error {
 func (s *EntitySignatory) validateCommunicateEvents() error {
 	if s.CommunicateEvents != nil {
 		validEvents := []string{"email", "sms", "none"}
-		
+
 		// Validate document_signed
 		if !isValidEventType(s.CommunicateEvents.DocumentSigned, validEvents) {
 			return fmt.Errorf("invalid document_signed event type: %s", s.CommunicateEvents.DocumentSigned)
@@ -219,6 +239,12 @@ func (s *EntitySignatory) SetPhoneNumber(phoneNumber string) error {
 	s.PhoneNumber = &phoneNumber
 	s.UpdatedAt = time.Now()
 	return s.validatePhoneNumber()
+}
+
+func (s *EntitySignatory) SetDocumentation(documentation string) error {
+	s.Documentation = &documentation
+	s.UpdatedAt = time.Now()
+	return s.validateDocumentation()
 }
 
 func (s *EntitySignatory) SetClicksignKey(clicksignKey string) {
