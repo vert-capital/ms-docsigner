@@ -34,6 +34,7 @@ type EnvelopeSignatoryRequest struct {
 	Name              string                         `json:"name" binding:"required,min=2,max=255"`
 	Email             string                         `json:"email" binding:"required,email"`
 	Birthday          *string                        `json:"birthday,omitempty"`
+	Documentation     *string                        `json:"documentation,omitempty"`
 	PhoneNumber       *string                        `json:"phone_number,omitempty"`
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
@@ -57,6 +58,7 @@ func (esr *EnvelopeSignatoryRequest) ToSignatoryCreateRequestDTO(envelopeID int)
 		Email:             esr.Email,
 		EnvelopeID:        envelopeID,
 		Birthday:          esr.Birthday,
+		Documentation:     esr.Documentation,
 		PhoneNumber:       esr.PhoneNumber,
 		HasDocumentation:  esr.HasDocumentation,
 		Refusable:         esr.Refusable,

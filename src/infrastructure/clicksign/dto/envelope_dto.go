@@ -199,6 +199,7 @@ type SignerCreateAttributes struct {
 	Name              string                   `json:"name"`
 	Email             string                   `json:"email"`
 	Birthday          string                   `json:"birthday,omitempty"`
+	Documentation     *string                  `json:"documentation,omitempty"`
 	PhoneNumber       *string                  `json:"phone_number,omitempty"`
 	HasDocumentation  bool                     `json:"has_documentation"`
 	Refusable         bool                     `json:"refusable"`

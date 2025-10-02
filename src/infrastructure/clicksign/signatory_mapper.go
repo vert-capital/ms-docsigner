@@ -32,6 +32,10 @@ func (m *SignatoryMapper) ToClicksignCreateRequest(signatory *entity.EntitySigna
 		attributes.Birthday = *signatory.Birthday
 	}
 
+	if signatory.Documentation != nil && *signatory.Documentation != "" {
+		attributes.Documentation = signatory.Documentation
+	}
+
 	if signatory.PhoneNumber != nil {
 		attributes.PhoneNumber = signatory.PhoneNumber
 	}
