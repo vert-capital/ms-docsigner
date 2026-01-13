@@ -1,7 +1,7 @@
 package handlers
 
 import (
-    "errors"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -121,21 +121,21 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 
 	// }
 
-    if err != nil {
-        status := http.StatusInternalServerError
-        var ce *clicksign.ClicksignError
-        if errors.As(err, &ce) && ce.StatusCode > 0 {
-            status = ce.StatusCode
-        }
-        c.JSON(status, dtos.ErrorResponseDTO{
-            Error:   http.StatusText(status),
-            Message: "Failed to create envelope: " + err.Error(),
-            Details: map[string]interface{}{
-                "correlation_id": correlationID,
-            },
-        })
-        return
-    }
+	if err != nil {
+		status := http.StatusInternalServerError
+		var ce *clicksign.ClicksignError
+		if errors.As(err, &ce) && ce.StatusCode > 0 {
+			status = ce.StatusCode
+		}
+		c.JSON(status, dtos.ErrorResponseDTO{
+			Error:   http.StatusText(status),
+			Message: "Failed to create envelope: " + err.Error(),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
 
 	// cria o envelope com documentos base64
 	if len(documents) > 0 {
@@ -265,22 +265,22 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					Auth:         requirementRequest.Auth,
 				})
 
-                if err != nil {
-                    status := http.StatusInternalServerError
-                    var ce *clicksign.ClicksignError
-                    if errors.As(err, &ce) && ce.StatusCode > 0 {
-                        status = ce.StatusCode
-                    }
-                    c.JSON(status, dtos.ErrorResponseDTO{
-                        Error:   http.StatusText(status),
-                        Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
-                        Details: map[string]interface{}{
-                            "correlation_id": correlationID,
-                            "envelope_id":    createdEnvelope.ID,
-                        },
-                    })
-                    return
-                }
+				if err != nil {
+					status := http.StatusInternalServerError
+					var ce *clicksign.ClicksignError
+					if errors.As(err, &ce) && ce.StatusCode > 0 {
+						status = ce.StatusCode
+					}
+					c.JSON(status, dtos.ErrorResponseDTO{
+						Error:   http.StatusText(status),
+						Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"envelope_id":    createdEnvelope.ID,
+						},
+					})
+					return
+				}
 			}
 		}
 	}
@@ -315,22 +315,22 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 					Role:         qualifierRequest.Role,
 				})
 
-                if err != nil {
-                    status := http.StatusInternalServerError
-                    var ce *clicksign.ClicksignError
-                    if errors.As(err, &ce) && ce.StatusCode > 0 {
-                        status = ce.StatusCode
-                    }
-                    c.JSON(status, dtos.ErrorResponseDTO{
-                        Error:   http.StatusText(status),
-                        Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
-                        Details: map[string]interface{}{
-                            "correlation_id": correlationID,
-                            "envelope_id":    createdEnvelope.ID,
-                        },
-                    })
-                    return
-                }
+				if err != nil {
+					status := http.StatusInternalServerError
+					var ce *clicksign.ClicksignError
+					if errors.As(err, &ce) && ce.StatusCode > 0 {
+						status = ce.StatusCode
+					}
+					c.JSON(status, dtos.ErrorResponseDTO{
+						Error:   http.StatusText(status),
+						Message: fmt.Sprintf("Failed to create requirement for envelope %d: %v", createdEnvelope.ID, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"envelope_id":    createdEnvelope.ID,
+						},
+					})
+					return
+				}
 			}
 		}
 	}
@@ -581,10 +581,15 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 	// Processar documentos base64 se fornecidos
 	for _, docRequest := range dto.Documents {
 		// Processar base64
-		fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
+		// fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
+		// if err != nil {
+		// 	return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+		// }
+		localPath, err := utils.DownloadFile(docRequest.FileURL)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+			return nil, nil, fmt.Errorf("failed to download file from URL for document '%s': %w", docRequest.Name, err)
 		}
+		fileInfo, err := utils.GetFileInfo(localPath)
 
 		// Validar MIME type
 		if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
