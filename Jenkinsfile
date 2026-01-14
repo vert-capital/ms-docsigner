@@ -112,7 +112,7 @@ pipeline {
         stage('build Container Register Production') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'prd'
+                    return env.GIT_BRANCH == 'master'
                 }
             }
 
