@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25-alpine as builder
 
 ARG PROJECT_NAME="app"
 ARG VERSION="dev"
@@ -12,20 +12,15 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app_bin .
 
-FROM debian:bullseye
-
-RUN apt-get update -y && \
-    apt-get install -y wget gnupg2 && \
-    echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update -y && \
-    apt-get install -y postgresql-client-14
+FROM debian:stable
 
 WORKDIR /app
+
 
 COPY --from=builder /app/app_bin /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
+
 EXPOSE 8080
 
-ENTRYPOINT ["/app/app_bin"]
+CMD ["/app/app_bin"]
