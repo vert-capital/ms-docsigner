@@ -61,6 +61,30 @@ pipeline {
             }
         }
 
+        stage('build Container Register Staging') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'develop'
+                }
+            }
+
+            steps {
+                script {
+                    docker.withRegistry("https://$registry", registryCredential) {
+                        dockerImageName = "ms-docsigner-stg"
+                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage.push("$BUILD_NUMBER")
+                        dockerImage.push("latest")
+                    }
+                }
+
+                script{
+                    sh "docker rmi $registry/$dockerImageName:$BUILD_NUMBER"
+                    sh "docker rmi $registry/$dockerImageName:latest"
+                }
+            }
+        }
+
         stage('build Container Register Homologation') {
             when {
                 expression {
