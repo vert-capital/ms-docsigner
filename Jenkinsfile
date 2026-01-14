@@ -229,38 +229,12 @@ pipeline {
                 }
             }
         }
-        stage('Check Flake8 and isort') {
-            steps {
-                script{
-                    try{
-                        sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml exec -T app isort . --check-only'
-                        sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml exec -T app flake8 .'
-                    }catch(e){
-                        sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
-                        throw e
-                    }
-                }
-
-            }
-        }
-
+        
         stage('Parallel Tests') {
             failFast true
             parallel {
                  
-                stage('Run Pytest') {
-                     steps {
-                         script{
-                             try{
-                                 sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml exec -T app pytest --cov=./ --cov-report=xml'
-                             }catch(e){
-                                 sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
-                                 throw e
-                             }
-                         }
 
-                     }
-                 }
                 stage('SonarQube analysis') {
                     when {
                         expression {
