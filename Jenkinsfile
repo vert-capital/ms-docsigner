@@ -230,30 +230,6 @@ pipeline {
             }
         }
         
-        stage('Parallel Tests') {
-            failFast true
-            parallel {
-                 
-
-                stage('SonarQube analysis') {
-                    when {
-                        expression {
-                            return env.GIT_BRANCH == 'master' || env.GIT_BRANCH == 'develop' || env.GIT_BRANCH == 'homolog'
-                        }
-                    }
-
-                    environment {
-                        scannerHome = tool 'SonarQubeScanner'
-                    }
-                    steps {
-                        withSonarQubeEnv(installationName: 'vert-sonar') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.branch.name=${env.BRANCH_NAME} -X"
-                        }
-                    }
-                }
-            }
-        }
-
         stage('stop containers') {
             steps {
                 script {
