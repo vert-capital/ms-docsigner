@@ -27,24 +27,27 @@ type EnvelopeCreateRequestDTO struct {
 type EnvelopeDocumentRequest struct {
 	Name string `json:"name" binding:"required,min=3,max=255"`
 	// Um dos campos abaixo deve ser fornecido: file_url OU file_content_base64
-	FileURL           string `json:"file_url,omitempty"`
-	FileContentBase64 string `json:"file_content_base64,omitempty"`
-	Description       string `json:"description,omitempty"`
+	FileURL           string  `json:"file_url,omitempty"`
+	FileContentBase64 *string `json:"file_content_base64,omitempty"`
+	Description       string  `json:"description,omitempty"`
 }
 
 // Validate valida o documento
 func (edr *EnvelopeDocumentRequest) Validate() error {
 	// Limpar whitespace dos campos
 	edr.FileURL = strings.TrimSpace(edr.FileURL)
-	edr.FileContentBase64 = strings.TrimSpace(edr.FileContentBase64)
+	if edr.FileContentBase64 != nil {
+		trimmed := strings.TrimSpace(*edr.FileContentBase64)
+		edr.FileContentBase64 = &trimmed
+	}
 
 	// Deve ter pelo menos um dos dois
-	if edr.FileURL == "" && edr.FileContentBase64 == "" {
+	if edr.FileURL == "" && (edr.FileContentBase64 == nil || *edr.FileContentBase64 == "") {
 		return fmt.Errorf("document '%s' must provide either file_url or file_content_base64", edr.Name)
 	}
 
 	// Não pode ter ambos
-	if edr.FileURL != "" && edr.FileContentBase64 != "" {
+	if edr.FileURL != "" && edr.FileContentBase64 != nil && *edr.FileContentBase64 != "" {
 		return fmt.Errorf("document '%s' cannot have both file_url and file_content_base64", edr.Name)
 	}
 

@@ -593,15 +593,19 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 	for _, docRequest := range dto.Documents {
 		// Validar documento
 		if err := docRequest.Validate(); err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("invalid document '%s': %w", docRequest.Name, err)
 		}
-
+		base64_len := 0
+		has_base64 := docRequest.FileContentBase64 != nil && *docRequest.FileContentBase64 != ""
+		if has_base64 {
+			base64_len = len(*docRequest.FileContentBase64)
+		}
 		h.Logger.WithFields(logrus.Fields{
 			"doc_name":     docRequest.Name,
 			"has_file_url": docRequest.FileURL != "",
-			"has_base64":   docRequest.FileContentBase64 != "",
+			"has_base64":   has_base64,
 			"file_url_len": len(docRequest.FileURL),
-			"base64_len":   len(docRequest.FileContentBase64),
+			"base64_len":   base64_len,
 		}).Info("Processing document for envelope creation")
 
 		if docRequest.FileURL != "" {
