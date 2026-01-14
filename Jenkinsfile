@@ -156,7 +156,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
                         withCredentials([string(credentialsId: "argocd-homolog", variable: 'ARGOCD_AUTH_TOKEN')]) {
-                            sh "argocd --grpc-web app sync ms-docsigner-stg --force"
+                            sh "argocd --grpc-web app actions run ms-docsigner-stg restart --kind Deployment --all"
                         }
                     }
                 }
