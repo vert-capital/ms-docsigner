@@ -636,32 +636,6 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 			continue
 		}
 
-		if docRequest.FileContentBase64 != "" {
-			// Fluxo: conteúdo base64
-			fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
-			}
-
-			// Validar MIME type
-			if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
-				utils.CleanupTempFile(fileInfo.TempPath)
-				return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
-			}
-
-			document := &entity.EntityDocument{
-				Name:         docRequest.Name,
-				Description:  docRequest.Description,
-				FilePath:     fileInfo.TempPath,
-				FileSize:     fileInfo.Size,
-				MimeType:     fileInfo.MimeType,
-				IsFromBase64: true,
-				Status:       "draft",
-			}
-			documents = append(documents, document)
-			continue
-		}
-
 		// Nenhuma fonte fornecida
 		return nil, nil, fmt.Errorf("document '%s' must provide either file_url or file_content_base64", docRequest.Name)
 	}

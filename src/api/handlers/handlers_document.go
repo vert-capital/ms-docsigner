@@ -83,44 +83,10 @@ func (h DocumentHandlers) CreateDocumentHandler(c *gin.Context) {
 	var tempPath string
 	var err error
 
-	// Processar base64 ou file_path
-	if requestDTO.FileContentBase64 != "" {
-		// Processar base64
-		fileInfo, base64Err := utils.DecodeBase64File(requestDTO.FileContentBase64)
-		if base64Err != nil {
-
-			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-				Error:   "Invalid base64",
-				Message: base64Err.Error(),
-			})
-			return
-		}
-
-		// Validar MIME type
-		if validateErr := utils.ValidateMimeType(fileInfo.MimeType); validateErr != nil {
-			utils.CleanupTempFile(fileInfo.TempPath)
-
-			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-				Error:   "Unsupported file type",
-				Message: validateErr.Error(),
-			})
-			return
-		}
-
-		document.FilePath = fileInfo.TempPath
-		document.FileSize = fileInfo.Size
-		document.MimeType = fileInfo.MimeType
-		document.IsFromBase64 = true
-		tempPath = fileInfo.TempPath
-
-	} else {
-		// Usar file_path tradicional
-		document.FilePath = requestDTO.FilePath
-		document.FileSize = requestDTO.FileSize
-		document.MimeType = requestDTO.MimeType
-		document.IsFromBase64 = false
-
-	}
+	document.FilePath = requestDTO.FilePath
+	document.FileSize = requestDTO.FileSize
+	document.MimeType = requestDTO.MimeType
+	document.IsFromBase64 = false
 
 	// Limpar arquivo temporário em caso de erro ou sucesso
 	if tempPath != "" {
