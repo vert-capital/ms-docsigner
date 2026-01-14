@@ -81,7 +81,7 @@ pipeline {
                 script {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-stg"
-                        dockerImage = docker.build(dockerImageName, "--no-cache ./src")
+                        dockerImage = docker.build(dockerImageName, "./src")
                         dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
@@ -106,7 +106,7 @@ pipeline {
                 script {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-hml"
-                        dockerImage = docker.build(dockerImageName, "--no-cache ./src")
+                        dockerImage = docker.build(dockerImageName, "./src")
                         dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
@@ -123,7 +123,7 @@ pipeline {
         stage('build Container Register Production') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'prd'
+                    return env.GIT_BRANCH == 'master'
                 }
             }
 
@@ -131,7 +131,7 @@ pipeline {
                 script {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-prd"
-                        dockerImage = docker.build(dockerImageName, "--no-cache ./src")
+                        dockerImage = docker.build(dockerImageName, "./src")
                         dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
@@ -186,7 +186,7 @@ pipeline {
         stage('Deploy to Production Environment') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'prd'
+                    return env.GIT_BRANCH == 'master'
                 }
             }
 
