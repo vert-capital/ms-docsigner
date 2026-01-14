@@ -29,7 +29,17 @@ pipeline {
 
         stage('Init') {
             steps {
-                cancelPreviousBuilds()
+                script {
+                    cancelPreviousBuilds()
+
+
+                    def rawBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: ""
+                    rawBranch = rawBranch.toString()
+                    rawBranch = rawBranch.replaceFirst(/^origin\//, "")
+                    rawBranch = rawBranch.replaceFirst(/^refs\\/heads\\//, "")
+                    env.GIT_BRANCH = rawBranch
+                    echo "Normalized GIT_BRANCH -> ${env.GIT_BRANCH}"
+                }
             }
         }
 
@@ -39,7 +49,7 @@ pipeline {
             }
         }
 
-        // Stages comuns (todos os branches passam por aqui)
+
         stage('Build Docker Images') {
             steps {
                 script {
@@ -58,32 +68,33 @@ pipeline {
                 }
             }
         }
-                                                       
+
+
         stage('build Container Register Staging') {
             when {
                 expression {
                     return env.GIT_BRANCH == 'develop'
                 }
             }
-        
+
             steps {
                 script {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-stg"
-                        dockerImage = docker.build(dockerImageName, "./src")
-                        dockerImage.push("$BUILD_NUMBER")
+                        dockerImage = docker.build(dockerImageName, "--no-cache ./src")
+                        dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
                 }
-        
+
                 script{
-                    sh "docker rmi $registry/$dockerImageName:$BUILD_NUMBER || true"
-                    sh "docker rmi $registry/$dockerImageName:latest || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
                 }
             }
         }
 
-                                                       
+
         stage('build Container Register Homologation') {
             when {
                 expression {
@@ -101,7 +112,7 @@ pipeline {
                     }
                 }
 
-                script {
+                script{
                     sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
                     sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
                 }
@@ -112,7 +123,7 @@ pipeline {
         stage('build Container Register Production') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'prd'
+                    return env.GIT_BRANCH == 'master'
                 }
             }
 
@@ -126,7 +137,7 @@ pipeline {
                     }
                 }
 
-                script {
+                script{
                     sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
                     sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
                 }
@@ -152,7 +163,7 @@ pipeline {
             }
         }
 
- 
+
         stage('Deploy to Homolog Environment') {
             when {
                 expression {
@@ -171,11 +182,11 @@ pipeline {
             }
         }
 
-    
+
         stage('Deploy to Production Environment') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'prd'
+                    return env.GIT_BRANCH == 'master'
                 }
             }
 
