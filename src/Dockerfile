@@ -11,6 +11,8 @@ WORKDIR /app
 COPY . .
 
 RUN apk update && apk add --no-cache gcc libc-dev librdkafka-dev
+
+RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app_bin .
 
 FROM alpine:3.20
