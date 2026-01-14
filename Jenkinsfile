@@ -81,7 +81,7 @@ pipeline {
                 script {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-stg"
-                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage = docker.build(dockerImageName, "--no-cache ./src")
                         dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
