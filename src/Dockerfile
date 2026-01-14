@@ -1,29 +1,25 @@
-FROM golang:1.25-alpine as builder
+FROM golang:1.25-alpine AS builder
 
 ARG PROJECT_NAME="app"
 ARG VERSION="dev"
 ARG COMMIT="none"
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 ENV GOPROXY=https://proxy.golang.org
 
 WORKDIR /app
 
 COPY . .
 
-RUN apk update && apk add --no-cache ca-certificates curl bash gcc libc-dev librdkafka-dev
-
-
+RUN apk update && apk add --no-cache gcc libc-dev librdkafka-dev
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app_bin .
 
-FROM debian:stable
+FROM alpine:3.20
 
 WORKDIR /app
-
 
 COPY --from=builder /app/app_bin /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-
 EXPOSE 8080
 
-CMD ["/app/app_bin"]
+ENTRYPOINT ["/app/app_bin"]
