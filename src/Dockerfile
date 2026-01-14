@@ -10,6 +10,9 @@ WORKDIR /app
 
 COPY . .
 
+RUN apk update && apk add --no-cache ca-certificates curl bash gcc libc-dev librdkafka-dev
+
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app_bin .
 
 FROM debian:stable
