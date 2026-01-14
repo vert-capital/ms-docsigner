@@ -74,13 +74,24 @@ func (h *EnvelopeHandlers) CreateEnvelopeHandler(c *gin.Context) {
 		return
 	}
 
-	// Validação customizada do DTO
+	// Validar DTO de criação de envelope
 	if err := requestDTO.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Validation failed",
 			Message: err.Error(),
 		})
 		return
+	}
+
+	// Validar documentos
+	for i, doc := range requestDTO.Documents {
+		if err := doc.Validate(); err != nil {
+			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+				Error:   "Validation failed",
+				Message: fmt.Sprintf("Document %d: %s", i+1, err.Error()),
+			})
+			return
+		}
 	}
 
 	// Converter DTO para entidade
@@ -580,10 +591,17 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 	// Processar documentos via file_url ou base64
 	for _, docRequest := range dto.Documents {
+		// Validar documento
+		if err := docRequest.Validate(); err != nil {
+			return nil, nil, err
+		}
+
 		h.Logger.WithFields(logrus.Fields{
 			"doc_name":     docRequest.Name,
 			"has_file_url": docRequest.FileURL != "",
 			"has_base64":   docRequest.FileContentBase64 != "",
+			"file_url_len": len(docRequest.FileURL),
+			"base64_len":   len(docRequest.FileContentBase64),
 		}).Info("Processing document for envelope creation")
 
 		if docRequest.FileURL != "" {

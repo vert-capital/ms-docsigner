@@ -2,6 +2,7 @@ package dtos
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,25 @@ type EnvelopeDocumentRequest struct {
 	FileURL           string `json:"file_url,omitempty"`
 	FileContentBase64 string `json:"file_content_base64,omitempty"`
 	Description       string `json:"description,omitempty"`
+}
+
+// Validate valida o documento
+func (edr *EnvelopeDocumentRequest) Validate() error {
+	// Limpar whitespace dos campos
+	edr.FileURL = strings.TrimSpace(edr.FileURL)
+	edr.FileContentBase64 = strings.TrimSpace(edr.FileContentBase64)
+
+	// Deve ter pelo menos um dos dois
+	if edr.FileURL == "" && edr.FileContentBase64 == "" {
+		return fmt.Errorf("document '%s' must provide either file_url or file_content_base64", edr.Name)
+	}
+
+	// Não pode ter ambos
+	if edr.FileURL != "" && edr.FileContentBase64 != "" {
+		return fmt.Errorf("document '%s' cannot have both file_url and file_content_base64", edr.Name)
+	}
+
+	return nil
 }
 
 // EnvelopeSignatoryRequest representa um signatário a ser criado junto com o envelope
