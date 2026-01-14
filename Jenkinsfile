@@ -12,31 +12,11 @@ def cancelPreviousBuilds() {
   }
 }
 
-
-def buildAndPushDockerImage(String imageName) {
-    docker.withRegistry("https://$registry", registryCredential) {
-        def dockerImage = docker.build(imageName, "./src")
-        dockerImage.push("${BUILD_NUMBER}")
-        dockerImage.push("latest")
-    }
-    sh "docker rmi ${registry}/${imageName}:${BUILD_NUMBER} || docker rmi ${imageName}:${BUILD_NUMBER} || true"
-    sh "docker rmi ${registry}/${imageName}:latest || docker rmi ${imageName}:latest || true"
-}
-
-
-def deployToApp(String appName, String credId) {
-    withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
-        withCredentials([string(credentialsId: credId, variable: 'ARGOCD_AUTH_TOKEN')]) {
-            sh "argocd --grpc-web app actions run ${appName} restart --kind Deployment --all"
-        }
-    }
-}
-
 pipeline {
     environment {
         registry = "197272534240.dkr.ecr.us-east-1.amazonaws.com"
         registryCredential = "ecr:us-east-1:aws_vert"
-
+        dockerImageName = ""
     }
 
     agent {
@@ -53,13 +33,12 @@ pipeline {
                     cancelPreviousBuilds()
 
 
-                    def rawBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ""
+                    def rawBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: ""
                     rawBranch = rawBranch.toString()
                     rawBranch = rawBranch.replaceFirst(/^origin\//, "")
                     rawBranch = rawBranch.replaceFirst(/^refs\\/heads\\//, "")
                     env.GIT_BRANCH = rawBranch
-                    if (!env.BRANCH_NAME) { env.BRANCH_NAME = rawBranch }
-                    echo "Normalized branch -> BRANCH_NAME='${env.BRANCH_NAME}' GIT_BRANCH='${env.GIT_BRANCH}'"
+                    echo "Normalized GIT_BRANCH -> ${env.GIT_BRANCH}"
                 }
             }
         }
@@ -70,11 +49,11 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images (for tests)') {
+
+        stage('Build Docker Images') {
             steps {
                 script {
-
-                    sh 'cp -f src/.env.sample src/.env || true'
+                    sh 'cp -f src/.env.sample src/.env'
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml build'
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml up -d --no-build'
@@ -82,8 +61,7 @@ pipeline {
             }
         }
 
-
-        stage('Stop test containers') {
+        stage('stop containers') {
             steps {
                 script {
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
@@ -91,63 +69,175 @@ pipeline {
             }
         }
 
-        stage('Build & Push Image (per-branch)') {
+
+        stage('build Container Register Staging') {
             when {
-                expression { return env.GIT_BRANCH == 'develop' || env.GIT_BRANCH == 'homolog' || env.GIT_BRANCH == 'master' }
+                expression {
+                    return env.GIT_BRANCH == 'develop'
+                }
             }
+
             steps {
                 script {
-                    if (env.GIT_BRANCH == 'develop') {
-                        buildAndPushDockerImage("ms-docsigner-stg")
-                    } else if (env.GIT_BRANCH == 'homolog') {
-                        buildAndPushDockerImage("ms-docsigner-hml")
-                    } else if (env.GIT_BRANCH == 'master') {
-                        buildAndPushDockerImage("ms-docsigner-prd")
-                    } else {
-                        echo "No image push for branch ${env.GIT_BRANCH}"
+                    docker.withRegistry("https://$registry", registryCredential) {
+                        dockerImageName = "ms-docsigner-stg"
+                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage.push("${BUILD_NUMBER}")
+                        dockerImage.push("latest")
+                    }
+                }
+
+                script{
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
+                }
+            }
+        }
+
+
+        stage('build Container Register Homologation') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'homolog'
+                }
+            }
+
+            steps {
+                script {
+                    docker.withRegistry("https://$registry", registryCredential) {
+                        dockerImageName = "ms-docsigner-hml"
+                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage.push("${BUILD_NUMBER}")
+                        dockerImage.push("latest")
+                    }
+                }
+
+                script{
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
+                }
+            }
+        }
+
+
+        stage('build Container Register Production') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'prd'
+                }
+            }
+
+            steps {
+                script {
+                    docker.withRegistry("https://$registry", registryCredential) {
+                        dockerImageName = "ms-docsigner-prd"
+                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage.push("${BUILD_NUMBER}")
+                        dockerImage.push("latest")
+                    }
+                }
+
+                script{
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
+                }
+            }
+        }
+
+
+        stage('Deploy to Staging Environment') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'develop'
+                }
+            }
+
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
+                        withCredentials([string(credentialsId: "argocd-homolog", variable: 'ARGOCD_AUTH_TOKEN')]) {
+                            sh "argocd --grpc-web app actions run ms-docsigner-stg restart --kind Deployment --all"
+                        }
                     }
                 }
             }
         }
 
-        stage('Deploy (per-branch)') {
+
+        stage('Deploy to Homolog Environment') {
             when {
-                expression { return env.GIT_BRANCH == 'develop' || env.GIT_BRANCH == 'homolog' || env.GIT_BRANCH == 'master' }
+                expression {
+                    return env.GIT_BRANCH == 'homolog'
+                }
             }
+
             steps {
                 script {
-                    if (env.GIT_BRANCH == 'develop') {
-                        deployToApp('ms-docsigner-stg', 'argocd-homolog')
-                    } else if (env.GIT_BRANCH == 'homolog') {
-                        deployToApp('ms-docsigner-hml', 'argocd-homolog')
-                    } else if (env.GIT_BRANCH == 'master') {
-                        deployToApp('ms-docsigner-prd', 'argocd-production')
-                    } else {
-                        echo "No deploy for branch ${env.GIT_BRANCH}"
+                    withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
+                        withCredentials([string(credentialsId: "argocd-homolog", variable: 'ARGOCD_AUTH_TOKEN')]) {
+                            sh "argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all"
+                        }
                     }
                 }
             }
         }
+
+
+        stage('Deploy to Production Environment') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'prd'
+                }
+            }
+
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "ARGOCD_SERVER", variable: 'ARGOCD_SERVER')]) {
+                        withCredentials([string(credentialsId: "argocd-production", variable: 'ARGOCD_AUTH_TOKEN')]) {
+                            sh "argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all"
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     post {
         always {
-            echo "Final cleanup"
-            script {
+            echo "Stop Docker image"
+            script{
                 sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
         success {
-            echo "Build & deploy pipeline finished: SUCCESS"
+            echo "Notify bitbucket success"
+            script {
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
+            }
         }
 
         failure {
-            echo "Build & deploy pipeline finished: FAILURE"
+            echo "Notify bitbucket failure"
+            script {
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
+            }
         }
 
         aborted {
-            echo "Build & deploy pipeline: ABORTED"
+            echo "Notify bitbucket failure"
+            script {
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
+            }
         }
+
+        unsuccessful {
+            echo "Notify bitbucket failure"
+            script {
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
+            }
+        }
+
     }
 }
