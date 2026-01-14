@@ -16,7 +16,7 @@ pipeline {
     environment {
         registry = "197272534240.dkr.ecr.us-east-1.amazonaws.com"
         registryCredential = "ecr:us-east-1:aws_vert"
-        // removi dockerImageName daqui para evitar campo global mutável
+
     }
 
     agent {
@@ -32,7 +32,7 @@ pipeline {
                 script {
                     cancelPreviousBuilds()
 
-                    // Normaliza a variável para comparações exatas funcionarem
+
                     def rawBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: ""
                     rawBranch = rawBranch.toString()
                     rawBranch = rawBranch.replaceFirst(/^origin\//, "")
@@ -49,7 +49,7 @@ pipeline {
             }
         }
 
-        // Stages comuns (todos os branches passam por aqui)
+
         stage('Build Docker Images') {
             steps {
                 script {
@@ -69,7 +69,7 @@ pipeline {
             }
         }
 
-        // Build & push Staging (develop)
+
         stage('build Container Register Staging') {
             when {
                 expression {
@@ -93,7 +93,7 @@ pipeline {
             }
         }
 
-        // Build & push Homolog (homolog)
+
         stage('build Container Register Homologation') {
             when {
                 expression {
@@ -116,7 +116,7 @@ pipeline {
             }
         }
 
-        // Build & push Production (master)
+
         stage('build Container Register Production') {
             when {
                 expression {
@@ -139,7 +139,7 @@ pipeline {
             }
         }
 
-        // Deploy to Staging Environment (develop)
+
         stage('Deploy to Staging Environment') {
             when {
                 expression {
@@ -158,7 +158,7 @@ pipeline {
             }
         }
 
-        // Deploy to Homolog Environment (homolog)
+
         stage('Deploy to Homolog Environment') {
             when {
                 expression {
@@ -177,7 +177,7 @@ pipeline {
             }
         }
 
-        // Deploy to Production Environment (master)
+
         stage('Deploy to Production Environment') {
             when {
                 expression {
