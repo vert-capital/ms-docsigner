@@ -578,36 +578,74 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 	var documents []*entity.EntityDocument
 
-	// Processar documentos base64 se fornecidos
+	// Processar documentos via file_url ou base64
 	for _, docRequest := range dto.Documents {
-		// Processar base64
-		// fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
-		// if err != nil {
-		// 	return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
-		// }
-		localPath, err := utils.DownloadFile(docRequest.FileURL)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to download file from URL for document '%s': %w", docRequest.Name, err)
-		}
-		fileInfo, err := utils.GetFileInfo(localPath)
+		h.Logger.WithFields(logrus.Fields{
+			"doc_name":     docRequest.Name,
+			"has_file_url": docRequest.FileURL != "",
+			"has_base64":   docRequest.FileContentBase64 != "",
+		}).Info("Processing document for envelope creation")
 
-		// Validar MIME type
-		if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
-			utils.CleanupTempFile(fileInfo.TempPath)
-			return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
+		if docRequest.FileURL != "" {
+			// Fluxo: baixar arquivo a partir de URL
+			localPath, err := utils.DownloadFile(docRequest.FileURL)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to download file from URL for document '%s': %w", docRequest.Name, err)
+			}
+			fileInfo, err := utils.GetFileInfo(localPath)
+			if err != nil {
+				utils.CleanupTempFile(localPath)
+				return nil, nil, fmt.Errorf("failed to get file info for document '%s': %w", docRequest.Name, err)
+			}
+
+			// Validar MIME type
+			if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
+				utils.CleanupTempFile(fileInfo.TempPath)
+				return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
+			}
+
+			document := &entity.EntityDocument{
+				Name:        docRequest.Name,
+				Description: docRequest.Description,
+				FilePath:    fileInfo.TempPath,
+				FileSize:    fileInfo.Size,
+				MimeType:    fileInfo.MimeType,
+				// Mantemos como base64 para que o serviço gere o data URI a partir do arquivo local
+				IsFromBase64: true,
+				Status:       "draft",
+			}
+			documents = append(documents, document)
+			continue
 		}
 
-		document := &entity.EntityDocument{
-			Name:         docRequest.Name,
-			Description:  docRequest.Description,
-			FilePath:     fileInfo.TempPath,
-			FileSize:     fileInfo.Size,
-			MimeType:     fileInfo.MimeType,
-			IsFromBase64: true,
-			Status:       "draft",
+		if docRequest.FileContentBase64 != "" {
+			// Fluxo: conteúdo base64
+			fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+			}
+
+			// Validar MIME type
+			if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
+				utils.CleanupTempFile(fileInfo.TempPath)
+				return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
+			}
+
+			document := &entity.EntityDocument{
+				Name:         docRequest.Name,
+				Description:  docRequest.Description,
+				FilePath:     fileInfo.TempPath,
+				FileSize:     fileInfo.Size,
+				MimeType:     fileInfo.MimeType,
+				IsFromBase64: true,
+				Status:       "draft",
+			}
+			documents = append(documents, document)
+			continue
 		}
 
-		documents = append(documents, document)
+		// Nenhuma fonte fornecida
+		return nil, nil, fmt.Errorf("document '%s' must provide either file_url or file_content_base64", docRequest.Name)
 	}
 
 	return envelope, documents, nil
