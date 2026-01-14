@@ -37,8 +37,9 @@ func DownloadFile(url string) (localPath string, err error) {
 		}
 	}()
 
-	// Copia o conteúdo
-	_, err = io.Copy(tmpFile, resp.Body)
+	// Copia o conteúdo com buffer fixo (streaming seguro)
+	buffer := make([]byte, 32*1024) // 32KB buffer
+	_, err = io.CopyBuffer(tmpFile, resp.Body, buffer)
 	if err != nil {
 		return "", err
 	}
