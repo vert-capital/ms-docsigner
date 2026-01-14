@@ -4,13 +4,10 @@ def cancelPreviousBuilds() {
   int currentBuildNum = env.BUILD_NUMBER.toInteger()
 
   def job = Jenkins.instance.getItemByFullName(jobname)
-//   print('jobname: ' + jobname)
   for (build in job.builds) {
-    //   print('build.getNumber(): ' + build.getNumber())
-
     if (build.isBuilding() && currentBuildNum > build.getNumber().toInteger()) {
       build.doStop();
-      echo "Build ${build.toString()} cancelled"
+      echo "Build ${build.getNumber()} cancelled"
     }
   }
 }
@@ -42,11 +39,12 @@ pipeline {
             }
         }
 
+        // Stages comuns (todos os branches passam por aqui)
         stage('Build Docker Images') {
             steps {
                 script {
                     sh 'cp -f src/.env.sample src/.env'
-                    sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                    sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml build'
                     sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml up -d --no-build'
                 }
@@ -56,15 +54,40 @@ pipeline {
         stage('stop containers') {
             steps {
                 script {
-                    sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                    sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
+                }
+            }
+        }
+                                                       
+        stage('build Container Register Staging') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'develop'
+                }
+            }
+        
+            steps {
+                script {
+                    docker.withRegistry("https://$registry", registryCredential) {
+                        dockerImageName = "ms-docsigner-stg"
+                        dockerImage = docker.build(dockerImageName, "./src")
+                        dockerImage.push("$BUILD_NUMBER")
+                        dockerImage.push("latest")
+                    }
+                }
+        
+                script{
+                    sh "docker rmi $registry/$dockerImageName:$BUILD_NUMBER || true"
+                    sh "docker rmi $registry/$dockerImageName:latest || true"
                 }
             }
         }
 
+                                                       
         stage('build Container Register Homologation') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'master'
+                    return env.GIT_BRANCH == 'homolog'
                 }
             }
 
@@ -73,22 +96,23 @@ pipeline {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-hml"
                         dockerImage = docker.build(dockerImageName, "./src")
-                        dockerImage.push("$BUILD_NUMBER")
+                        dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
                 }
 
-                script{
-                    sh "docker rmi $registry/$dockerImageName:$BUILD_NUMBER"
-                    sh "docker rmi $registry/$dockerImageName:latest"
+                script {
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
                 }
             }
         }
 
+
         stage('build Container Register Production') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'master'
+                    return env.GIT_BRANCH == 'prd'
                 }
             }
 
@@ -97,22 +121,23 @@ pipeline {
                     docker.withRegistry("https://$registry", registryCredential) {
                         dockerImageName = "ms-docsigner-prd"
                         dockerImage = docker.build(dockerImageName, "./src")
-                        dockerImage.push("$BUILD_NUMBER")
+                        dockerImage.push("${BUILD_NUMBER}")
                         dockerImage.push("latest")
                     }
                 }
 
-                script{
-                    sh "docker rmi $registry/$dockerImageName:$BUILD_NUMBER"
-                    sh "docker rmi $registry/$dockerImageName:latest"
+                script {
+                    sh "docker rmi ${registry}/${dockerImageName}:${BUILD_NUMBER} || docker rmi ${dockerImageName}:${BUILD_NUMBER} || true"
+                    sh "docker rmi ${registry}/${dockerImageName}:latest || docker rmi ${dockerImageName}:latest || true"
                 }
             }
         }
 
+
         stage('Deploy to Staging Environment') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'master'
+                    return env.GIT_BRANCH == 'develop'
                 }
             }
 
@@ -127,10 +152,11 @@ pipeline {
             }
         }
 
+ 
         stage('Deploy to Homolog Environment') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'master'
+                    return env.GIT_BRANCH == 'homolog'
                 }
             }
 
@@ -145,10 +171,11 @@ pipeline {
             }
         }
 
+    
         stage('Deploy to Production Environment') {
             when {
                 expression {
-                    return env.GIT_BRANCH == 'master'
+                    return env.GIT_BRANCH == 'prd'
                 }
             }
 
@@ -169,35 +196,35 @@ pipeline {
         always {
             echo "Stop Docker image"
             script{
-                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
         success {
             echo "Notify bitbucket success"
             script {
-                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
         failure {
             echo "Notify bitbucket failure"
             script {
-                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
         aborted {
             echo "Notify bitbucket failure"
             script {
-                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
         unsuccessful {
             echo "Notify bitbucket failure"
             script {
-                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down'
+                sh 'docker-compose -f docker-compose.yml -f docker-compose.tests.yml down || true'
             }
         }
 
