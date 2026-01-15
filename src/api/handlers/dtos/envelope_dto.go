@@ -27,9 +27,10 @@ type EnvelopeCreateRequestDTO struct {
 type EnvelopeDocumentRequest struct {
 	Name string `json:"name" binding:"required,min=3,max=255"`
 	// Um dos campos abaixo deve ser fornecido: file_url OU file_content_base64
-	FileURL           string  `json:"file_url,omitempty"`
-	FileContentBase64 *string `json:"file_content_base64,omitempty"`
-	Description       string  `json:"description,omitempty"`
+	FileURL           string                 `json:"file_url,omitempty"`
+	FileContentBase64 *string                `json:"file_content_base64,omitempty"`
+	Description       string                 `json:"description,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"` // Metadata customizado do backend
 }
 
 // Validate valida o documento
