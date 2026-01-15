@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"app/entity"
@@ -150,18 +151,43 @@ func (s *DocumentService) prepareBase64CreateRequest(document *entity.EntityDocu
 	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := s.generateFilename(document)
 
+	// Usar metadata customizado do backend se disponível, senão usar padrão
+	var metadata *dto.DocumentMetadata
+	envelopeID := internalEnvelopeID // padrão
+
+	if len(document.Metadata) > 0 {
+		// Fazer unmarshal do datatypes.JSON para extrair envelope_id
+		var metadataMap map[string]interface{}
+		if err := json.Unmarshal(document.Metadata, &metadataMap); err == nil {
+			// Extrair envelope_id do metadata recebido do backend
+			// Pode vir como float64 (JSON number), int, ou string
+			if envIDFloat, ok := metadataMap["envelope_id"].(float64); ok {
+				envelopeID = int(envIDFloat)
+			} else if envIDInt, ok := metadataMap["envelope_id"].(int); ok {
+				envelopeID = envIDInt
+			} else if envIDStr, ok := metadataMap["envelope_id"].(string); ok {
+				// Se vier como string, tentar converter para int
+				if parsedID, err := strconv.Atoi(envIDStr); err == nil {
+					envelopeID = parsedID
+				}
+			}
+		}
+	}
+
+	metadata = &dto.DocumentMetadata{
+		Type:       "private",
+		ID:         int(document.ID),
+		User:       1,          // TODO: Mapear user correto quando tivermos contexto de usuário
+		EnvelopeID: envelopeID, // Usar envelope_id do backend se fornecido, senão usar padrão
+	}
+
 	createRequest := &dto.DocumentCreateRequestWrapper{
 		Data: dto.DocumentCreateData{
 			Type: "documents",
 			Attributes: dto.DocumentCreateAttributes{
 				Filename:      filename,
 				ContentBase64: base64Content,
-				Metadata: &dto.DocumentMetadata{
-					Type:       "private",
-					ID:         int(document.ID),
-					User:       1, // TODO: Mapear user correto quando tivermos contexto de usuário
-					EnvelopeID: internalEnvelopeID,
-				},
+				Metadata:      metadata,
 			},
 		},
 	}
@@ -180,18 +206,43 @@ func (s *DocumentService) prepareFilePathCreateRequest(document *entity.EntityDo
 	base64Content := s.generateDataURI(fileData, document.MimeType)
 	filename := filepath.Base(document.FilePath)
 
+	// Usar metadata customizado do backend se disponível, senão usar padrão
+	var metadata *dto.DocumentMetadata
+	envelopeID := internalEnvelopeID // padrão
+
+	if len(document.Metadata) > 0 {
+		// Fazer unmarshal do datatypes.JSON para extrair envelope_id
+		var metadataMap map[string]interface{}
+		if err := json.Unmarshal(document.Metadata, &metadataMap); err == nil {
+			// Extrair envelope_id do metadata recebido do backend
+			// Pode vir como float64 (JSON number), int, ou string
+			if envIDFloat, ok := metadataMap["envelope_id"].(float64); ok {
+				envelopeID = int(envIDFloat)
+			} else if envIDInt, ok := metadataMap["envelope_id"].(int); ok {
+				envelopeID = envIDInt
+			} else if envIDStr, ok := metadataMap["envelope_id"].(string); ok {
+				// Se vier como string, tentar converter para int
+				if parsedID, err := strconv.Atoi(envIDStr); err == nil {
+					envelopeID = parsedID
+				}
+			}
+		}
+	}
+
+	metadata = &dto.DocumentMetadata{
+		Type:       "private",
+		ID:         int(document.ID),
+		User:       1,          // TODO: Mapear user correto quando tivermos contexto de usuário
+		EnvelopeID: envelopeID, // Usar envelope_id do backend se fornecido, senão usar padrão
+	}
+
 	createRequest := &dto.DocumentCreateRequestWrapper{
 		Data: dto.DocumentCreateData{
 			Type: "documents",
 			Attributes: dto.DocumentCreateAttributes{
 				Filename:      filename,
 				ContentBase64: base64Content,
-				Metadata: &dto.DocumentMetadata{
-					Type:       "private",
-					ID:         int(document.ID),
-					User:       1, // TODO: Mapear user correto quando tivermos contexto de usuário
-					EnvelopeID: internalEnvelopeID,
-				},
+				Metadata:      metadata,
 			},
 		},
 	}

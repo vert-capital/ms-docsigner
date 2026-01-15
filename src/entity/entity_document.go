@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"gorm.io/datatypes"
 )
 
 type EntityDocumentFilters struct {
@@ -15,17 +17,18 @@ type EntityDocumentFilters struct {
 }
 
 type EntityDocument struct {
-	ID           int       `json:"id" gorm:"primaryKey"`
-	Name         string    `json:"name" gorm:"not null" validate:"required,min=3,max=255"`
-	FilePath     string    `json:"file_path" gorm:"not null" validate:"required"`
-	FileSize     int64     `json:"file_size" gorm:"not null" validate:"required,gt=0"`
-	MimeType     string    `json:"mime_type" gorm:"not null" validate:"required"`
-	Status       string    `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft ready processing sent"`
-	ClicksignKey string    `json:"clicksign_key" gorm:"index"`
-	Description  string    `json:"description" validate:"max=1000"`
-	IsFromBase64 bool      `json:"is_from_base64" gorm:"default:false"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           int                    `json:"id" gorm:"primaryKey"`
+	Name         string                 `json:"name" gorm:"not null" validate:"required,min=3,max=255"`
+	FilePath     string                 `json:"file_path" gorm:"not null" validate:"required"`
+	FileSize     int64                  `json:"file_size" gorm:"not null" validate:"required,gt=0"`
+	MimeType     string                 `json:"mime_type" gorm:"not null" validate:"required"`
+	Status       string                 `json:"status" gorm:"not null;default:'draft'" validate:"required,oneof=draft ready processing sent"`
+	ClicksignKey string                 `json:"clicksign_key" gorm:"index"`
+	Description  string        `json:"description" validate:"max=1000"`
+	IsFromBase64 bool          `json:"is_from_base64" gorm:"default:false"`
+	Metadata     datatypes.JSON `json:"metadata" gorm:"type:jsonb"` // Metadata customizado do backend
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
 }
 
 // TableName sets the table name for GORM
@@ -49,6 +52,7 @@ func NewDocument(docParam EntityDocument) (*EntityDocument, error) {
 		ClicksignKey: docParam.ClicksignKey,
 		Description:  docParam.Description,
 		IsFromBase64: docParam.IsFromBase64,
+		Metadata:     docParam.Metadata,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

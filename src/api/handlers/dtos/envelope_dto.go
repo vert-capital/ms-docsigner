@@ -24,9 +24,10 @@ type EnvelopeCreateRequestDTO struct {
 
 // EnvelopeDocumentRequest representa um documento a ser criado junto com o envelope
 type EnvelopeDocumentRequest struct {
-	Name              string `json:"name" binding:"required,min=3,max=255"`
-	FileContentBase64 string `json:"file_content_base64" binding:"required"`
-	Description       string `json:"description,omitempty"`
+	Name              string                 `json:"name" binding:"required,min=3,max=255"`
+	FileContentBase64 string                 `json:"file_content_base64" binding:"required"`
+	Description       string                 `json:"description,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"` // Metadata customizado do backend
 }
 
 // EnvelopeSignatoryRequest representa um signatário a ser criado junto com o envelope
