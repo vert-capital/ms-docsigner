@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -626,6 +628,16 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 				return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
 			}
 
+			// Converter metadata do DTO (map[string]interface{}) para datatypes.JSON
+			var metadataJSON datatypes.JSON
+			if docRequest.Metadata != nil {
+				metadataBytes, err := json.Marshal(docRequest.Metadata)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to marshal metadata for document '%s': %w", docRequest.Name, err)
+				}
+				metadataJSON = datatypes.JSON(metadataBytes)
+			}
+
 			document := &entity.EntityDocument{
 				Name:        docRequest.Name,
 				Description: docRequest.Description,
@@ -635,6 +647,7 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 				// Mantemos como base64 para que o serviço gere o data URI a partir do arquivo local
 				IsFromBase64: true,
 				Status:       "draft",
+				Metadata:     metadataJSON, // Metadata customizado do backend
 			}
 			documents = append(documents, document)
 			continue
