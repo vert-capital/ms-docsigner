@@ -2,13 +2,14 @@ package dtos
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
 // EnvelopeV2CreateRequestDTO representa a estrutura de request para criação de envelope na v2
 // Esta versão inclui o campo Provider obrigatório para seleção do provider
 type EnvelopeV2CreateRequestDTO struct {
-	Provider        string                       `json:"provider" binding:"required,oneof=clicksign vertc-assinaturas"`
+	Provider        string                       `json:"provider" binding:"required,oneof=clicksign vert-sign"`
 	Name            string                       `json:"name" binding:"required,min=3,max=255"`
 	Description     string                       `json:"description,omitempty" binding:"max=1000"`
 	DocumentsIDs    []int                        `json:"documents_ids,omitempty"`
@@ -32,8 +33,8 @@ func (dto *EnvelopeV2CreateRequestDTO) Validate() error {
 		return fmt.Errorf("provider é obrigatório")
 	}
 
-	if dto.Provider != "clicksign" && dto.Provider != "vertc-assinaturas" {
-		return fmt.Errorf("provider inválido: %s. Providers suportados: clicksign, vertc-assinaturas", dto.Provider)
+	if dto.Provider != "clicksign" && dto.Provider != "vert-sign" {
+		return fmt.Errorf("provider inválido: %s. Providers suportados: clicksign, vert-sign", dto.Provider)
 	}
 
 	// Deve ter pelo menos um tipo de documento (IDs ou base64)
@@ -95,8 +96,25 @@ func (dto *EnvelopeV2CreateRequestDTO) Validate() error {
 		}
 	}
 
+	// Validar documentos se fornecidos
+	if len(dto.Documents) > 0 {
+		for i, doc := range dto.Documents {
+			hasBase64 := strings.TrimSpace(doc.FileContentBase64) != ""
+			hasURL := strings.TrimSpace(doc.FileURL) != ""
+
+			if !hasBase64 && !hasURL {
+				return fmt.Errorf("documento %d ('%s') deve fornecer file_url ou file_content_base64", i+1, doc.Name)
+			}
+
+			if hasBase64 && hasURL {
+				return fmt.Errorf("documento %d ('%s') não pode fornecer file_url e file_content_base64 ao mesmo tempo", i+1, doc.Name)
+			}
+		}
+	}
+
 	return nil
 }
+
 
 
 

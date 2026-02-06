@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"app/api/handlers/dtos"
@@ -580,12 +581,29 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 	var documents []*entity.EntityDocument
 
-	// Processar documentos base64 se fornecidos
+	// Processar documentos (URL ou base64) se fornecidos
 	for _, docRequest := range dto.Documents {
-		// Processar base64
-		fileInfo, err := utils.DecodeBase64File(docRequest.FileContentBase64)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+		var fileInfo *utils.Base64FileInfo
+		var err error
+		var isFromBase64 bool
+
+		// Verificar se é URL ou base64
+		if strings.TrimSpace(docRequest.FileURL) != "" {
+			// Processar URL
+			fileInfo, err = utils.DownloadFileFromURL(docRequest.FileURL)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to download file from URL for document '%s': %w", docRequest.Name, err)
+			}
+			isFromBase64 = false
+		} else if strings.TrimSpace(docRequest.FileContentBase64) != "" {
+			// Processar base64
+			fileInfo, err = utils.DecodeBase64File(docRequest.FileContentBase64)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
+			}
+			isFromBase64 = true
+		} else {
+			return nil, nil, fmt.Errorf("document '%s' must provide either file_url or file_content_base64", docRequest.Name)
 		}
 
 		// Validar MIME type
@@ -599,18 +617,27 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 		if docRequest.Metadata != nil {
 			metadataBytes, err := json.Marshal(docRequest.Metadata)
 			if err != nil {
+				utils.CleanupTempFile(fileInfo.TempPath)
 				return nil, nil, fmt.Errorf("failed to marshal metadata for document '%s': %w", docRequest.Name, err)
 			}
 			metadataJSON = datatypes.JSON(metadataBytes)
 		}
 
+		// Se veio de URL, manter a URL no FilePath para vertc-assinaturas
+		// Se veio de base64, usar o tempPath para Clicksign
+		filePath := fileInfo.TempPath
+		if !isFromBase64 {
+			// Para URL, manter a URL original no FilePath (será usada diretamente pelo vertc-assinaturas)
+			filePath = docRequest.FileURL
+		}
+
 		document := &entity.EntityDocument{
 			Name:         docRequest.Name,
 			Description:  docRequest.Description,
-			FilePath:     fileInfo.TempPath,
+			FilePath:     filePath,
 			FileSize:     fileInfo.Size,
 			MimeType:     fileInfo.MimeType,
-			IsFromBase64: true,
+			IsFromBase64: isFromBase64,
 			Status:       "draft",
 			Metadata:     metadataJSON, // Metadata customizado do backend
 		}

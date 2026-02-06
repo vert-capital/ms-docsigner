@@ -40,9 +40,7 @@ func NewUsecaseEnvelopeProviderService(
 }
 
 // CreateEnvelope cria um envelope usando o provider
-func (u *UsecaseEnvelopeProviderService) CreateEnvelope(envelope *entity.EntityEnvelope) (*entity.EntityEnvelope, error) {
-	ctx := context.Background()
-
+func (u *UsecaseEnvelopeProviderService) CreateEnvelope(ctx context.Context, envelope *entity.EntityEnvelope) (*entity.EntityEnvelope, error) {
 	// Validar entidade
 	err := envelope.Validate()
 	if err != nil {
