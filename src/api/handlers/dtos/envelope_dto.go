@@ -36,18 +36,18 @@ type EnvelopeDocumentRequest struct {
 func (edr *EnvelopeDocumentRequest) Validate() error {
 	// Limpar whitespace dos campos
 	edr.FileURL = strings.TrimSpace(edr.FileURL)
-	if edr.FileContentBase64 != nil {
-		trimmed := strings.TrimSpace(*edr.FileContentBase64)
-		edr.FileContentBase64 = &trimmed
-	}
+	edr.FileContentBase64 = strings.TrimSpace(edr.FileContentBase64)
+
+	hasBase64 := edr.FileContentBase64 != ""
+	hasURL := edr.FileURL != ""
 
 	// Deve ter pelo menos um dos dois
-	if edr.FileURL == "" && (edr.FileContentBase64 == nil || *edr.FileContentBase64 == "") {
+	if !hasBase64 && !hasURL {
 		return fmt.Errorf("document '%s' must provide either file_url or file_content_base64", edr.Name)
 	}
 
 	// Não pode ter ambos
-	if edr.FileURL != "" && edr.FileContentBase64 != nil && *edr.FileContentBase64 != "" {
+	if hasBase64 && hasURL {
 		return fmt.Errorf("document '%s' cannot have both file_url and file_content_base64", edr.Name)
 	}
 
