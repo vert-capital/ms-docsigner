@@ -49,7 +49,7 @@ func ReadEnvironmentVars() {
 	EnvironmentVariables.CLICKSIGN_RETRY_ATTEMPTS, _ = strconv.Atoi(getEnvOrDefault("CLICKSIGN_RETRY_ATTEMPTS", "3"))
 
 	// Vertc-Assinaturas configuration
-	EnvironmentVariables.VERTC_ASSINATURAS_BASE_URL = getEnvOrDefault("VERTC_ASSINATURAS_BASE_URL", "https://api.assinaturas.stg.vert-tech.dev")
+	EnvironmentVariables.VERTC_ASSINATURAS_BASE_URL = getEnvOrDefault("VERTC_ASSINATURAS_BASE_URL", "https://api-assinaturas-stg.vert-tech.dev")
 	EnvironmentVariables.VERTC_ASSINATURAS_EMAIL = os.Getenv("VERTC_ASSINATURAS_EMAIL")
 	EnvironmentVariables.VERTC_ASSINATURAS_PASSWORD = os.Getenv("VERTC_ASSINATURAS_PASSWORD")
 	EnvironmentVariables.VERTC_ASSINATURAS_TIMEOUT, _ = strconv.Atoi(getEnvOrDefault("VERTC_ASSINATURAS_TIMEOUT", "30"))
