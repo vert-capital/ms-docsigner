@@ -17,8 +17,7 @@ jobs:
       - run:
           name: Login to AWS ECR
           command: |
-            login="$(aws ecr get-login --no-include-email)"
-            ${login}
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 197272534240.dkr.ecr.us-east-1.amazonaws.com
       - run:
           name: Build and Test
           command: |
@@ -45,8 +44,7 @@ jobs:
       - run:
           name: Login to AWS ECR
           command: |
-            login="$(aws ecr get-login --no-include-email)"
-            ${login}
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 197272534240.dkr.ecr.us-east-1.amazonaws.com
       - run:
           name: Build Docker Image
           command: |
