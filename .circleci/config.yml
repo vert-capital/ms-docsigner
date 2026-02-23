@@ -1,23 +1,20 @@
 version: 2.1
 
+orbs:
+  aws-cli: circleci/aws-cli@5.4.1
+
 environment:
   CI: true
 
 jobs:
   build-and-test:
     docker:
-      - image: 197272534240.dkr.ecr.us-east-1.amazonaws.com/docker-vert:18.06.3-ce-git
-        environment:
-          DOCKER_REGISTRY: 197272534240.dkr.ecr.us-east-1.amazonaws.com
+      - image: akaytatsu/cibuilder:latest
     working_directory: ~/ms-docsigner/
     steps:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
-          name: Login to AWS ECR
-          command: |
-            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 197272534240.dkr.ecr.us-east-1.amazonaws.com
       - run:
           name: Build and Test
           command: |
@@ -33,98 +30,119 @@ jobs:
 
   build-deliver:
     docker:
-      - image: 197272534240.dkr.ecr.us-east-1.amazonaws.com/docker-vert:18.06.3-ce-git
-        environment:
-          DOCKER_REGISTRY: 197272534240.dkr.ecr.us-east-1.amazonaws.com
+      - image: akaytatsu/cibuilder:latest
     working_directory: ~/ms-docsigner/
     steps:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
+
+      # Assume Role via OIDC
+      - aws-cli/setup:
+          role_arn: "${AWS_ROLE_ARN}"
+          region: "${AWS_REGION}"
+          profile_name: oidc
+
+      # Debug
       - run:
-          name: Login to AWS ECR
+          name: Verify AWS identity
           command: |
-            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 197272534240.dkr.ecr.us-east-1.amazonaws.com
+            echo "Region: $AWS_REGION"
+            echo "Role: $AWS_ROLE_ARN"
+            aws --profile oidc sts get-caller-identity
+
+      # Login no ECR
+      - run:
+          name: Login to ECR
+          command: |
+            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
+
+            aws --profile oidc ecr get-login-password --region $AWS_REGION \
+              | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+
+      # Build e Push
       - run:
           name: Build Docker Image
           command: |
-            export BUILD_VERSION=`echo "$CIRCLE_SHA1" | cut -c 1-8`;
+            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
+            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
+
             docker build -t ms-docsigner:"$BUILD_VERSION" ./src
+
       - run:
           name: Deliver to ECR - Homolog
           command: |
-            export BUILD_VERSION=`echo "$CIRCLE_SHA1" | cut -c 1-8`;
+            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
+            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
 
-            if [ "$CIRCLE_BRANCH" = "homolog" ]
-            then
-                docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
-                docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
-                docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
-                docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
-                docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
-                docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
+            if [ "$CIRCLE_BRANCH" = "homolog" ]; then
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION" || true
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:latest || true
             fi
+
       - run:
           name: Deliver to ECR - Production
           command: |
-            export BUILD_VERSION=`echo "$CIRCLE_SHA1" | cut -c 1-8`;
+            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
+            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
 
-            if [ "$CIRCLE_BRANCH" = "master" ]
-            then
-                docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
-                docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
-                docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
-                docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
-                docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
-                docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
+            if [ "$CIRCLE_BRANCH" = "master" ]; then
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION" || true
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:latest || true
             fi
 
   deploy-to-homolog:
-    working_directory: ~/ms-docsigner/
     docker:
-      - image: 197272534240.dkr.ecr.us-east-1.amazonaws.com/docker-vert:18.06.3-ce-git
-        environment:
-          DOCKER_REGISTRY: 197272534240.dkr.ecr.us-east-1.amazonaws.com
+      - image: akaytatsu/cibuilder:latest
+    working_directory: ~/ms-docsigner/
     steps:
       - checkout:
           depth: 1
+      - run:
+          name: Install ArgoCD CLI
+          command: |
+            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+            rm argocd-linux-amd64
       - run:
           name: Deploy to Homolog Environment
           command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
+            export ARGOCD_SERVER="$ARGOCD_SERVER"
+            export ARGOCD_AUTH_TOKEN="$ARGOCD_HOMOLOG_TOKEN"
 
-            export ARGOCD_SERVER=`echo "$ARGOCD_SERVER"`
-            export ARGOCD_AUTH_TOKEN=`echo "$ARGOCD_HOMOLOG_TOKEN"`
-
-            if [ "$CIRCLE_BRANCH" = "homolog" ]
-            then
-                argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all
+            if [ "$CIRCLE_BRANCH" = "homolog" ]; then
+              argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all
             fi
 
   deploy-to-production:
-    working_directory: ~/ms-docsigner/
     docker:
-      - image: 197272534240.dkr.ecr.us-east-1.amazonaws.com/docker-vert:18.06.3-ce-git
-        environment:
-          DOCKER_REGISTRY: 197272534240.dkr.ecr.us-east-1.amazonaws.com
+      - image: akaytatsu/cibuilder:latest
+    working_directory: ~/ms-docsigner/
     steps:
       - checkout:
           depth: 1
       - run:
-          name: Deploy to Production Environment
+          name: Install ArgoCD CLI
           command: |
             curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
             install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
             rm argocd-linux-amd64
+      - run:
+          name: Deploy to Production Environment
+          command: |
+            export ARGOCD_SERVER="$ARGOCD_SERVER"
+            export ARGOCD_AUTH_TOKEN="$ARGOCD_PRODUCTION_TOKEN"
 
-            export ARGOCD_SERVER=`echo "$ARGOCD_SERVER"`
-            export ARGOCD_AUTH_TOKEN=`echo "$ARGOCD_PRODUCTION_TOKEN"`
-
-            if [ "$CIRCLE_BRANCH" = "master" ]
-            then
-                argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all
+            if [ "$CIRCLE_BRANCH" = "master" ]; then
+              argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all
             fi
 
 workflows:
