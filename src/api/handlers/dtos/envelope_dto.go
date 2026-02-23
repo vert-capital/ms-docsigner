@@ -25,10 +25,9 @@ type EnvelopeCreateRequestDTO struct {
 
 // EnvelopeDocumentRequest representa um documento a ser criado junto com o envelope
 type EnvelopeDocumentRequest struct {
-	Name string `json:"name" binding:"required,min=3,max=255"`
-	// Um dos campos abaixo deve ser fornecido: file_url OU file_content_base64
-	FileURL           string                 `json:"file_url,omitempty"`
-	FileContentBase64 *string                `json:"file_content_base64,omitempty"`
+	Name              string                 `json:"name" binding:"required,min=3,max=255"`
+	FileContentBase64 string                 `json:"file_content_base64,omitempty"` // Opcional: usar OU file_url OU file_content_base64
+	FileURL           string                 `json:"file_url,omitempty"`            // Opcional: URL pública do documento
 	Description       string                 `json:"description,omitempty"`
 	Metadata          map[string]interface{} `json:"metadata,omitempty"` // Metadata customizado do backend
 }
@@ -65,6 +64,7 @@ type EnvelopeSignatoryRequest struct {
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
 	Group             *int                           `json:"group,omitempty"`
+	AuthMethod        *string                        `json:"auth_method,omitempty" binding:"omitempty,oneof=email"`
 	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
 }
 
@@ -171,6 +171,22 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 		for i, requirement := range dto.Requirements {
 			if err := requirement.Validate(); err != nil {
 				return fmt.Errorf("erro na validação do requirement %d: %v", i+1, err)
+			}
+		}
+	}
+
+	// Validar documentos se fornecidos
+	if len(dto.Documents) > 0 {
+		for i, doc := range dto.Documents {
+			hasBase64 := strings.TrimSpace(doc.FileContentBase64) != ""
+			hasURL := strings.TrimSpace(doc.FileURL) != ""
+
+			if !hasBase64 && !hasURL {
+				return fmt.Errorf("documento %d ('%s') deve fornecer file_url ou file_content_base64", i+1, doc.Name)
+			}
+
+			if hasBase64 && hasURL {
+				return fmt.Errorf("documento %d ('%s') não pode fornecer file_url e file_content_base64 ao mesmo tempo", i+1, doc.Name)
 			}
 		}
 	}

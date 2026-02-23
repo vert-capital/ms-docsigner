@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"app/api/handlers/dtos"
@@ -591,70 +592,68 @@ func (h *EnvelopeHandlers) mapCreateRequestToEntity(dto dtos.EnvelopeCreateReque
 
 	var documents []*entity.EntityDocument
 
-	// Processar documentos via file_url ou base64
+	// Processar documentos (URL ou base64) se fornecidos
 	for _, docRequest := range dto.Documents {
-		// Validar documento
-		if err := docRequest.Validate(); err != nil {
-			return nil, nil, fmt.Errorf("invalid document '%s': %w", docRequest.Name, err)
-		}
-		base64_len := 0
-		has_base64 := docRequest.FileContentBase64 != nil && *docRequest.FileContentBase64 != ""
-		if has_base64 {
-			base64_len = len(*docRequest.FileContentBase64)
-		}
-		h.Logger.WithFields(logrus.Fields{
-			"doc_name":     docRequest.Name,
-			"has_file_url": docRequest.FileURL != "",
-			"has_base64":   has_base64,
-			"file_url_len": len(docRequest.FileURL),
-			"base64_len":   base64_len,
-		}).Info("Processing document for envelope creation")
+		var fileInfo *utils.Base64FileInfo
+		var err error
+		var isFromBase64 bool
 
-		if docRequest.FileURL != "" {
-			// Fluxo: baixar arquivo a partir de URL
-			localPath, err := utils.DownloadFile(docRequest.FileURL)
+		// Verificar se é URL ou base64
+		if strings.TrimSpace(docRequest.FileURL) != "" {
+			// Processar URL
+			fileInfo, err = utils.DownloadFileFromURL(docRequest.FileURL)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to download file from URL for document '%s': %w", docRequest.Name, err)
 			}
-			fileInfo, err := utils.GetFileInfo(localPath)
+			isFromBase64 = false
+		} else if strings.TrimSpace(docRequest.FileContentBase64) != "" {
+			// Processar base64
+			fileInfo, err = utils.DecodeBase64File(docRequest.FileContentBase64)
 			if err != nil {
-				utils.CleanupTempFile(localPath)
-				return nil, nil, fmt.Errorf("failed to get file info for document '%s': %w", docRequest.Name, err)
+				return nil, nil, fmt.Errorf("failed to process base64 content for document '%s': %w", docRequest.Name, err)
 			}
-
-			// Validar MIME type
-			if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
-				utils.CleanupTempFile(fileInfo.TempPath)
-				return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
-			}
-
-			// Converter metadata do DTO (map[string]interface{}) para datatypes.JSON
-			var metadataJSON datatypes.JSON
-			if docRequest.Metadata != nil {
-				metadataBytes, err := json.Marshal(docRequest.Metadata)
-				if err != nil {
-					return nil, nil, fmt.Errorf("failed to marshal metadata for document '%s': %w", docRequest.Name, err)
-				}
-				metadataJSON = datatypes.JSON(metadataBytes)
-			}
-
-			document := &entity.EntityDocument{
-				Name:        docRequest.Name,
-				Description: docRequest.Description,
-				FilePath:    fileInfo.TempPath,
-				FileSize:    fileInfo.Size,
-				MimeType:    fileInfo.MimeType,
-				// Mantemos como base64 para que o serviço gere o data URI a partir do arquivo local
-				IsFromBase64: true,
-				Status:       "draft",
-				Metadata:     metadataJSON, // Metadata customizado do backend
-			}
-			documents = append(documents, document)
-			continue
+			isFromBase64 = true
+		} else {
+			return nil, nil, fmt.Errorf("document '%s' must provide either file_url or file_content_base64", docRequest.Name)
 		}
 
-		// Nenhuma fonte fornecida
-		return nil, nil, fmt.Errorf("document '%s' must provide either file_url or file_content_base64", docRequest.Name)
+		// Validar MIME type
+		if err := utils.ValidateMimeType(fileInfo.MimeType); err != nil {
+			utils.CleanupTempFile(fileInfo.TempPath)
+			return nil, nil, fmt.Errorf("unsupported file type for document '%s': %w", docRequest.Name, err)
+		}
+
+		// Converter metadata do DTO (map[string]interface{}) para datatypes.JSON
+		var metadataJSON datatypes.JSON
+		if docRequest.Metadata != nil {
+			metadataBytes, err := json.Marshal(docRequest.Metadata)
+			if err != nil {
+				utils.CleanupTempFile(fileInfo.TempPath)
+				return nil, nil, fmt.Errorf("failed to marshal metadata for document '%s': %w", docRequest.Name, err)
+			}
+			metadataJSON = datatypes.JSON(metadataBytes)
+		}
+
+		// Se veio de URL, manter a URL no FilePath para vertc-assinaturas
+		// Se veio de base64, usar o tempPath para Clicksign
+		filePath := fileInfo.TempPath
+		if !isFromBase64 {
+			// Para URL, manter a URL original no FilePath (será usada diretamente pelo vertc-assinaturas)
+			filePath = docRequest.FileURL
+		}
+
+		document := &entity.EntityDocument{
+			Name:         docRequest.Name,
+			Description:  docRequest.Description,
+			FilePath:     filePath,
+			FileSize:     fileInfo.Size,
+			MimeType:     fileInfo.MimeType,
+			IsFromBase64: isFromBase64,
+			Status:       "draft",
+			Metadata:     metadataJSON, // Metadata customizado do backend
+		}
+
+		documents = append(documents, document)
 	}
 
 	return envelope, documents, nil
