@@ -1,242 +1,26 @@
-version: 2.1
+FROM golang:1.25-alpine AS builder
 
-orbs:
-  aws-cli: circleci/aws-cli@5.4.1
+ARG PROJECT_NAME="app"
+ARG VERSION="dev"
+ARG COMMIT="none"
+ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org
 
-environment:
-  CI: true
+WORKDIR /app
 
-jobs:
-  build-and-test:
-    docker:
-      - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          name: Build and Test
-          command: |
-            cp -f src/.env.sample src/.env
-            docker-compose -f docker-compose.yml -f docker-compose.tests.yml down
-            docker-compose -f docker-compose.yml -f docker-compose.tests.yml build
-            docker-compose -f docker-compose.yml -f docker-compose.tests.yml up -d --no-build
-      - run:
-          name: Cleanup Containers
-          command: |
-            docker-compose -f docker-compose.yml -f docker-compose.tests.yml down
-          when: always
+COPY . .
 
-  build-deliver:
-    docker:
-      - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
+RUN apk update && apk add --no-cache gcc libc-dev librdkafka-dev
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags musl -o /app/app_bin .
 
-      # Assume Role via OIDC
-      - aws-cli/setup:
-          role_arn: "${AWS_ROLE_ARN}"
-          region: "${AWS_REGION}"
-          profile_name: oidc
+FROM alpine:3.20
 
-      # Debug
-      - run:
-          name: Verify AWS identity
-          command: |
-            echo "Region: $AWS_REGION"
-            echo "Role: $AWS_ROLE_ARN"
-            aws --profile oidc sts get-caller-identity
+WORKDIR /app
 
-      # Login no ECR
-      - run:
-          name: Login to ECR
-          command: |
-            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
 
-            aws --profile oidc ecr get-login-password --region $AWS_REGION \
-              | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+COPY --from=builder /app/app_bin /app
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-      # Build e Push
-      - run:
-          name: Build Docker Image
-          command: |
-            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
-            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
+EXPOSE 8080
 
-            docker build -t ms-docsigner:"$BUILD_VERSION" ./src
-
-      - run:
-          name: Deliver to ECR - Staging
-          command: |
-            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
-            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
-
-            if [ "$CIRCLE_BRANCH" = "develop" ]; then
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION"
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-stg:latest
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION"
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-stg:latest
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION" || true
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-stg:latest || true
-            fi
-
-      - run:
-          name: Deliver to ECR - Homolog
-          command: |
-            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
-            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
-
-            if [ "$CIRCLE_BRANCH" = "homolog" ]; then
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION"
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-hml:latest
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:"$BUILD_VERSION" || true
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-hml:latest || true
-            fi
-
-      - run:
-          name: Deliver to ECR - Production
-          command: |
-            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
-            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
-
-            if [ "$CIRCLE_BRANCH" = "master" ]; then
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
-              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION"
-              docker push "$DOCKER_REGISTRY"/ms-docsigner-prd:latest
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:"$BUILD_VERSION" || true
-              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:latest || true
-            fi
-
-  deploy-to-staging:
-    docker:
-      - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
-    steps:
-      - checkout:
-          depth: 1
-      - run:
-          name: Install ArgoCD CLI
-          command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
-      - run:
-          name: Deploy to Staging Environment
-          command: |
-            if [ "$CIRCLE_BRANCH" = "develop" ]; then
-              argocd login "$ARGOCD_SERVER" \
-                --auth-token "$ARGOCD_STAGING_TOKEN" \
-                --grpc-web
-
-              argocd app actions run ms-docsigner-stg restart --kind Deployment --all
-            fi
-
-  deploy-to-homolog:
-    docker:
-      - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
-    steps:
-      - checkout:
-          depth: 1
-      - run:
-          name: Install ArgoCD CLI
-          command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
-      - run:
-          name: Deploy to Homolog Environment
-          command: |
-            if [ "$CIRCLE_BRANCH" = "homolog" ]; then
-              argocd login "$ARGOCD_SERVER" \
-                --auth-token "$ARGOCD_HOMOLOG_TOKEN" \
-                --grpc-web
-
-              argocd app actions run ms-docsigner-hml restart --kind Deployment --all
-            fi
-
-  deploy-to-production:
-    docker:
-      - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
-    steps:
-      - checkout:
-          depth: 1
-      - run:
-          name: Install ArgoCD CLI
-          command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
-      - run:
-          name: Deploy to Production Environment
-          command: |
-            if [ "$CIRCLE_BRANCH" = "master" ]; then
-              argocd login "$ARGOCD_SERVER" \
-                --auth-token "$ARGOCD_PRODUCTION_TOKEN" \
-                --grpc-web
-
-              argocd app actions run ms-docsigner-prd restart --kind Deployment --all
-            fi
-
-workflows:
-  version: 2.1
-  integration:
-    jobs:
-      - build-and-test:
-          context: environment
-
-      - build-deliver:
-          context: environment
-          requires:
-            - build-and-test
-          filters:
-            branches:
-              only:
-                - develop
-                - homolog
-                - master
-
-      - deploy-to-staging:
-          context: environment
-          requires:
-            - build-deliver
-          filters:
-            branches:
-              only:
-                - develop
-
-      - deploy-to-homolog:
-          context: environment
-          requires:
-            - build-deliver
-          filters:
-            branches:
-              only:
-                - homolog
-
-      - deploy-to-production-approval:
-          type: approval
-          context: environment
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - build-deliver
-
-      - deploy-to-production:
-          context: environment
-          requires:
-            - deploy-to-production-approval
-          filters:
-            branches:
-              only:
-                - master
+ENTRYPOINT ["/app/app_bin"]
