@@ -70,6 +70,21 @@ jobs:
             docker build -t ms-docsigner:"$BUILD_VERSION" ./src
 
       - run:
+          name: Deliver to ECR - Staging
+          command: |
+            DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
+            BUILD_VERSION=$(echo "$CIRCLE_SHA1" | cut -c 1-8)
+
+            if [ "$CIRCLE_BRANCH" = "develop" ]; then
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION"
+              docker tag ms-docsigner:"$BUILD_VERSION" "$DOCKER_REGISTRY"/ms-docsigner-stg:latest
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION"
+              docker push "$DOCKER_REGISTRY"/ms-docsigner-stg:latest
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-stg:"$BUILD_VERSION" || true
+              docker rmi "$DOCKER_REGISTRY"/ms-docsigner-stg:latest || true
+            fi
+
+      - run:
           name: Deliver to ECR - Homolog
           command: |
             DOCKER_REGISTRY=197272534240.dkr.ecr.$AWS_REGION.amazonaws.com
@@ -99,25 +114,40 @@ jobs:
               docker rmi "$DOCKER_REGISTRY"/ms-docsigner-prd:latest || true
             fi
 
-  deploy-to-homolog:
+  deploy-to-staging:
     docker:
       - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
     steps:
       - checkout:
           depth: 1
       - run:
           name: Install ArgoCD CLI
           command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
+            curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            install -m 555 argocd /usr/local/bin/argocd
+            rm argocd
+      - run:
+          name: Deploy to Staging Environment
+          command: |
+            if [ "$CIRCLE_BRANCH" = "develop" ]; then
+              argocd --grpc-web app actions run ms-docsigner-stg restart --kind Deployment --all
+            fi
+
+  deploy-to-homolog:
+    docker:
+      - image: akaytatsu/cibuilder:latest
+    steps:
+      - checkout:
+          depth: 1
+      - run:
+          name: Install ArgoCD CLI
+          command: |
+            curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            install -m 555 argocd /usr/local/bin/argocd
+            rm argocd
       - run:
           name: Deploy to Homolog Environment
           command: |
-            export ARGOCD_SERVER="$ARGOCD_SERVER"
-            export ARGOCD_AUTH_TOKEN="$ARGOCD_HOMOLOG_TOKEN"
-
             if [ "$CIRCLE_BRANCH" = "homolog" ]; then
               argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all
             fi
@@ -125,22 +155,18 @@ jobs:
   deploy-to-production:
     docker:
       - image: akaytatsu/cibuilder:latest
-    working_directory: ~/ms-docsigner/
     steps:
       - checkout:
           depth: 1
       - run:
           name: Install ArgoCD CLI
           command: |
-            curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-            install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-            rm argocd-linux-amd64
+            curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            install -m 555 argocd /usr/local/bin/argocd
+            rm argocd
       - run:
           name: Deploy to Production Environment
           command: |
-            export ARGOCD_SERVER="$ARGOCD_SERVER"
-            export ARGOCD_AUTH_TOKEN="$ARGOCD_PRODUCTION_TOKEN"
-
             if [ "$CIRCLE_BRANCH" = "master" ]; then
               argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all
             fi
@@ -159,8 +185,18 @@ workflows:
           filters:
             branches:
               only:
+                - develop
                 - homolog
                 - master
+
+      - deploy-to-staging:
+          context: environment
+          requires:
+            - build-deliver
+          filters:
+            branches:
+              only:
+                - develop
 
       - deploy-to-homolog:
           context: environment
