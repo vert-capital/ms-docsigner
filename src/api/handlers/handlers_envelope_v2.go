@@ -1376,8 +1376,7 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 		logger,
 	)
 
-	// TEMPORARY (local debugging): changed route to force 404 on /api/v2/envelopes
-	group := gin.Group("/api/v2/envelopes-disabled-local")
+	group := gin.Group("/api/v2/envelopes")
 	SetAuthMiddleware(conn, group)
 
 	group.POST("/", envelopeV2Handlers.CreateEnvelopeV2Handler)
