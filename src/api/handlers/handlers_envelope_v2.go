@@ -90,7 +90,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			"correlation_id": correlationID,
 			"error":          err.Error(),
 		}).Warn("Failed to bind JSON request")
-		
+
 		validationErrors := h.extractValidationErrors(err)
 		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
 			Error:   "Validation failed",
@@ -101,10 +101,10 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 	}
 
 	h.Logger.WithFields(logrus.Fields{
-		"correlation_id": correlationID,
-		"provider":       requestDTO.Provider,
-		"envelope_name":  requestDTO.Name,
-		"num_documents":  len(requestDTO.Documents),
+		"correlation_id":  correlationID,
+		"provider":        requestDTO.Provider,
+		"envelope_name":   requestDTO.Name,
+		"num_documents":   len(requestDTO.Documents),
 		"num_signatories": len(requestDTO.Signatories),
 	}).Info("Processing envelope creation request")
 
@@ -153,7 +153,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			"provider":       requestDTO.Provider,
 			"error":          err.Error(),
 		}).Error("Failed to map request DTO to entity")
-		
+
 		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
 			Error:   "Invalid request",
 			Message: err.Error(),
@@ -201,13 +201,13 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 				defaultRefusable := true
 
 				signerData := provider.SignerData{
-					Name:              signatoryEntity.Name,
-					Email:             signatoryEntity.Email,
-					Birthday:          "",
-					HasDocumentation:  defaultHasDoc,
-					Refusable:         defaultRefusable,
-					Group:             defaultGroup,
-					AuthMethod:        "email", // Valor padrão
+					Name:             signatoryEntity.Name,
+					Email:            signatoryEntity.Email,
+					Birthday:         "",
+					HasDocumentation: defaultHasDoc,
+					Refusable:        defaultRefusable,
+					Group:            defaultGroup,
+					AuthMethod:       "email", // Valor padrão
 				}
 
 				if signatoryEntity.Birthday != nil {
@@ -240,10 +240,10 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		// Adicionar dados ao contexto
 		// Log dos documentos e seus metadatas para debug
 		for i, doc := range documents {
-			h.Logger.Debugf("Documento %d preparado para quick-send: Name=%s, Metadata length=%d, Metadata=%s", 
+			h.Logger.Debugf("Documento %d preparado para quick-send: Name=%s, Metadata length=%d, Metadata=%s",
 				i+1, doc.Name, len(doc.Metadata), string(doc.Metadata))
 		}
-		
+
 		quickSendData := &vertc_assinaturas.QuickSendData{
 			Envelope:  envelope,
 			Documents: documents,
@@ -261,7 +261,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		if errors.As(err, &ce) && ce.StatusCode > 0 {
 			status = ce.StatusCode
 		}
-		
+
 		// Log detalhado do erro
 		h.Logger.WithFields(logrus.Fields{
 			"correlation_id": correlationID,
@@ -270,7 +270,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			"status_code":    status,
 			"error":          err.Error(),
 		}).Error("Failed to create envelope in provider")
-		
+
 		c.JSON(status, dtos.ErrorResponseDTO{
 			Error:   http.StatusText(status),
 			Message: "Failed to create envelope: " + err.Error(),
@@ -293,11 +293,11 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 				h.Logger.WithFields(logrus.Fields{
 					"correlation_id": correlationID,
 					"provider":       requestDTO.Provider,
-					"envelope_id":     createdEnvelope.ID,
-					"document_name":   doc.Name,
-					"error":           err.Error(),
+					"envelope_id":    createdEnvelope.ID,
+					"document_name":  doc.Name,
+					"error":          err.Error(),
 				}).Error("Failed to create document locally after quick-send")
-				
+
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
 					Message: fmt.Sprintf("Failed to create document '%s' locally: %v", doc.Name, err),
@@ -331,13 +331,13 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 
 				if err := h.RepositorySignatory.Create(&signatoryEntity); err != nil {
 					h.Logger.WithFields(logrus.Fields{
-						"correlation_id": correlationID,
-						"provider":       requestDTO.Provider,
+						"correlation_id":  correlationID,
+						"provider":        requestDTO.Provider,
 						"envelope_id":     createdEnvelope.ID,
 						"signatory_email": signatoryEntity.Email,
 						"error":           err.Error(),
 					}).Error("Failed to create signatory locally after quick-send")
-					
+
 					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 						Error:   "Internal server error",
 						Message: fmt.Sprintf("Failed to create signatory locally: %v", err),
@@ -357,10 +357,10 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			h.Logger.WithFields(logrus.Fields{
 				"correlation_id": correlationID,
 				"provider":       requestDTO.Provider,
-				"envelope_id":     createdEnvelope.ID,
-				"error":           err.Error(),
+				"envelope_id":    createdEnvelope.ID,
+				"error":          err.Error(),
 			}).Error("Failed to update envelope after quick-send")
-			
+
 			c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 				Error:   "Internal server error",
 				Message: fmt.Sprintf("Failed to update envelope: %v", err),
@@ -374,75 +374,98 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 	} else {
 		// Criar documentos base64 se fornecidos
 		if len(documents) > 0 {
-		for _, doc := range documents {
-			err := h.UsecaseDocuments.Create(doc)
-			if err != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id": correlationID,
-					"provider":       requestDTO.Provider,
-					"envelope_id":     createdEnvelope.ID,
-					"document_name":   doc.Name,
-					"error":           err.Error(),
-				}).Error("Failed to create document locally")
-				
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to create document '%s': %v", doc.Name, err),
-					Details: map[string]interface{}{
+			for _, doc := range documents {
+				err := h.UsecaseDocuments.Create(doc)
+				if err != nil {
+					h.Logger.WithFields(logrus.Fields{
 						"correlation_id": correlationID,
 						"provider":       requestDTO.Provider,
-					},
-				})
-				return
-			}
-			// Adicionar documento ao envelope criado
-			createdEnvelope.DocumentsIDs = append(createdEnvelope.DocumentsIDs, doc.ID)
+						"envelope_id":    createdEnvelope.ID,
+						"document_name":  doc.Name,
+						"error":          err.Error(),
+					}).Error("Failed to create document locally")
 
-			// Enviar documento para o provider e obter a chave
-			doc.ClicksignKey, err = envelopeProviderService.CreateDocument(
-				c.Request.Context(),
-				createdEnvelope.ClicksignKey,
-				doc,
-				createdEnvelope.ID,
-			)
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to create document '%s': %v", doc.Name, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
+				// Adicionar documento ao envelope criado
+				createdEnvelope.DocumentsIDs = append(createdEnvelope.DocumentsIDs, doc.ID)
 
-			if err != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id": correlationID,
-					"provider":       requestDTO.Provider,
-					"envelope_id":     createdEnvelope.ID,
-					"document_name":   doc.Name,
-					"document_id":     doc.ID,
-					"error":           err.Error(),
-				}).Error("Failed to upload document to provider")
-				
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to upload document '%s' to provider: %v", doc.Name, err),
-					Details: map[string]interface{}{
+				// Enviar documento para o provider e obter a chave
+				doc.ClicksignKey, err = envelopeProviderService.CreateDocument(
+					c.Request.Context(),
+					createdEnvelope.ClicksignKey,
+					doc,
+					createdEnvelope.ID,
+				)
+
+				if err != nil {
+					h.Logger.WithFields(logrus.Fields{
 						"correlation_id": correlationID,
 						"provider":       requestDTO.Provider,
-					},
-				})
-				return
+						"envelope_id":    createdEnvelope.ID,
+						"document_name":  doc.Name,
+						"document_id":    doc.ID,
+						"error":          err.Error(),
+					}).Error("Failed to upload document to provider")
+
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to upload document '%s' to provider: %v", doc.Name, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
+
+				// Atualizar documento no banco com a chave do provider
+				err = h.UsecaseDocuments.Update(doc)
+				if err != nil {
+					h.Logger.WithFields(logrus.Fields{
+						"correlation_id": correlationID,
+						"provider":       requestDTO.Provider,
+						"envelope_id":    createdEnvelope.ID,
+						"document_name":  doc.Name,
+						"document_id":    doc.ID,
+						"provider_key":   doc.ClicksignKey,
+						"error":          err.Error(),
+					}).Error("Failed to update document with provider key")
+
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to update document '%s' with provider key: %v", doc.Name, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
 			}
 
-			// Atualizar documento no banco com a chave do provider
-			err = h.UsecaseDocuments.Update(doc)
+			// Atualizar envelope no banco com os IDs dos documentos
+			err = envelopeProviderService.UpdateEnvelope(createdEnvelope)
 			if err != nil {
 				h.Logger.WithFields(logrus.Fields{
-					"correlation_id": correlationID,
-					"provider":       requestDTO.Provider,
+					"correlation_id":  correlationID,
+					"provider":        requestDTO.Provider,
 					"envelope_id":     createdEnvelope.ID,
-					"document_name":   doc.Name,
-					"document_id":     doc.ID,
-					"provider_key":    doc.ClicksignKey,
+					"documents_count": len(createdEnvelope.DocumentsIDs),
 					"error":           err.Error(),
-				}).Error("Failed to update document with provider key")
-				
+				}).Error("Failed to update envelope with document IDs")
+
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to update document '%s' with provider key: %v", doc.Name, err),
+					Message: fmt.Sprintf("Failed to update envelope with document IDs: %v", err),
 					Details: map[string]interface{}{
 						"correlation_id": correlationID,
 						"provider":       requestDTO.Provider,
@@ -451,196 +474,173 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 				return
 			}
 		}
-
-		// Atualizar envelope no banco com os IDs dos documentos
-		err = envelopeProviderService.UpdateEnvelope(createdEnvelope)
-		if err != nil {
-			h.Logger.WithFields(logrus.Fields{
-				"correlation_id": correlationID,
-				"provider":       requestDTO.Provider,
-				"envelope_id":     createdEnvelope.ID,
-				"documents_count": len(createdEnvelope.DocumentsIDs),
-				"error":           err.Error(),
-			}).Error("Failed to update envelope with document IDs")
-			
-			c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-				Error:   "Internal server error",
-				Message: fmt.Sprintf("Failed to update envelope with document IDs: %v", err),
-				Details: map[string]interface{}{
-					"correlation_id": correlationID,
-					"provider":       requestDTO.Provider,
-				},
-			})
-			return
-		}
-	}
 
 		// Criar signatários se fornecidos no request
 		if len(requestDTO.Signatories) > 0 {
-		for i, signatoryRequest := range requestDTO.Signatories {
-			// Converter EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
-			signatoryDTO := signatoryRequest.ToSignatoryCreateRequestDTO(createdEnvelope.ID)
+			for i, signatoryRequest := range requestDTO.Signatories {
+				// Converter EnvelopeSignatoryRequest para SignatoryCreateRequestDTO
+				signatoryDTO := signatoryRequest.ToSignatoryCreateRequestDTO(createdEnvelope.ID)
 
-			// Converter DTO para entidade
-			signatoryEntity := signatoryDTO.ToEntity()
+				// Converter DTO para entidade
+				signatoryEntity := signatoryDTO.ToEntity()
 
-			// Validar entidade antes de criar
-			if err := signatoryEntity.Validate(); err != nil {
-				c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-					Error:   "Validation failed",
-					Message: fmt.Sprintf("Signatory %d validation failed: %v", i+1, err),
-					Details: map[string]interface{}{
-						"correlation_id": correlationID,
-						"provider":       requestDTO.Provider,
-					},
-				})
-				return
-			}
+				// Validar entidade antes de criar
+				if err := signatoryEntity.Validate(); err != nil {
+					c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+						Error:   "Validation failed",
+						Message: fmt.Sprintf("Signatory %d validation failed: %v", i+1, err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
 
-			// Criar signatário localmente primeiro (sem chamar provider via usecase)
-			// Usar repository diretamente para evitar acoplamento com Clicksign
-			if err := h.RepositorySignatory.Create(&signatoryEntity); err != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id":      correlationID,
-					"envelope_id":         createdEnvelope.ID,
-					"failed_signatory":     i + 1,
-					"signatory_email":      signatoryEntity.Email,
-					"partial_transaction":  true,
-					"provider":             requestDTO.Provider,
-					"error":                err.Error(),
-				}).Error("Failed to create signatory locally")
-				
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to create signatory %d locally: %v", i+1, err),
-					Details: map[string]interface{}{
+				// Criar signatário localmente primeiro (sem chamar provider via usecase)
+				// Usar repository diretamente para evitar acoplamento com Clicksign
+				if err := h.RepositorySignatory.Create(&signatoryEntity); err != nil {
+					h.Logger.WithFields(logrus.Fields{
 						"correlation_id":      correlationID,
 						"envelope_id":         createdEnvelope.ID,
 						"failed_signatory":    i + 1,
+						"signatory_email":     signatoryEntity.Email,
 						"partial_transaction": true,
 						"provider":            requestDTO.Provider,
-					},
-				})
-				return
-			}
+						"error":               err.Error(),
+					}).Error("Failed to create signatory locally")
 
-			// Obter envelope para pegar a chave do provider
-			envelope, err := h.RepositoryEnvelope.GetByID(createdEnvelope.ID)
-			if err != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id": correlationID,
-					"envelope_id":     createdEnvelope.ID,
-					"provider":       requestDTO.Provider,
-					"error":           err.Error(),
-				}).Error("Failed to get envelope for signatory creation")
-				
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to get envelope: %v", err),
-					Details: map[string]interface{}{
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to create signatory %d locally: %v", i+1, err),
+						Details: map[string]interface{}{
+							"correlation_id":      correlationID,
+							"envelope_id":         createdEnvelope.ID,
+							"failed_signatory":    i + 1,
+							"partial_transaction": true,
+							"provider":            requestDTO.Provider,
+						},
+					})
+					return
+				}
+
+				// Obter envelope para pegar a chave do provider
+				envelope, err := h.RepositoryEnvelope.GetByID(createdEnvelope.ID)
+				if err != nil {
+					h.Logger.WithFields(logrus.Fields{
 						"correlation_id": correlationID,
+						"envelope_id":    createdEnvelope.ID,
 						"provider":       requestDTO.Provider,
-					},
-				})
-				return
-			}
+						"error":          err.Error(),
+					}).Error("Failed to get envelope for signatory creation")
 
-			// Mapear para SignerData do provider
-			// Valores padrão conforme EntitySignatory.NewSignatory
-			defaultGroup := 1
-			defaultHasDoc := false
-			defaultRefusable := true
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to get envelope: %v", err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
 
-			signerData := provider.SignerData{
-				Name:              signatoryEntity.Name,
-				Email:             signatoryEntity.Email,
-				Birthday:          "",
-				HasDocumentation:  defaultHasDoc,
-				Refusable:         defaultRefusable,
-				Group:             defaultGroup,
-			}
+				// Mapear para SignerData do provider
+				// Valores padrão conforme EntitySignatory.NewSignatory
+				defaultGroup := 1
+				defaultHasDoc := false
+				defaultRefusable := true
 
-			if signatoryEntity.Birthday != nil {
-				signerData.Birthday = *signatoryEntity.Birthday
-			}
-			if signatoryEntity.Documentation != nil {
-				signerData.Documentation = signatoryEntity.Documentation
-			}
-			if signatoryEntity.PhoneNumber != nil {
-				signerData.PhoneNumber = signatoryEntity.PhoneNumber
-			}
-			if signatoryEntity.HasDocumentation != nil {
-				signerData.HasDocumentation = *signatoryEntity.HasDocumentation
-			}
-			if signatoryEntity.Refusable != nil {
-				signerData.Refusable = *signatoryEntity.Refusable
-			}
-			// Group deve ser maior que 0 (Clicksign requirement)
-			// Se não fornecido ou 0, usar padrão 1
-			if signatoryEntity.Group != nil && *signatoryEntity.Group > 0 {
-				signerData.Group = *signatoryEntity.Group
-			} else {
-				signerData.Group = defaultGroup
-			}
+				signerData := provider.SignerData{
+					Name:             signatoryEntity.Name,
+					Email:            signatoryEntity.Email,
+					Birthday:         "",
+					HasDocumentation: defaultHasDoc,
+					Refusable:        defaultRefusable,
+					Group:            defaultGroup,
+				}
 
-			// Criar signatário no provider
-			providerSignerKey, err := envelopeProvider.CreateSigner(c.Request.Context(), envelope.ClicksignKey, signerData)
-			if err != nil {
-				// Tentar reverter criação local (best effort)
-				_ = h.RepositorySignatory.Delete(&signatoryEntity)
+				if signatoryEntity.Birthday != nil {
+					signerData.Birthday = *signatoryEntity.Birthday
+				}
+				if signatoryEntity.Documentation != nil {
+					signerData.Documentation = signatoryEntity.Documentation
+				}
+				if signatoryEntity.PhoneNumber != nil {
+					signerData.PhoneNumber = signatoryEntity.PhoneNumber
+				}
+				if signatoryEntity.HasDocumentation != nil {
+					signerData.HasDocumentation = *signatoryEntity.HasDocumentation
+				}
+				if signatoryEntity.Refusable != nil {
+					signerData.Refusable = *signatoryEntity.Refusable
+				}
+				// Group deve ser maior que 0 (Clicksign requirement)
+				// Se não fornecido ou 0, usar padrão 1
+				if signatoryEntity.Group != nil && *signatoryEntity.Group > 0 {
+					signerData.Group = *signatoryEntity.Group
+				} else {
+					signerData.Group = defaultGroup
+				}
 
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id":      correlationID,
-					"envelope_id":         createdEnvelope.ID,
-					"envelope_provider_key": envelope.ClicksignKey,
-					"failed_signatory":     i + 1,
-					"signatory_email":       signatoryEntity.Email,
-					"partial_transaction":  true,
-					"provider":             requestDTO.Provider,
-					"error":                err.Error(),
-				}).Error("Failed to create signatory in provider (signatory was created locally but failed in provider)")
+				// Criar signatário no provider
+				providerSignerKey, err := envelopeProvider.CreateSigner(c.Request.Context(), envelope.ClicksignKey, signerData)
+				if err != nil {
+					// Tentar reverter criação local (best effort)
+					_ = h.RepositorySignatory.Delete(&signatoryEntity)
 
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to create signatory in provider: %v. ATENÇÃO: Signatário foi criado localmente mas falhou no provider", err),
-					Details: map[string]interface{}{
-						"correlation_id":      correlationID,
-						"envelope_id":         createdEnvelope.ID,
-						"failed_signatory":    i + 1,
-						"partial_transaction": true,
-						"provider":            requestDTO.Provider,
-					},
-				})
-				return
+					h.Logger.WithFields(logrus.Fields{
+						"correlation_id":        correlationID,
+						"envelope_id":           createdEnvelope.ID,
+						"envelope_provider_key": envelope.ClicksignKey,
+						"failed_signatory":      i + 1,
+						"signatory_email":       signatoryEntity.Email,
+						"partial_transaction":   true,
+						"provider":              requestDTO.Provider,
+						"error":                 err.Error(),
+					}).Error("Failed to create signatory in provider (signatory was created locally but failed in provider)")
+
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to create signatory in provider: %v. ATENÇÃO: Signatário foi criado localmente mas falhou no provider", err),
+						Details: map[string]interface{}{
+							"correlation_id":      correlationID,
+							"envelope_id":         createdEnvelope.ID,
+							"failed_signatory":    i + 1,
+							"partial_transaction": true,
+							"provider":            requestDTO.Provider,
+						},
+					})
+					return
+				}
+
+				// Atualizar signatário com chave do provider
+				signatoryEntity.SetClicksignKey(providerSignerKey)
+				if err := h.RepositorySignatory.Update(&signatoryEntity); err != nil {
+					h.Logger.WithFields(logrus.Fields{
+						"correlation_id":  correlationID,
+						"envelope_id":     createdEnvelope.ID,
+						"signatory_id":    signatoryEntity.ID,
+						"signatory_email": signatoryEntity.Email,
+						"provider_key":    providerSignerKey,
+						"provider":        requestDTO.Provider,
+						"error":           err.Error(),
+					}).Error("Failed to update signatory with provider key")
+
+					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+						Error:   "Internal server error",
+						Message: fmt.Sprintf("Failed to update signatory with provider key: %v", err),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
+
+				createdSignatories = append(createdSignatories, signatoryEntity)
 			}
-
-			// Atualizar signatário com chave do provider
-			signatoryEntity.SetClicksignKey(providerSignerKey)
-			if err := h.RepositorySignatory.Update(&signatoryEntity); err != nil {
-				h.Logger.WithFields(logrus.Fields{
-					"correlation_id":      correlationID,
-					"envelope_id":         createdEnvelope.ID,
-					"signatory_id":        signatoryEntity.ID,
-					"signatory_email":     signatoryEntity.Email,
-					"provider_key":        providerSignerKey,
-					"provider":             requestDTO.Provider,
-					"error":                err.Error(),
-				}).Error("Failed to update signatory with provider key")
-
-				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-					Error:   "Internal server error",
-					Message: fmt.Sprintf("Failed to update signatory with provider key: %v", err),
-					Details: map[string]interface{}{
-						"correlation_id": correlationID,
-						"provider":       requestDTO.Provider,
-					},
-				})
-				return
-			}
-
-			createdSignatories = append(createdSignatories, signatoryEntity)
 		}
-	}
 	} // Fim do else para outros providers
 
 	// Criar requirements se fornecidos no request (apenas para Clicksign)
@@ -730,8 +730,8 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		}
 	}
 
-	// Criar qualificadores se fornecidos no request
-	if len(requestDTO.Qualifiers) > 0 {
+	// Criar qualificadores se fornecidos no request (vert-sign já envia tudo no quick-send)
+	if requestDTO.Provider != "vert-sign" && len(requestDTO.Qualifiers) > 0 {
 		for i, qualifierRequest := range requestDTO.Qualifiers {
 			// Verificar se há signatários suficientes
 			if i >= len(createdSignatories) {
@@ -750,15 +750,15 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			signatory := createdSignatories[i]
 
 			for _, document := range documents {
-			// Converter RequirementCreateRequest para EntityRequirement
-			reqData := provider.RequirementData{
-				Action:     qualifierRequest.Action,
-				DocumentID: document.ClicksignKey,
-				SignerID:   signatory.ClicksignKey,
-			}
-			if qualifierRequest.Role != "" {
-				reqData.Role = qualifierRequest.Role
-			}
+				// Converter RequirementCreateRequest para EntityRequirement
+				reqData := provider.RequirementData{
+					Action:     qualifierRequest.Action,
+					DocumentID: document.ClicksignKey,
+					SignerID:   signatory.ClicksignKey,
+				}
+				if qualifierRequest.Role != "" {
+					reqData.Role = qualifierRequest.Role
+				}
 
 				// Criar requirement no provider
 				providerReqKey, err := envelopeProvider.CreateRequirement(
@@ -1376,7 +1376,8 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 		logger,
 	)
 
-	group := gin.Group("/api/v2/envelopes")
+	// TEMPORARY (local debugging): changed route to force 404 on /api/v2/envelopes
+	group := gin.Group("/api/v2/envelopes-disabled-local")
 	SetAuthMiddleware(conn, group)
 
 	group.POST("/", envelopeV2Handlers.CreateEnvelopeV2Handler)
@@ -1385,4 +1386,3 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 	group.POST("/:id/activate", envelopeV2Handlers.ActivateEnvelopeV2Handler)
 	group.POST("/:id/notify", envelopeV2Handlers.NotifyEnvelopeV2Handler)
 }
-
