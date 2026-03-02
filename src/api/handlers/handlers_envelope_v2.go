@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -1147,6 +1148,172 @@ func (h *EnvelopeV2Handlers) NotifyEnvelopeV2Handler(c *gin.Context) {
 	c.JSON(http.StatusOK, responseDTO)
 }
 
+// ActivateEnvelopeByKeyV2Handler ativa um envelope pelo provider key (clicksign_key).
+// Funciona para Clicksign e VertSign; o identificador é o mesmo armazenado em clicksign_key.
+// @Router /api/v2/envelopes/by-key/:key/activate [post]
+func (h *EnvelopeV2Handlers) ActivateEnvelopeByKeyV2Handler(c *gin.Context) {
+	correlationID := c.GetHeader("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
+	}
+
+	keyParam := c.Param("key")
+	key, err := url.PathUnescape(keyParam)
+	if err != nil {
+		key = keyParam
+	}
+	if key == "" {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid key",
+			Message: "Envelope key is required",
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
+
+	envelope, err := h.RepositoryEnvelope.GetByClicksignKey(key)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
+			Error:   "Envelope not found",
+			Message: "The requested envelope does not exist",
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
+
+	providerName := "clicksign"
+	envelopeProvider, err := h.ProviderFactory.GetProvider(providerName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: fmt.Sprintf("Failed to get provider: %v", err),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+				"provider":       providerName,
+			},
+		})
+		return
+	}
+
+	envelopeProviderService := usecase_envelope.NewUsecaseEnvelopeProviderService(
+		h.RepositoryEnvelope,
+		envelopeProvider,
+		h.UsecaseDocuments,
+		h.UsecaseRequirement,
+		h.Logger,
+	)
+
+	activatedEnvelope, err := envelopeProviderService.ActivateEnvelope(envelope.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "Failed to activate envelope: " + err.Error(),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+				"provider":       providerName,
+			},
+		})
+		return
+	}
+
+	responseDTO := h.mapEntityToResponseV2(activatedEnvelope)
+	c.JSON(http.StatusOK, responseDTO)
+}
+
+// NotifyEnvelopeByKeyV2Handler envia notificação aos signatários pelo provider key (clicksign_key).
+// Funciona para Clicksign e VertSign; o identificador é o mesmo armazenado em clicksign_key.
+// @Router /api/v2/envelopes/by-key/:key/notify [post]
+func (h *EnvelopeV2Handlers) NotifyEnvelopeByKeyV2Handler(c *gin.Context) {
+	correlationID := c.GetHeader("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
+	}
+
+	keyParam := c.Param("key")
+	key, err := url.PathUnescape(keyParam)
+	if err != nil {
+		key = keyParam
+	}
+	if key == "" {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid key",
+			Message: "Envelope key is required",
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
+
+	envelope, err := h.RepositoryEnvelope.GetByClicksignKey(key)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dtos.ErrorResponseDTO{
+			Error:   "Envelope not found",
+			Message: "The requested envelope does not exist",
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+			},
+		})
+		return
+	}
+
+	var requestDTO dtos.EnvelopeNotificationRequestDTO
+	if err := c.ShouldBindJSON(&requestDTO); err != nil {
+		validationErrors := h.extractValidationErrors(err)
+		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: "Invalid request payload",
+			Details: validationErrors,
+		})
+		return
+	}
+
+	providerName := "clicksign"
+	envelopeProvider, err := h.ProviderFactory.GetProvider(providerName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: fmt.Sprintf("Failed to get provider: %v", err),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+				"provider":       providerName,
+			},
+		})
+		return
+	}
+
+	envelopeProviderService := usecase_envelope.NewUsecaseEnvelopeProviderService(
+		h.RepositoryEnvelope,
+		envelopeProvider,
+		h.UsecaseDocuments,
+		h.UsecaseRequirement,
+		h.Logger,
+	)
+
+	err = envelopeProviderService.NotifyEnvelope(c.Request.Context(), envelope.ID, requestDTO.Message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "Failed to send notification: " + err.Error(),
+			Details: map[string]interface{}{
+				"correlation_id": correlationID,
+				"provider":       providerName,
+			},
+		})
+		return
+	}
+
+	responseDTO := dtos.EnvelopeNotificationResponseDTO{
+		Success: true,
+		Message: "Notification sent successfully",
+	}
+	c.JSON(http.StatusOK, responseDTO)
+}
+
 // mapEntityToResponseV2 converte EntityEnvelope para DTO de resposta (reutiliza lógica do v1)
 func (h *EnvelopeV2Handlers) mapEntityToResponseV2(envelope *entity.EntityEnvelope, signatories ...[]entity.EntitySignatory) *dtos.EnvelopeResponseDTO {
 	response := &dtos.EnvelopeResponseDTO{
@@ -1382,6 +1549,9 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 	group.POST("/", envelopeV2Handlers.CreateEnvelopeV2Handler)
 	group.GET("/:id", envelopeV2Handlers.GetEnvelopeV2Handler)
 	group.GET("/", envelopeV2Handlers.GetEnvelopesV2Handler)
+	// Rotas por provider key (clicksign_key) — antes das rotas por :id para não capturar "by-key" como id
+	group.POST("/by-key/:key/activate", envelopeV2Handlers.ActivateEnvelopeByKeyV2Handler)
+	group.POST("/by-key/:key/notify", envelopeV2Handlers.NotifyEnvelopeByKeyV2Handler)
 	group.POST("/:id/activate", envelopeV2Handlers.ActivateEnvelopeV2Handler)
 	group.POST("/:id/notify", envelopeV2Handlers.NotifyEnvelopeV2Handler)
 }
