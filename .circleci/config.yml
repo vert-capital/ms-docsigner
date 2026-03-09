@@ -148,6 +148,9 @@ jobs:
       - run:
           name: Deploy to Homolog Environment
           command: |
+            export ARGOCD_SERVER="$ARGOCD_SERVER"
+            export ARGOCD_AUTH_TOKEN="$ARGOCD_AUTH_TOKEN"
+
             if [ "$CIRCLE_BRANCH" = "homolog" ]; then
               argocd --grpc-web app actions run ms-docsigner-hml restart --kind Deployment --all
             fi
@@ -167,6 +170,9 @@ jobs:
       - run:
           name: Deploy to Production Environment
           command: |
+            export ARGOCD_SERVER="$ARGOCD_SERVER"
+            export ARGOCD_AUTH_TOKEN="$ARGOCD_AUTH_TOKEN"
+
             if [ "$CIRCLE_BRANCH" = "master" ]; then
               argocd --grpc-web app actions run ms-docsigner-prd restart --kind Deployment --all
             fi
