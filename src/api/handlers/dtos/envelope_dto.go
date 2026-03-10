@@ -32,6 +32,28 @@ type EnvelopeDocumentRequest struct {
 	Metadata          map[string]interface{} `json:"metadata,omitempty"` // Metadata customizado do backend
 }
 
+// Validate valida o documento
+func (edr *EnvelopeDocumentRequest) Validate() error {
+	// Limpar whitespace dos campos
+	edr.FileURL = strings.TrimSpace(edr.FileURL)
+	edr.FileContentBase64 = strings.TrimSpace(edr.FileContentBase64)
+
+	hasBase64 := edr.FileContentBase64 != ""
+	hasURL := edr.FileURL != ""
+
+	// Deve ter pelo menos um dos dois
+	if !hasBase64 && !hasURL {
+		return fmt.Errorf("document '%s' must provide either file_url or file_content_base64", edr.Name)
+	}
+
+	// Não pode ter ambos
+	if hasBase64 && hasURL {
+		return fmt.Errorf("document '%s' cannot have both file_url and file_content_base64", edr.Name)
+	}
+
+	return nil
+}
+
 // EnvelopeSignatoryRequest representa um signatário a ser criado junto com o envelope
 type EnvelopeSignatoryRequest struct {
 	Name              string                         `json:"name" binding:"required,min=2,max=255"`
