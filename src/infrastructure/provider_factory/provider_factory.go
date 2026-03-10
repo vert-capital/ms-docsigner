@@ -42,8 +42,9 @@ func (f *ProviderFactory) GetProvider(providerName string) (provider.EnvelopePro
 		vertcClient := vertc_assinaturas.NewVertcAssinaturasClient(f.envVars, f.logger)
 		// Criar serviço quick-send
 		quickSendService := vertc_assinaturas.NewQuickSendService(vertcClient, f.logger)
+		directFlowService := vertc_assinaturas.NewDirectFlowService(vertcClient, f.logger)
 		// Criar provider
-		return vertc_assinaturas_provider.NewVertcAssinaturasProvider(quickSendService, f.logger), nil
+		return vertc_assinaturas_provider.NewVertcAssinaturasProvider(quickSendService, directFlowService, f.logger), nil
 	default:
 		return nil, fmt.Errorf("unsupported provider: '%s'. Supported providers: clicksign, vert-sign", providerName)
 	}
@@ -58,7 +59,3 @@ func (f *ProviderFactory) IsProviderSupported(providerName string) bool {
 func (f *ProviderFactory) IsProviderImplemented(providerName string) bool {
 	return providerName == "clicksign" || providerName == "vert-sign"
 }
-
-
-
-

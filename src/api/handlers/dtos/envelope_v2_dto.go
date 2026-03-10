@@ -68,6 +68,15 @@ func (dto *EnvelopeV2CreateRequestDTO) Validate() error {
 			}
 			emailsMap[signatory.Email] = i
 
+			authMethod, err := signatory.ResolveAuthMethod()
+			if err != nil {
+				return fmt.Errorf("erro na validação do signatário %d (%s): %v", i+1, signatory.Email, err)
+			}
+
+			if dto.Provider == "vert-sign" && authMethod == "icp_brasil" {
+				return fmt.Errorf("provider vert-sign não suporta auth_method='icp_brasil' para o signatário %s", signatory.Email)
+			}
+
 			// Reutilizar validação da estrutura SignatoryCreateRequestDTO
 			tempSignatory := &SignatoryCreateRequestDTO{
 				Name:              signatory.Name,
@@ -114,7 +123,3 @@ func (dto *EnvelopeV2CreateRequestDTO) Validate() error {
 
 	return nil
 }
-
-
-
-

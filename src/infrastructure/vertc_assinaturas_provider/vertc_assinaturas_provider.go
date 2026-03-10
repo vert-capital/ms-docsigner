@@ -14,24 +14,27 @@ import (
 
 // VertcAssinaturasProvider implementa a interface EnvelopeProvider para o provider vertc-assinaturas
 type VertcAssinaturasProvider struct {
-	quickSendService *vertc_assinaturas.QuickSendService
-	logger           *logrus.Logger
+	quickSendService  *vertc_assinaturas.QuickSendService
+	directFlowService *vertc_assinaturas.DirectFlowService
+	logger            *logrus.Logger
 }
 
 // NewVertcAssinaturasProvider cria uma nova instância do VertcAssinaturasProvider
 func NewVertcAssinaturasProvider(
 	quickSendService *vertc_assinaturas.QuickSendService,
+	directFlowService *vertc_assinaturas.DirectFlowService,
 	logger *logrus.Logger,
 ) provider.EnvelopeProvider {
 	return &VertcAssinaturasProvider{
-		quickSendService: quickSendService,
-		logger:           logger,
+		quickSendService:  quickSendService,
+		directFlowService: directFlowService,
+		logger:            logger,
 	}
 }
 
-// CreateEnvelope cria um envelope usando quick-send
-// Para vertc-assinaturas, o quick-send cria envelope, documentos e signatários de uma vez
-// Os documentos e signatários devem estar no contexto via QuickSendData
+// CreateEnvelope cria um envelope no provider vertc-assinaturas.
+// O provider decide entre quick-send e fluxo direto com base nos signatários recebidos.
+// Os documentos e signatários devem estar no contexto via QuickSendData.
 func (p *VertcAssinaturasProvider) CreateEnvelope(ctx context.Context, envelope *entity.EntityEnvelope) (string, string, error) {
 	// Extrair dados do contexto
 	quickSendData, ok := vertc_assinaturas.GetQuickSendDataFromContext(ctx)
@@ -54,6 +57,21 @@ func (p *VertcAssinaturasProvider) CreateEnvelope(ctx context.Context, envelope 
 		Envelope:  envelope,
 		Documents: quickSendData.Documents,
 		Signers:   quickSendData.Signers,
+	}
+
+	if p.shouldUseDirectFlow(data.Signers) {
+		response, err := p.directFlowService.CreateEnvelopeWithDocumentsAndSigners(ctx, data)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to create envelope via direct flow: %w", err)
+		}
+
+		rawDataBytes, err := json.Marshal(response)
+		if err != nil {
+			p.logger.Warnf("Failed to marshal direct flow response: %v", err)
+			rawDataBytes = []byte("{}")
+		}
+
+		return response.EnvelopeID, string(rawDataBytes), nil
 	}
 
 	// Chamar quick-send
@@ -98,5 +116,13 @@ func (p *VertcAssinaturasProvider) NotifyEnvelope(ctx context.Context, envelopeK
 	return fmt.Errorf("NotifyEnvelope is not yet implemented for vertc-assinaturas provider")
 }
 
+func (p *VertcAssinaturasProvider) shouldUseDirectFlow(signers []provider.SignerData) bool {
+	for _, signer := range signers {
+		authMethod := signer.AuthMethod
+		if authMethod != "" && authMethod != "email" {
+			return true
+		}
+	}
 
-
+	return false
+}

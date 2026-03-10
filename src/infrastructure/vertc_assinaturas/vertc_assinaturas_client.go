@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -155,8 +156,105 @@ func (c *VertcAssinaturasClient) Login(ctx context.Context) (string, error) {
 	return loginResp.AccessToken, nil
 }
 
+// Get faz uma requisição GET autenticada
+func (c *VertcAssinaturasClient) Get(ctx context.Context, endpoint string) (*http.Response, error) {
+	return c.doAuthenticatedRequest(ctx, http.MethodGet, endpoint, nil, "")
+}
+
 // Post faz uma requisição POST autenticada
 func (c *VertcAssinaturasClient) Post(ctx context.Context, endpoint string, body interface{}, idempotencyKey string) (*http.Response, error) {
+	return c.doAuthenticatedRequest(ctx, http.MethodPost, endpoint, body, idempotencyKey)
+}
+
+// PostMultipartFile faz upload autenticado de um único arquivo multipart.
+func (c *VertcAssinaturasClient) PostMultipartFile(
+	ctx context.Context,
+	endpoint string,
+	fieldName string,
+	fileName string,
+	fileContent []byte,
+) (*http.Response, error) {
+	token, err := c.Login(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to login: %w", err)
+	}
+
+	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
+
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+
+	part, err := writer.CreateFormFile(fieldName, fileName)
+	if err != nil {
+		return nil, &VertcAssinaturasError{
+			Type:     ErrorTypeClient,
+			Message:  "failed to create multipart form file",
+			Original: err,
+		}
+	}
+
+	if _, err := part.Write(fileContent); err != nil {
+		return nil, &VertcAssinaturasError{
+			Type:     ErrorTypeClient,
+			Message:  "failed to write multipart file content",
+			Original: err,
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, &VertcAssinaturasError{
+			Type:     ErrorTypeClient,
+			Message:  "failed to finalize multipart payload",
+			Original: err,
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &requestBody)
+	if err != nil {
+		return nil, &VertcAssinaturasError{
+			Type:     ErrorTypeClient,
+			Message:  "failed to create multipart HTTP request",
+			Original: err,
+		}
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+
+	correlationID := ctx.Value("correlation_id")
+	if correlationID != nil {
+		req.Header.Set("X-Correlation-ID", correlationID.(string))
+	}
+
+	c.logger.Debugf("Fazendo requisição multipart POST para: %s", url)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		errorType := c.categorizeError(err)
+		return nil, &VertcAssinaturasError{
+			Type:     errorType,
+			Message:  "multipart HTTP request failed",
+			Original: err,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		errorType := c.categorizeHTTPError(resp.StatusCode)
+		return nil, &VertcAssinaturasError{
+			Type:       errorType,
+			Message:    fmt.Sprintf("API error (status %d): %s", resp.StatusCode, string(body)),
+			StatusCode: resp.StatusCode,
+		}
+	}
+
+	return resp, nil
+}
+
+func (c *VertcAssinaturasClient) doAuthenticatedRequest(ctx context.Context, method, endpoint string, body interface{}, idempotencyKey string) (*http.Response, error) {
 	// Fazer login para obter token
 	token, err := c.Login(ctx)
 	if err != nil {
@@ -178,7 +276,7 @@ func (c *VertcAssinaturasClient) Post(ctx context.Context, endpoint string, body
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, &VertcAssinaturasError{
 			Type:     ErrorTypeClient,
@@ -200,7 +298,7 @@ func (c *VertcAssinaturasClient) Post(ctx context.Context, endpoint string, body
 		req.Header.Set("X-Correlation-ID", correlationID.(string))
 	}
 
-	c.logger.Debugf("Fazendo requisição POST para: %s", url)
+	c.logger.Debugf("Fazendo requisição %s para: %s", method, url)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -268,4 +366,3 @@ func contains(s string, substrings ...string) bool {
 	}
 	return false
 }
-
