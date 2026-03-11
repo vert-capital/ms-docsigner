@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"app/api/handlers/dtos"
 	"app/config"
 	"app/entity"
 	"app/infrastructure/clicksign"
 	"app/infrastructure/repository"
+	"app/infrastructure/vertc_assinaturas"
 	usecase_auto_signature_term "app/usecase/auto_signature_term"
 
 	"github.com/gin-gonic/gin"
@@ -22,12 +22,18 @@ import (
 
 type AutoSignatureTermHandlers struct {
 	UsecaseAutoSignatureTerm usecase_auto_signature_term.IUsecaseAutoSignatureTerm
+	VertcAutomaticSignature  *vertc_assinaturas.AutomaticSignatureService
 	Logger                   *logrus.Logger
 }
 
-func NewAutoSignatureTermHandler(usecaseAutoSignatureTerm usecase_auto_signature_term.IUsecaseAutoSignatureTerm, logger *logrus.Logger) *AutoSignatureTermHandlers {
+func NewAutoSignatureTermHandler(
+	usecaseAutoSignatureTerm usecase_auto_signature_term.IUsecaseAutoSignatureTerm,
+	vertcAutomaticSignature *vertc_assinaturas.AutomaticSignatureService,
+	logger *logrus.Logger,
+) *AutoSignatureTermHandlers {
 	return &AutoSignatureTermHandlers{
 		UsecaseAutoSignatureTerm: usecaseAutoSignatureTerm,
+		VertcAutomaticSignature:  vertcAutomaticSignature,
 		Logger:                   logger,
 	}
 }
@@ -38,6 +44,7 @@ func NewAutoSignatureTermHandler(usecaseAutoSignatureTerm usecase_auto_signature
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
+// @Param provider query string false "Provider name (clicksign|vert-sign). Defaults to clicksign"
 // @Param request body dtos.AutoSignatureTermCreateRequestDTO true "Auto signature term data"
 // @Success 201 {object} dtos.AutoSignatureTermResponseDTO "Auto signature term created successfully"
 // @Failure 400 {object} dtos.ValidationErrorResponseDTO "Validation error - invalid request data"
@@ -45,9 +52,13 @@ func NewAutoSignatureTermHandler(usecaseAutoSignatureTerm usecase_auto_signature
 // @Failure 500 {object} dtos.ErrorResponseDTO "Internal server error - term creation failed"
 // @Router /api/v1/auto-signature/terms [post]
 func (h *AutoSignatureTermHandlers) CreateAutoSignatureTermHandler(c *gin.Context) {
-	correlationID := c.GetHeader("X-Correlation-ID")
-	if correlationID == "" {
-		correlationID = strconv.FormatInt(time.Now().Unix(), 10)
+	providerName, isValidProvider := normalizeAutoSignatureProviderWithDefault(c.Query("provider"))
+	if !isValidProvider {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid provider",
+			Message: fmt.Sprintf("Unsupported provider: %s. Supported providers: clicksign, vert-sign", c.Query("provider")),
+		})
+		return
 	}
 
 	var requestDTO dtos.AutoSignatureTermCreateRequestDTO
@@ -62,41 +73,22 @@ func (h *AutoSignatureTermHandlers) CreateAutoSignatureTermHandler(c *gin.Contex
 		return
 	}
 
-	// Converter DTO para entidade
-	term, err := h.mapCreateRequestToEntity(requestDTO)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
-			Error:   "Invalid request",
-			Message: err.Error(),
+	if providerName == "vert-sign" {
+		h.createAutoSignatureTermForVertSign(c, requestDTO)
+		return
+	}
+
+	validationDetails := validateClicksignCreateTermRequest(requestDTO)
+	if len(validationDetails) > 0 {
+		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: "Missing required fields for clicksign provider",
+			Details: validationDetails,
 		})
 		return
 	}
 
-	// Criar o termo
-	createdTerm, err := h.UsecaseAutoSignatureTerm.CreateAutoSignatureTerm(c.Request.Context(), term)
-	if err != nil {
-		h.Logger.WithError(err).Error("Failed to create auto signature term")
-
-		// Verificar se é o erro específico de termo já existente
-		if h.isTermAlreadyExistsError(err) {
-			c.JSON(http.StatusConflict, dtos.ErrorResponseDTO{
-				Error:   "Term already exists",
-				Message: "Já existe um termo de assinatura automática para este signatário e operador.",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
-			Error:   "Internal server error",
-			Message: "Failed to create auto signature term",
-		})
-		return
-	}
-
-	// Converter entidade para DTO de resposta
-	responseDTO := h.mapEntityToResponse(createdTerm)
-
-	c.JSON(http.StatusCreated, responseDTO)
+	h.createAutoSignatureTermForClicksign(c, requestDTO)
 }
 
 // @Summary Get auto signature term by ID
@@ -208,6 +200,94 @@ func (h *AutoSignatureTermHandlers) DeleteAutoSignatureTermHandler(c *gin.Contex
 	c.Status(http.StatusNoContent)
 }
 
+// @Summary Check auto signature term status by provider and signer email
+// @Description Check if the signer already has an active and signed auto signature permission in the selected provider.
+// @Tags auto-signature-terms
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param provider query string true "Provider name (clicksign|vert-sign)"
+// @Param email query string true "Signer e-mail"
+// @Success 200 {object} dtos.AutoSignatureTermStatusResponseDTO "Auto signature status for the signer and provider"
+// @Failure 400 {object} dtos.ValidationErrorResponseDTO "Validation error - invalid query params"
+// @Failure 501 {object} dtos.ErrorResponseDTO "Provider does not support e-mail based check"
+// @Failure 502 {object} dtos.ErrorResponseDTO "Provider integration error"
+// @Router /api/v1/auto-signature/terms/status [get]
+func (h *AutoSignatureTermHandlers) CheckAutoSignatureTermStatusHandler(c *gin.Context) {
+	var queryDTO dtos.AutoSignatureTermStatusQueryDTO
+	if err := c.ShouldBindQuery(&queryDTO); err != nil {
+		validationErrors := h.extractValidationErrors(err)
+		c.JSON(http.StatusBadRequest, dtos.ValidationErrorResponseDTO{
+			Error:   "Validation failed",
+			Message: "Invalid query params",
+			Details: validationErrors,
+		})
+		return
+	}
+
+	providerName, isValidProvider := normalizeAutoSignatureProvider(queryDTO.Provider)
+	if !isValidProvider {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid provider",
+			Message: fmt.Sprintf("Unsupported provider: %s. Supported providers: clicksign, vert-sign", queryDTO.Provider),
+			Details: map[string]interface{}{
+				"provider": queryDTO.Provider,
+			},
+		})
+		return
+	}
+
+	if providerName == "clicksign" {
+		c.JSON(http.StatusNotImplemented, dtos.ErrorResponseDTO{
+			Error:   "Provider not supported for e-mail validation",
+			Message: "Clicksign não disponibiliza rota para validação de termo de assinatura automática por e-mail.",
+			Details: map[string]interface{}{
+				"provider": providerName,
+				"email":    queryDTO.Email,
+			},
+		})
+		return
+	}
+
+	if h.VertcAutomaticSignature == nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "VertSign auto signature service is not configured",
+		})
+		return
+	}
+
+	result, err := h.VertcAutomaticSignature.CheckSignedTermByEmail(c.Request.Context(), queryDTO.Email)
+	if err != nil {
+		h.Logger.WithError(err).WithFields(logrus.Fields{
+			"provider": providerName,
+			"email":    queryDTO.Email,
+		}).Error("Failed to check auto signature status")
+
+		c.JSON(http.StatusBadGateway, dtos.ErrorResponseDTO{
+			Error:   "Provider integration error",
+			Message: "Failed to check auto signature status in provider",
+			Details: map[string]interface{}{
+				"provider": providerName,
+				"email":    queryDTO.Email,
+			},
+		})
+		return
+	}
+
+	response := dtos.AutoSignatureTermStatusResponseDTO{
+		Provider:        providerName,
+		Email:           queryDTO.Email,
+		HasSignedTerm:   result.HasSignedTerm,
+		PermissionFound: result.PermissionFound,
+		PermissionID:    result.PermissionID,
+		ContractStatus:  result.ContractStatus,
+		IsActive:        result.IsActive,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *AutoSignatureTermHandlers) mapCreateRequestToEntity(requestDTO dtos.AutoSignatureTermCreateRequestDTO) (*entity.EntityAutoSignatureTerm, error) {
 	term := entity.EntityAutoSignatureTerm{
 		SignerDocumentation: requestDTO.Signer.Documentation,
@@ -219,6 +299,93 @@ func (h *AutoSignatureTermHandlers) mapCreateRequestToEntity(requestDTO dtos.Aut
 	}
 
 	return entity.NewAutoSignatureTerm(term)
+}
+
+func (h *AutoSignatureTermHandlers) createAutoSignatureTermForClicksign(c *gin.Context, requestDTO dtos.AutoSignatureTermCreateRequestDTO) {
+	term, err := h.mapCreateRequestToEntity(requestDTO)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+			Error:   "Invalid request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	createdTerm, err := h.UsecaseAutoSignatureTerm.CreateAutoSignatureTerm(c.Request.Context(), term)
+	if err != nil {
+		h.Logger.WithError(err).Error("Failed to create auto signature term in clicksign")
+
+		if h.isTermAlreadyExistsError(err) {
+			c.JSON(http.StatusConflict, dtos.ErrorResponseDTO{
+				Error:   "Term already exists",
+				Message: "Já existe um termo de assinatura automática para este signatário e operador.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "Failed to create auto signature term",
+		})
+		return
+	}
+
+	responseDTO := h.mapEntityToResponse(createdTerm)
+	c.JSON(http.StatusCreated, responseDTO)
+}
+
+func (h *AutoSignatureTermHandlers) createAutoSignatureTermForVertSign(c *gin.Context, requestDTO dtos.AutoSignatureTermCreateRequestDTO) {
+	if h.VertcAutomaticSignature == nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
+			Error:   "Internal server error",
+			Message: "VertSign auto signature service is not configured",
+		})
+		return
+	}
+
+	result, err := h.VertcAutomaticSignature.CreateTermEnsuringUser(c.Request.Context(), requestDTO.Signer.Email, requestDTO.Signer.Name)
+	if err != nil {
+		h.Logger.WithError(err).WithFields(logrus.Fields{
+			"provider": "vert-sign",
+			"email":    requestDTO.Signer.Email,
+		}).Error("Failed to create auto signature term in vert-sign")
+
+		if vertc_assinaturas.IsAutomaticSignaturePermissionAlreadyExistsError(err) {
+			c.JSON(http.StatusConflict, dtos.ErrorResponseDTO{
+				Error:   "Term already exists",
+				Message: "Já existe uma permissão ativa de assinatura automática para este signatário no VertSign.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadGateway, dtos.ErrorResponseDTO{
+			Error:   "Provider integration error",
+			Message: "Failed to create auto signature term in VertSign",
+			Details: map[string]interface{}{
+				"provider": "vert-sign",
+				"email":    requestDTO.Signer.Email,
+			},
+		})
+		return
+	}
+
+	response := dtos.AutoSignatureTermProviderCreateResponseDTO{
+		Provider:         "vert-sign",
+		Email:            requestDTO.Signer.Email,
+		PermissionID:     result.PermissionID,
+		EnvelopeID:       result.EnvelopeID,
+		ContractStatus:   result.ContractStatus,
+		IsActive:         result.IsActive,
+		NotificationSent: result.NotificationSent,
+		UserCreated:      result.UserCreated,
+		UserExisted:      result.UserExisted,
+	}
+
+	if result.NotificationError != nil {
+		response.NotificationError = *result.NotificationError
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h *AutoSignatureTermHandlers) mapEntityToResponse(term *entity.EntityAutoSignatureTerm) dtos.AutoSignatureTermResponseDTO {
@@ -293,8 +460,72 @@ func (h *AutoSignatureTermHandlers) isTermAlreadyExistsError(err error) bool {
 	return strings.Contains(errorStr, "Já existe um termo de assinatura automática para este signatário e operador")
 }
 
+func normalizeAutoSignatureProvider(provider string) (string, bool) {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+
+	switch normalizedProvider {
+	case "clicksign":
+		return "clicksign", true
+	case "vert-sign", "vert_sign", "vertsign", "vertc-assinaturas", "vertc_assinaturas":
+		return "vert-sign", true
+	default:
+		return "", false
+	}
+}
+
+func normalizeAutoSignatureProviderWithDefault(provider string) (string, bool) {
+	normalizedProvider := strings.TrimSpace(provider)
+	if normalizedProvider == "" {
+		return "clicksign", true
+	}
+
+	return normalizeAutoSignatureProvider(normalizedProvider)
+}
+
+func validateClicksignCreateTermRequest(requestDTO dtos.AutoSignatureTermCreateRequestDTO) []dtos.ValidationErrorDetail {
+	var details []dtos.ValidationErrorDetail
+
+	if strings.TrimSpace(requestDTO.AdminEmail) == "" {
+		details = append(details, dtos.ValidationErrorDetail{
+			Field:   "admin_email",
+			Message: "This field is required for clicksign",
+		})
+	}
+
+	if strings.TrimSpace(requestDTO.APIEmail) == "" {
+		details = append(details, dtos.ValidationErrorDetail{
+			Field:   "api_email",
+			Message: "This field is required for clicksign",
+		})
+	}
+
+	if strings.TrimSpace(requestDTO.Signer.Documentation) == "" {
+		details = append(details, dtos.ValidationErrorDetail{
+			Field:   "signer.documentation",
+			Message: "This field is required for clicksign",
+		})
+	}
+
+	if strings.TrimSpace(requestDTO.Signer.Birthday) == "" {
+		details = append(details, dtos.ValidationErrorDetail{
+			Field:   "signer.birthday",
+			Message: "This field is required for clicksign",
+		})
+	}
+
+	if strings.TrimSpace(requestDTO.Signer.Name) == "" {
+		details = append(details, dtos.ValidationErrorDetail{
+			Field:   "signer.name",
+			Message: "This field is required for clicksign",
+		})
+	}
+
+	return details
+}
+
 func MountAutoSignatureTermHandlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logger) {
 	clicksignClient := clicksign.NewClicksignClient(config.EnvironmentVariables, logger).(*clicksign.ClicksignClient)
+	vertcAssinaturasClient := vertc_assinaturas.NewVertcAssinaturasClient(config.EnvironmentVariables, logger)
 
 	autoSignatureTermHandlers := NewAutoSignatureTermHandler(
 		usecase_auto_signature_term.NewUsecaseAutoSignatureTermService(
@@ -302,6 +533,7 @@ func MountAutoSignatureTermHandlers(gin *gin.Engine, conn *gorm.DB, logger *logr
 			clicksignClient,
 			logger,
 		),
+		vertc_assinaturas.NewAutomaticSignatureService(vertcAssinaturasClient, logger),
 		logger,
 	)
 
@@ -309,6 +541,7 @@ func MountAutoSignatureTermHandlers(gin *gin.Engine, conn *gorm.DB, logger *logr
 	SetAuthMiddleware(conn, group)
 
 	group.POST("/", autoSignatureTermHandlers.CreateAutoSignatureTermHandler)
+	group.GET("/status", autoSignatureTermHandlers.CheckAutoSignatureTermStatusHandler)
 	group.GET("/:id", autoSignatureTermHandlers.GetAutoSignatureTermHandler)
 	group.GET("/", autoSignatureTermHandlers.GetAllAutoSignatureTermsHandler)
 	group.DELETE("/:id", autoSignatureTermHandlers.DeleteAutoSignatureTermHandler)

@@ -33,19 +33,21 @@ import (
 
 // EnvelopeV2Handlers gerencia handlers para a rota v2 de envelopes
 type EnvelopeV2Handlers struct {
-	ProviderFactory       *provider_factory.ProviderFactory
-	UsecaseDocuments      document.IUsecaseDocument
-	UsecaseRequirement    requirement.IUsecaseRequirement
-	UsecaseSignatory      signatory.IUsecaseSignatory
-	RepositoryEnvelope    usecase_envelope.IRepositoryEnvelope
-	RepositorySignatory   signatory.IRepositorySignatory
-	RepositoryRequirement requirement.IRepositoryRequirement
-	Logger                *logrus.Logger
+	ProviderFactory         *provider_factory.ProviderFactory
+	VertcAutomaticSignature *vertc_assinaturas.AutomaticSignatureService
+	UsecaseDocuments        document.IUsecaseDocument
+	UsecaseRequirement      requirement.IUsecaseRequirement
+	UsecaseSignatory        signatory.IUsecaseSignatory
+	RepositoryEnvelope      usecase_envelope.IRepositoryEnvelope
+	RepositorySignatory     signatory.IRepositorySignatory
+	RepositoryRequirement   requirement.IRepositoryRequirement
+	Logger                  *logrus.Logger
 }
 
 // NewEnvelopeV2Handler cria uma nova instância do EnvelopeV2Handlers
 func NewEnvelopeV2Handler(
 	providerFactory *provider_factory.ProviderFactory,
+	vertcAutomaticSignature *vertc_assinaturas.AutomaticSignatureService,
 	usecaseDocuments document.IUsecaseDocument,
 	usecaseRequirement requirement.IUsecaseRequirement,
 	usecaseSignatory signatory.IUsecaseSignatory,
@@ -55,14 +57,15 @@ func NewEnvelopeV2Handler(
 	logger *logrus.Logger,
 ) *EnvelopeV2Handlers {
 	return &EnvelopeV2Handlers{
-		ProviderFactory:       providerFactory,
-		UsecaseDocuments:      usecaseDocuments,
-		UsecaseRequirement:    usecaseRequirement,
-		UsecaseSignatory:      usecaseSignatory,
-		RepositoryEnvelope:    repositoryEnvelope,
-		RepositorySignatory:   repositorySignatory,
-		RepositoryRequirement: repositoryRequirement,
-		Logger:                logger,
+		ProviderFactory:         providerFactory,
+		VertcAutomaticSignature: vertcAutomaticSignature,
+		UsecaseDocuments:        usecaseDocuments,
+		UsecaseRequirement:      usecaseRequirement,
+		UsecaseSignatory:        usecaseSignatory,
+		RepositoryEnvelope:      repositoryEnvelope,
+		RepositorySignatory:     repositorySignatory,
+		RepositoryRequirement:   repositoryRequirement,
+		Logger:                  logger,
 	}
 }
 
@@ -115,6 +118,10 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			Error:   "Validation failed",
 			Message: err.Error(),
 		})
+		return
+	}
+
+	if err := h.validateVertSignAutoSignaturePreconditions(c, &requestDTO, correlationID); err != nil {
 		return
 	}
 
@@ -186,8 +193,8 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		h.Logger,
 	)
 
-	// Para vert-sign, precisamos passar documentos e signatários via contexto
-	// pois o quick-send cria tudo de uma vez
+	// Para vert-sign, passamos documentos e signatários via contexto.
+	// O provider decide internamente entre quick-send e fluxo direto.
 	ctx := c.Request.Context()
 	if requestDTO.Provider == "vert-sign" {
 		// Preparar signatários para o contexto
@@ -196,6 +203,18 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 			for _, signatoryRequest := range requestDTO.Signatories {
 				signatoryDTO := signatoryRequest.ToSignatoryCreateRequestDTO(0) // ID temporário
 				signatoryEntity := signatoryDTO.ToEntity()
+				authMethod, err := signatoryRequest.ResolveAuthMethod()
+				if err != nil {
+					c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+						Error:   "Validation failed",
+						Message: err.Error(),
+						Details: map[string]interface{}{
+							"correlation_id": correlationID,
+							"provider":       requestDTO.Provider,
+						},
+					})
+					return
+				}
 
 				defaultGroup := 1
 				defaultHasDoc := false
@@ -208,7 +227,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 					HasDocumentation: defaultHasDoc,
 					Refusable:        defaultRefusable,
 					Group:            defaultGroup,
-					AuthMethod:       "email", // Valor padrão
+					AuthMethod:       authMethod,
 				}
 
 				if signatoryEntity.Birthday != nil {
@@ -229,11 +248,6 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 				if signatoryEntity.Group != nil && *signatoryEntity.Group > 0 {
 					signerData.Group = *signatoryEntity.Group
 				}
-				// Mapear auth_method do request para SignerData
-				if signatoryRequest.AuthMethod != nil {
-					signerData.AuthMethod = *signatoryRequest.AuthMethod
-				}
-
 				signersData = append(signersData, signerData)
 			}
 		}
@@ -241,7 +255,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		// Adicionar dados ao contexto
 		// Log dos documentos e seus metadatas para debug
 		for i, doc := range documents {
-			h.Logger.Debugf("Documento %d preparado para quick-send: Name=%s, Metadata length=%d, Metadata=%s",
+			h.Logger.Debugf("Documento %d preparado para o fluxo do provider vert-sign: Name=%s, Metadata length=%d, Metadata=%s",
 				i+1, doc.Name, len(doc.Metadata), string(doc.Metadata))
 		}
 
@@ -283,11 +297,11 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		return
 	}
 
-	// Para vert-sign, documentos e signatários já foram criados via quick-send
+	// Para vert-sign, documentos e signatários já foram criados no provider flow
 	// Para outros providers, criar documentos e signatários separadamente
 	var createdSignatories []entity.EntitySignatory
 	if requestDTO.Provider == "vert-sign" {
-		// Quick-send já criou tudo, apenas atualizar documentos localmente
+		// O provider vert-sign já criou tudo, apenas atualizar documentos localmente
 		for _, doc := range documents {
 			err := h.UsecaseDocuments.Create(doc)
 			if err != nil {
@@ -297,7 +311,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 					"envelope_id":    createdEnvelope.ID,
 					"document_name":  doc.Name,
 					"error":          err.Error(),
-				}).Error("Failed to create document locally after quick-send")
+				}).Error("Failed to create document locally after vert-sign provider flow")
 
 				c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 					Error:   "Internal server error",
@@ -337,7 +351,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 						"envelope_id":     createdEnvelope.ID,
 						"signatory_email": signatoryEntity.Email,
 						"error":           err.Error(),
-					}).Error("Failed to create signatory locally after quick-send")
+					}).Error("Failed to create signatory locally after vert-sign provider flow")
 
 					c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 						Error:   "Internal server error",
@@ -349,7 +363,18 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 					})
 					return
 				}
+
+				createdSignatories = append(createdSignatories, signatoryEntity)
 			}
+		}
+
+		if err := createdEnvelope.SetStatus("sent"); err != nil {
+			h.Logger.WithFields(logrus.Fields{
+				"correlation_id": correlationID,
+				"provider":       requestDTO.Provider,
+				"envelope_id":    createdEnvelope.ID,
+				"error":          err.Error(),
+			}).Warn("Failed to set local envelope status to sent after vert-sign automatic send")
 		}
 
 		// Atualizar envelope
@@ -360,7 +385,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 				"provider":       requestDTO.Provider,
 				"envelope_id":    createdEnvelope.ID,
 				"error":          err.Error(),
-			}).Error("Failed to update envelope after quick-send")
+			}).Error("Failed to update envelope after vert-sign provider flow")
 
 			c.JSON(http.StatusInternalServerError, dtos.ErrorResponseDTO{
 				Error:   "Internal server error",
@@ -814,7 +839,7 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 		}
 	}
 
-	if requestDTO.Approved {
+	if requestDTO.Approved && requestDTO.Provider != "vert-sign" {
 		// Ativar envelope se aprovado
 		createdEnvelope, err = envelopeProviderService.ActivateEnvelope(createdEnvelope.ID)
 		if err != nil {
@@ -834,6 +859,83 @@ func (h *EnvelopeV2Handlers) CreateEnvelopeV2Handler(c *gin.Context) {
 	responseDTO := h.mapEntityToResponseV2(createdEnvelope, createdSignatories)
 
 	c.JSON(http.StatusCreated, responseDTO)
+}
+
+func (h *EnvelopeV2Handlers) validateVertSignAutoSignaturePreconditions(
+	c *gin.Context,
+	requestDTO *dtos.EnvelopeV2CreateRequestDTO,
+	correlationID string,
+) error {
+	if requestDTO.Provider != "vert-sign" || h.VertcAutomaticSignature == nil {
+		return nil
+	}
+
+	for _, signatory := range requestDTO.Signatories {
+		authMethod, err := signatory.ResolveAuthMethod()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dtos.ErrorResponseDTO{
+				Error:   "Validation failed",
+				Message: err.Error(),
+				Details: map[string]interface{}{
+					"correlation_id": correlationID,
+					"provider":       requestDTO.Provider,
+					"email":          signatory.Email,
+				},
+			})
+			return err
+		}
+
+		if authMethod != "auto_signature" {
+			continue
+		}
+
+		result, checkErr := h.VertcAutomaticSignature.CheckSignedTermByEmail(c.Request.Context(), signatory.Email)
+		if checkErr != nil {
+			h.Logger.WithFields(logrus.Fields{
+				"correlation_id": correlationID,
+				"provider":       requestDTO.Provider,
+				"email":          signatory.Email,
+				"error":          checkErr.Error(),
+			}).Error("Failed to validate vert-sign auto-signature term before envelope creation")
+
+			c.JSON(http.StatusBadGateway, dtos.ErrorResponseDTO{
+				Error:   "Provider integration error",
+				Message: "Failed to validate auto signature term in VertSign",
+				Details: map[string]interface{}{
+					"correlation_id": correlationID,
+					"provider":       requestDTO.Provider,
+					"email":          signatory.Email,
+				},
+			})
+			return checkErr
+		}
+
+		if !result.HasSignedTerm {
+			h.Logger.WithFields(logrus.Fields{
+				"correlation_id":   correlationID,
+				"provider":         requestDTO.Provider,
+				"email":            signatory.Email,
+				"permission_found": result.PermissionFound,
+				"contract_status":  result.ContractStatus,
+			}).Warn("Blocked vert-sign auto-signature envelope creation because signer has no active signed term")
+
+			c.JSON(http.StatusUnprocessableEntity, dtos.ErrorResponseDTO{
+				Error:   "Auto signature term not signed",
+				Message: fmt.Sprintf("Signer %s does not have an active signed auto signature term in VertSign", signatory.Email),
+				Details: map[string]interface{}{
+					"correlation_id":   correlationID,
+					"provider":         requestDTO.Provider,
+					"email":            signatory.Email,
+					"has_signed_term":  result.HasSignedTerm,
+					"permission_found": result.PermissionFound,
+					"contract_status":  result.ContractStatus,
+				},
+			})
+			return fmt.Errorf("auto signature term not signed for %s", signatory.Email)
+		}
+	}
+
+	return nil
 }
 
 // @Summary Get envelope (v2)
@@ -1527,6 +1629,9 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 		logger,
 	)
 
+	vertcAssinaturasClient := vertc_assinaturas.NewVertcAssinaturasClient(config.EnvironmentVariables, logger)
+	vertcAutomaticSignature := vertc_assinaturas.NewAutomaticSignatureService(vertcAssinaturasClient, logger)
+
 	// Criar repositories
 	repositoryEnvelope := repository.NewRepositoryEnvelope(conn)
 	repositorySignatory := repository.NewRepositorySignatory(conn)
@@ -1534,6 +1639,7 @@ func MountEnvelopeV2Handlers(gin *gin.Engine, conn *gorm.DB, logger *logrus.Logg
 
 	envelopeV2Handlers := NewEnvelopeV2Handler(
 		providerFactory,
+		vertcAutomaticSignature,
 		usecaseDocument,
 		usecaseRequirement,
 		usecaseSignatory,

@@ -64,7 +64,7 @@ type EnvelopeSignatoryRequest struct {
 	HasDocumentation  *bool                          `json:"has_documentation,omitempty"`
 	Refusable         *bool                          `json:"refusable,omitempty"`
 	Group             *int                           `json:"group,omitempty"`
-	AuthMethod        *string                        `json:"auth_method,omitempty" binding:"omitempty,oneof=email"`
+	AuthMethod        *string                        `json:"auth_method,omitempty" binding:"omitempty,oneof=email icp_brasil auto_signature"`
 	CommunicateEvents *SignatoryCommunicateEventsDTO `json:"communicate_events,omitempty"`
 }
 
@@ -91,6 +91,21 @@ func (esr *EnvelopeSignatoryRequest) ToSignatoryCreateRequestDTO(envelopeID int)
 		Group:             esr.Group,
 		CommunicateEvents: esr.CommunicateEvents,
 	}
+}
+
+// ResolveAuthMethod retorna o método de autenticação efetivo do signatário.
+// O endpoint público expõe apenas auth_method.
+func (esr *EnvelopeSignatoryRequest) ResolveAuthMethod() (string, error) {
+	if esr.AuthMethod == nil {
+		return "email", nil
+	}
+
+	authMethod := strings.TrimSpace(*esr.AuthMethod)
+	if authMethod == "" {
+		return "email", nil
+	}
+
+	return authMethod, nil
 }
 
 // ToRequirementCreateRequestDTO converte EnvelopeRequirementRequest para RequirementCreateRequestDTO
