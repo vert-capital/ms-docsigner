@@ -87,6 +87,12 @@ func (d *EntityDocument) Validate() error {
 }
 
 func (d *EntityDocument) validateFileExists() error {
+	// Se FilePath é uma URL HTTP/HTTPS, não validar existência do arquivo
+	// (o arquivo está em um servidor remoto, não localmente)
+	if strings.HasPrefix(d.FilePath, "http://") || strings.HasPrefix(d.FilePath, "https://") {
+		return nil
+	}
+	
 	if _, err := os.Stat(d.FilePath); os.IsNotExist(err) {
 		return fmt.Errorf("file does not exist: %s", d.FilePath)
 	}
