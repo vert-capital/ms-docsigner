@@ -14,8 +14,8 @@ import (
 
 // QuickSendRequest representa a requisição para o endpoint quick-send
 type QuickSendRequest struct {
-	Envelope  EnvelopeData `json:"envelope"`
-	Signers   []SignerDto  `json:"signers"`
+	Envelope  EnvelopeData  `json:"envelope"`
+	Signers   []SignerDto   `json:"signers"`
 	Documents []DocumentDto `json:"documents"`
 }
 
@@ -29,29 +29,28 @@ type EnvelopeData struct {
 
 // SignerDto representa um signatário para quick-send
 type SignerDto struct {
-	Email          string   `json:"email"`
-	Name           string   `json:"name"`
-	IsRequired     bool     `json:"isRequired"`
+	Email           string   `json:"email"`
+	Name            string   `json:"name"`
+	IsRequired      bool     `json:"isRequired"`
 	RequiredMethods []string `json:"requiredMethods"`
 }
 
 // DocumentDto representa um documento para quick-send
 type DocumentDto struct {
-	URL       string `json:"url"`
-	Name      string `json:"name"`
-	MimeType  string `json:"mimeType"`
-	SplitPages bool  `json:"splitPages"`
+	URL        string `json:"url"`
+	Name       string `json:"name"`
+	MimeType   string `json:"mimeType"`
+	SplitPages bool   `json:"splitPages"`
 }
 
 // QuickSendResponse representa a resposta do endpoint quick-send
 type QuickSendResponse struct {
-	Status     string                 `json:"status"`
-	Message    string                 `json:"message"`
-	EnvelopeID string                 `json:"envelopeId"`
-	Documents  []interface{}          `json:"documents"`
-	Signers    []interface{}          `json:"signers"`
+	Status     string        `json:"status"`
+	Message    string        `json:"message"`
+	EnvelopeID string        `json:"envelopeId"`
+	Documents  []interface{} `json:"documents"`
+	Signers    []interface{} `json:"signers"`
 }
-
 
 // QuickSendService gerencia operações relacionadas ao quick-send
 type QuickSendService struct {
@@ -138,14 +137,14 @@ func (s *QuickSendService) mapToQuickSendRequest(data QuickSendData) (*QuickSend
 	signers := make([]SignerDto, 0, len(data.Signers))
 	for _, signer := range data.Signers {
 		isRequired := !signer.Refusable // Inverter lógica: refusable=false significa required=true
-		
+
 		// Mapear auth_method para requiredMethods
 		// "email" -> "code_email" (padrão do vertc-assinaturas)
 		requiredMethods := []string{"code_email"} // Valor padrão
 		if signer.AuthMethod != "" {
 			requiredMethods = s.mapAuthMethodToRequiredMethods(signer.AuthMethod)
 		}
-		
+
 		signerDto := SignerDto{
 			Email:           signer.Email,
 			Name:            signer.Name,
@@ -163,16 +162,16 @@ func (s *QuickSendService) mapToQuickSendRequest(data QuickSendData) (*QuickSend
 		// Caso contrário, precisamos de uma URL pública
 		// Por enquanto, vamos assumir que FilePath contém a URL
 		docURL := doc.FilePath
-		
+
 		// Validar que é uma URL válida
 		if !isValidURL(docURL) {
 			return nil, fmt.Errorf("document '%s' does not have a valid URL. FilePath: %s", doc.Name, docURL)
 		}
 
 		docDto := DocumentDto{
-			URL:       docURL,
-			Name:      doc.Name,
-			MimeType:  doc.MimeType,
+			URL:        docURL,
+			Name:       doc.Name,
+			MimeType:   doc.MimeType,
 			SplitPages: false, // Valor padrão
 		}
 		documents = append(documents, docDto)
@@ -202,16 +201,14 @@ func (s *QuickSendService) mapAuthMethodToRequiredMethods(authMethod string) []s
 	switch authMethod {
 	case "email":
 		return []string{"code_email"}
+	case "auto_signature":
+		return []string{"automatic_signature"}
 	// Futuros métodos podem ser adicionados aqui:
 	// case "icp_brasil":
 	//     return []string{"certificate"}
-	// case "auto_signature":
-	//     return []string{"auto_signature"}
 	default:
 		// Se não reconhecido, usar padrão
 		s.logger.Warnf("Auth method '%s' não reconhecido, usando padrão 'code_email'", authMethod)
 		return []string{"code_email"}
 	}
 }
-
-
