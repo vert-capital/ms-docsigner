@@ -179,7 +179,7 @@ func (s *DirectFlowService) createSigners(ctx context.Context, envelopeID string
 		case "email":
 			req.RequiredMethods = []string{"code_email"}
 		case "auto_signature":
-			// Para auto_signature não enviamos validações.
+			req.RequiredMethods = []string{"automatic_signature"}
 		default:
 			return 0, fmt.Errorf("unsupported auth method '%s' for vert-sign direct flow", authMethod)
 		}
