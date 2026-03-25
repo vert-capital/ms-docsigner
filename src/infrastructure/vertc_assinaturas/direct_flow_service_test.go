@@ -19,7 +19,7 @@ import (
 )
 
 func TestDirectFlowService_CreateEnvelopeWithDocumentsAndSigners(t *testing.T) {
-	t.Run("should create auto-signature signer without required methods", func(t *testing.T) {
+	t.Run("should create auto-signature signer with automatic_signature required method", func(t *testing.T) {
 		var receivedSigners []directSignerRequest
 		var sendRequest directSendRequest
 		documentsUploaded := 0
@@ -118,7 +118,7 @@ func TestDirectFlowService_CreateEnvelopeWithDocumentsAndSigners(t *testing.T) {
 
 		require.Len(t, receivedSigners, 2)
 		assert.Equal(t, "auto@empresa.com", receivedSigners[0].Email)
-		assert.Nil(t, receivedSigners[0].RequiredMethods)
+		assert.Equal(t, []string{"automatic_signature"}, receivedSigners[0].RequiredMethods)
 		assert.Equal(t, "email@empresa.com", receivedSigners[1].Email)
 		assert.Equal(t, []string{"code_email"}, receivedSigners[1].RequiredMethods)
 		assert.Equal(t, "Envelope Teste", sendRequest.Subject)

@@ -11,7 +11,7 @@ type SignerData struct {
 	HasDocumentation  bool
 	Refusable         bool
 	Group             int
-	AuthMethod        string // Método de autenticação: "email" (será mapeado para "code_email" no vertc-assinaturas)
+	AuthMethod        string // Método de autenticação: "email" ou "auto_signature" (mapeados para o formato do provider VertSign)
 	CommunicateEvents *SignerCommunicateEventsData
 }
 
@@ -31,7 +31,3 @@ type RequirementData struct {
 	DocumentID string // ID do documento relacionado no provider
 	SignerID   string // ID do signatário relacionado no provider
 }
-
-
-
-
