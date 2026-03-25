@@ -329,6 +329,256 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/auto-signature/terms": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all auto signature terms",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auto-signature-terms"
+                ],
+                "summary": "Get all auto signature terms",
+                "responses": {
+                    "200": {
+                        "description": "List of auto signature terms",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AutoSignatureTermListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new auto signature term in Clicksign. This endpoint creates a term that allows automatic signature for a specific signer.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auto-signature-terms"
+                ],
+                "summary": "Create auto signature term",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider name (clicksign|vert-sign). Defaults to clicksign",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Auto signature term data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AutoSignatureTermCreateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Auto signature term created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AutoSignatureTermResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - term already exists for this signer and operator",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error - term creation failed",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auto-signature/terms/status": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Check if the signer already has an active and signed auto signature permission in the selected provider.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auto-signature-terms"
+                ],
+                "summary": "Check auto signature term status by provider and signer email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider name (clicksign|vert-sign)",
+                        "name": "provider",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Signer e-mail",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Auto signature status for the signer and provider",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AutoSignatureTermStatusResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid query params",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
+                        }
+                    },
+                    "501": {
+                        "description": "Provider does not support e-mail based check",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "502": {
+                        "description": "Provider integration error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auto-signature/terms/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get an auto signature term by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auto-signature-terms"
+                ],
+                "summary": "Get auto signature term by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auto signature term ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Auto signature term found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AutoSignatureTermResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Auto signature term not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete an auto signature term by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auto-signature-terms"
+                ],
+                "summary": "Delete auto signature term",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auto signature term ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Auto signature term deleted successfully"
+                    },
+                    "404": {
+                        "description": "Auto signature term not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/documents": {
             "get": {
                 "security": [
@@ -807,6 +1057,61 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/envelopes/{id}/events/check": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fallback endpoint that checks Clicksign events API when webhooks fail. Processes sign events and triggers internal webhooks to maintain existing workflow.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes"
+                ],
+                "summary": "Check signature events manually (webhook fallback)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WebhookProcessResponseDTO"
                         }
                     },
                     "400": {
@@ -1847,9 +2152,382 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v2/envelopes": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get list of envelopes with optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes-v2"
+                ],
+                "summary": "List envelopes (v2)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Clicksign key filter",
+                        "name": "clicksign_key",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeListResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new envelope with provider selection. Supports multiple providers (clicksign, vert-sign). The provider field is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes-v2"
+                ],
+                "summary": "Create envelope (v2)",
+                "parameters": [
+                    {
+                        "description": "Envelope data with provider field",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeV2CreateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Envelope created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or invalid provider",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "501": {
+                        "description": "Provider not implemented",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/envelopes/by-key/:key/activate": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/v2/envelopes/by-key/:key/notify": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/v2/envelopes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get envelope by ID. The response includes clicksign_raw_data field with the complete JSON response from provider API when available.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes-v2"
+                ],
+                "summary": "Get envelope (v2)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Envelope data with optional clicksign_raw_data field containing raw provider API response",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/envelopes/{id}/activate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Activate envelope to start signing process using the provider that created it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes-v2"
+                ],
+                "summary": "Activate envelope (v2)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/envelopes/{id}/notify": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Send notification to envelope signatories using the provider that created it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "envelopes-v2"
+                ],
+                "summary": "Notify envelope (v2)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Envelope ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Notification data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeNotificationRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EnvelopeNotificationResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "dtos.AutoSignatureTermCreateRequestDTO": {
+            "type": "object",
+            "required": [
+                "signer"
+            ],
+            "properties": {
+                "admin_email": {
+                    "type": "string"
+                },
+                "api_email": {
+                    "type": "string"
+                },
+                "signer": {
+                    "$ref": "#/definitions/dtos.SignerInfoDTO"
+                }
+            }
+        },
+        "dtos.AutoSignatureTermListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "terms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.AutoSignatureTermResponseDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.AutoSignatureTermResponseDTO": {
+            "type": "object",
+            "properties": {
+                "admin_email": {
+                    "type": "string"
+                },
+                "api_email": {
+                    "type": "string"
+                },
+                "clicksign_key": {
+                    "type": "string"
+                },
+                "clicksign_raw_data": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "signer": {
+                    "$ref": "#/definitions/dtos.SignerInfoDTO"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.AutoSignatureTermStatusResponseDTO": {
+            "type": "object",
+            "properties": {
+                "contract_status": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "has_signed_term": {
+                    "type": "boolean"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "permission_found": {
+                    "type": "boolean"
+                },
+                "permission_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.DocumentCreateRequestDTO": {
             "type": "object",
             "required": [
@@ -2033,7 +2711,6 @@ const docTemplate = `{
         "dtos.EnvelopeDocumentRequest": {
             "type": "object",
             "required": [
-                "file_content_base64",
                 "name"
             ],
             "properties": {
@@ -2041,7 +2718,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "file_content_base64": {
+                    "description": "Opcional: usar OU file_url OU file_content_base64",
                     "type": "string"
+                },
+                "file_url": {
+                    "description": "Opcional: URL pública do documento",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata customizado do backend",
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "name": {
                     "type": "string",
@@ -2105,7 +2792,8 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "email",
-                        "icp_brasil"
+                        "icp_brasil",
+                        "auto_signature"
                     ]
                 },
                 "document_id": {
@@ -2188,11 +2876,22 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "auth_method": {
+                    "type": "string",
+                    "enum": [
+                        "email",
+                        "icp_brasil",
+                        "auto_signature"
+                    ]
+                },
                 "birthday": {
                     "type": "string"
                 },
                 "communicate_events": {
                     "$ref": "#/definitions/dtos.SignatoryCommunicateEventsDTO"
+                },
+                "documentation": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -2213,6 +2912,87 @@ const docTemplate = `{
                 },
                 "refusable": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dtos.EnvelopeV2CreateRequestDTO": {
+            "type": "object",
+            "required": [
+                "name",
+                "provider"
+            ],
+            "properties": {
+                "approved": {
+                    "description": "Indica se o envelope foi aprovado",
+                    "type": "boolean"
+                },
+                "auto_close": {
+                    "type": "boolean"
+                },
+                "deadline_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "documents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeDocumentRequest"
+                    }
+                },
+                "documents_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "clicksign",
+                        "vert-sign"
+                    ]
+                },
+                "qualifiers": {
+                    "description": "Qualificadores para o envelope, como \"sign\", \"agree\", etc.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeRequirementRequest"
+                    }
+                },
+                "remind_interval": {
+                    "type": "integer",
+                    "maximum": 30,
+                    "minimum": 1
+                },
+                "requirements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeRequirementRequest"
+                    }
+                },
+                "signatories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.EnvelopeSignatoryRequest"
+                    }
+                },
+                "signatory_emails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -2249,7 +3029,8 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "email",
-                        "icp_brasil"
+                        "icp_brasil",
+                        "auto_signature"
                     ]
                 },
                 "document_id": {
@@ -2358,6 +3139,9 @@ const docTemplate = `{
                 "communicate_events": {
                     "$ref": "#/definitions/dtos.SignatoryCommunicateEventsDTO"
                 },
+                "documentation": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2403,10 +3187,16 @@ const docTemplate = `{
                 "birthday": {
                     "type": "string"
                 },
+                "clicksign_key": {
+                    "type": "string"
+                },
                 "communicate_events": {
                     "$ref": "#/definitions/dtos.SignatoryCommunicateEventsDTO"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "documentation": {
                     "type": "string"
                 },
                 "email": {
@@ -2447,6 +3237,9 @@ const docTemplate = `{
                 "communicate_events": {
                     "$ref": "#/definitions/dtos.SignatoryCommunicateEventsDTO"
                 },
+                "documentation": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2469,6 +3262,28 @@ const docTemplate = `{
                 },
                 "refusable": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dtos.SignerInfoDTO": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "birthday": {
+                    "type": "string"
+                },
+                "documentation": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
                 }
             }
         },

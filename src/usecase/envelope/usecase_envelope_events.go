@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"app/entity"
 	"app/infrastructure/clicksign"
 
 	"github.com/sirupsen/logrus"
 )
 
 // CheckEventsFromClicksignAPI verifica eventos da API da Clicksign e retorna os eventos encontrados
-func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int) (*CheckEventsResult, error) {
+func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context, envelopeID int) (*entity.EnvelopeCheckEventsResult, error) {
 	u.logger.WithField("envelope_id", envelopeID).Info("Checking events from Clicksign API as webhook fallback")
 
 	// Buscar envelope
@@ -30,10 +31,10 @@ func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context
 			"status":      envelope.Status,
 		}).Info("Envelope already in final state, skipping event check")
 
-		return &CheckEventsResult{
-			Events:        []SignatureEventData{},
+		return &entity.EnvelopeCheckEventsResult{
+			Events:         []entity.EnvelopeSignatureEventData{},
 			ProcessedCount: 0,
-			EnvelopeKey:   envelope.ClicksignKey,
+			EnvelopeKey:    envelope.ClicksignKey,
 		}, nil
 	}
 
@@ -44,7 +45,7 @@ func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context
 		return nil, fmt.Errorf("failed to get events from Clicksign API: %w", err)
 	}
 
-	var events []SignatureEventData
+	var events []entity.EnvelopeSignatureEventData
 
 	u.logger.WithFields(logrus.Fields{
 		"envelope_id":      envelopeID,
@@ -54,7 +55,7 @@ func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context
 	// Processar eventos de assinatura encontrados
 	for signerKey, status := range signatureStatuses {
 		if status.Signed && status.SignedAt != nil {
-			events = append(events, SignatureEventData{
+			events = append(events, entity.EnvelopeSignatureEventData{
 				SignerKey: signerKey,
 				Email:     status.Email,
 				Name:      status.Name,
@@ -71,13 +72,13 @@ func (u *UsecaseEnvelopeService) CheckEventsFromClicksignAPI(ctx context.Context
 	}
 
 	u.logger.WithFields(logrus.Fields{
-		"envelope_id":    envelopeID,
-		"events_found":   len(events),
+		"envelope_id":  envelopeID,
+		"events_found": len(events),
 	}).Info("Event check completed, returning events for processing")
 
-	return &CheckEventsResult{
-		Events:        events,
+	return &entity.EnvelopeCheckEventsResult{
+		Events:         events,
 		ProcessedCount: len(events),
-		EnvelopeKey:   envelope.ClicksignKey,
+		EnvelopeKey:    envelope.ClicksignKey,
 	}, nil
 }

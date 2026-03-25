@@ -314,7 +314,7 @@ func TestCreateEnvelopeHandler_EnvelopeCreationFails(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &errorResponse)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "Internal server error", errorResponse.Error)
+	assert.Equal(t, "Internal Server Error", errorResponse.Error)
 	assert.Equal(t, "Failed to create envelope: database error", errorResponse.Message)
 }
 

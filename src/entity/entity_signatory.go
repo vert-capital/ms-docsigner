@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"app/pkg/utils/brdoc"
 	"encoding/json"
 	"fmt"
 	"net/mail"
@@ -164,13 +165,8 @@ func (s *EntitySignatory) validatePhoneNumber() error {
 
 func (s *EntitySignatory) validateDocumentation() error {
 	if s.Documentation != nil && *s.Documentation != "" {
-		// Remove caracteres não numéricos para validação
-		docRegex := regexp.MustCompile(`[^\d]`)
-		cleanDoc := docRegex.ReplaceAllString(*s.Documentation, "")
-
-		// Validar CPF (11 dígitos) ou CNPJ (14 dígitos)
-		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
-			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *s.Documentation)
+		if _, err := brdoc.Validate(*s.Documentation); err != nil {
+			return err
 		}
 	}
 	return nil

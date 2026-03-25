@@ -103,6 +103,13 @@ func (u *UsecaseSignatoryService) CreateSignatory(signatory *entity.EntitySignat
 	// Criar signatário no Clicksign
 	clicksignSignerID, err := u.signerService.CreateSigner(ctx, envelope.ClicksignKey, signerData)
 	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"provider":    "clicksign",
+			"operation":   "create_signer",
+			"envelope_id": signatory.EnvelopeID,
+			"email":       signatory.Email,
+		}).WithError(err).Error("Provider rejected signatory payload")
+
 		// Tentar reverter criação local (best effort)
 		if deleteErr := u.repositorySignatory.Delete(signatory); deleteErr != nil {
 			// Log error but continue
