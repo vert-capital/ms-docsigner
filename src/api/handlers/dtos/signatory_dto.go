@@ -2,6 +2,7 @@ package dtos
 
 import (
 	"app/entity"
+	"app/pkg/utils/brdoc"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -59,11 +60,8 @@ func (dto *SignatoryCreateRequestDTO) Validate() error {
 
 	// Validar documentation se fornecido
 	if dto.Documentation != nil && *dto.Documentation != "" {
-		docRegex := regexp.MustCompile(`[^\d]`)
-		cleanDoc := docRegex.ReplaceAllString(*dto.Documentation, "")
-
-		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
-			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *dto.Documentation)
+		if _, err := brdoc.Validate(*dto.Documentation); err != nil {
+			return err
 		}
 	}
 
@@ -172,11 +170,8 @@ func (dto *SignatoryUpdateRequestDTO) Validate() error {
 
 	// Validar documentation se fornecido
 	if dto.Documentation != nil && *dto.Documentation != "" {
-		docRegex := regexp.MustCompile(`[^\d]`)
-		cleanDoc := docRegex.ReplaceAllString(*dto.Documentation, "")
-
-		if len(cleanDoc) != 11 && len(cleanDoc) != 14 {
-			return fmt.Errorf("documentation must be a valid CPF (11 digits) or CNPJ (14 digits), got: %s", *dto.Documentation)
+		if _, err := brdoc.Validate(*dto.Documentation); err != nil {
+			return err
 		}
 	}
 

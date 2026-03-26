@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"app/entity"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignatoryMapper_NormalizeNameForClicksign(t *testing.T) {
@@ -75,4 +77,20 @@ func TestSignatoryMapper_ToClicksignCreateRequest_WithNormalization(t *testing.T
 	if request.Data.Attributes.Email != "test@example.com" {
 		t.Errorf("Expected email %q, got %q", "test@example.com", request.Data.Attributes.Email)
 	}
+}
+
+func TestSignatoryMapper_ToClicksignCreateRequest_PreservesDocumentation(t *testing.T) {
+	mapper := NewSignatoryMapper()
+	documentation := "12.abc.345/01de-35"
+
+	signatory := &entity.EntitySignatory{
+		Name:          "Belagrícola",
+		Email:         "test@example.com",
+		Documentation: &documentation,
+	}
+
+	request := mapper.ToClicksignCreateRequest(signatory)
+
+	require.NotNil(t, request.Data.Attributes.Documentation)
+	assert.Equal(t, "12.abc.345/01de-35", *request.Data.Attributes.Documentation)
 }

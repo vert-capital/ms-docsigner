@@ -168,6 +168,7 @@ func (dto *EnvelopeCreateRequestDTO) Validate() error {
 				Email:             signatory.Email,
 				EnvelopeID:        1, // Valor temporário para validação
 				Birthday:          signatory.Birthday,
+				Documentation:     signatory.Documentation,
 				PhoneNumber:       signatory.PhoneNumber,
 				HasDocumentation:  signatory.HasDocumentation,
 				Refusable:         signatory.Refusable,

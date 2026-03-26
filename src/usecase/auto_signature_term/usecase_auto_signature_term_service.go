@@ -41,7 +41,11 @@ func (u *UsecaseAutoSignatureTermService) CreateAutoSignatureTerm(ctx context.Co
 	// Criar o termo no Clicksign
 	clicksignResponse, err := u.createTermInClicksign(term)
 	if err != nil {
-		u.logger.WithError(err).Error("Failed to create term in Clicksign")
+		u.logger.WithFields(logrus.Fields{
+			"provider":     "clicksign",
+			"operation":    "create_auto_signature_term",
+			"signer_email": term.SignerEmail,
+		}).WithError(err).Error("Provider rejected auto signature term payload")
 		return nil, fmt.Errorf("failed to create term in Clicksign: %w", err)
 	}
 
