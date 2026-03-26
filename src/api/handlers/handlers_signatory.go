@@ -434,6 +434,7 @@ func (h *SignatoryHandlers) SendSignatoriesToClicksignHandler(c *gin.Context) {
 			Name:             createRequest.Data.Attributes.Name,
 			Email:            createRequest.Data.Attributes.Email,
 			Birthday:         createRequest.Data.Attributes.Birthday,
+			Documentation:    createRequest.Data.Attributes.Documentation,
 			PhoneNumber:      createRequest.Data.Attributes.PhoneNumber,
 			HasDocumentation: createRequest.Data.Attributes.HasDocumentation,
 			Refusable:        createRequest.Data.Attributes.Refusable,

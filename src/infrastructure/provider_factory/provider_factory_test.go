@@ -41,11 +41,10 @@ func TestProviderFactory_GetProvider(t *testing.T) {
 		assert.NotNil(t, provider)
 	})
 
-	t.Run("should return error for vertc-assinaturas (not implemented)", func(t *testing.T) {
-		provider, err := factory.GetProvider("vertc-assinaturas")
-		assert.Error(t, err)
-		assert.Nil(t, provider)
-		assert.Contains(t, err.Error(), "not yet implemented")
+	t.Run("should return VertSign provider for vert-sign", func(t *testing.T) {
+		provider, err := factory.GetProvider("vert-sign")
+		assert.NoError(t, err)
+		assert.NotNil(t, provider)
 	})
 
 	t.Run("should return error for unsupported provider", func(t *testing.T) {
@@ -71,8 +70,8 @@ func TestProviderFactory_IsProviderSupported(t *testing.T) {
 		assert.True(t, factory.IsProviderSupported("clicksign"))
 	})
 
-	t.Run("should return true for vertc-assinaturas", func(t *testing.T) {
-		assert.True(t, factory.IsProviderSupported("vertc-assinaturas"))
+	t.Run("should return true for vert-sign", func(t *testing.T) {
+		assert.True(t, factory.IsProviderSupported("vert-sign"))
 	})
 
 	t.Run("should return false for invalid provider", func(t *testing.T) {
@@ -95,15 +94,11 @@ func TestProviderFactory_IsProviderImplemented(t *testing.T) {
 		assert.True(t, factory.IsProviderImplemented("clicksign"))
 	})
 
-	t.Run("should return false for vertc-assinaturas", func(t *testing.T) {
-		assert.False(t, factory.IsProviderImplemented("vertc-assinaturas"))
+	t.Run("should return true for vert-sign", func(t *testing.T) {
+		assert.True(t, factory.IsProviderImplemented("vert-sign"))
 	})
 
 	t.Run("should return false for invalid provider", func(t *testing.T) {
 		assert.False(t, factory.IsProviderImplemented("invalid-provider"))
 	})
 }
-
-
-
-

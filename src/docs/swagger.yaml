@@ -1,4 +1,60 @@
 definitions:
+  dtos.AutoSignatureTermCreateRequestDTO:
+    properties:
+      admin_email:
+        type: string
+      api_email:
+        type: string
+      signer:
+        $ref: '#/definitions/dtos.SignerInfoDTO'
+    required:
+    - signer
+    type: object
+  dtos.AutoSignatureTermListResponseDTO:
+    properties:
+      terms:
+        items:
+          $ref: '#/definitions/dtos.AutoSignatureTermResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.AutoSignatureTermResponseDTO:
+    properties:
+      admin_email:
+        type: string
+      api_email:
+        type: string
+      clicksign_key:
+        type: string
+      clicksign_raw_data:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      signer:
+        $ref: '#/definitions/dtos.SignerInfoDTO'
+      updated_at:
+        type: string
+    type: object
+  dtos.AutoSignatureTermStatusResponseDTO:
+    properties:
+      contract_status:
+        type: string
+      email:
+        type: string
+      has_signed_term:
+        type: boolean
+      is_active:
+        type: boolean
+      permission_found:
+        type: boolean
+      permission_id:
+        type: string
+      provider:
+        type: string
+    type: object
   dtos.DocumentCreateRequestDTO:
     properties:
       description:
@@ -130,13 +186,20 @@ definitions:
       description:
         type: string
       file_content_base64:
+        description: 'Opcional: usar OU file_url OU file_content_base64'
         type: string
+      file_url:
+        description: 'Opcional: URL pública do documento'
+        type: string
+      metadata:
+        additionalProperties: true
+        description: Metadata customizado do backend
+        type: object
       name:
         maxLength: 255
         minLength: 3
         type: string
     required:
-    - file_content_base64
     - name
     type: object
   dtos.EnvelopeListResponseDTO:
@@ -175,6 +238,7 @@ definitions:
         enum:
         - email
         - icp_brasil
+        - auto_signature
         type: string
       document_id:
         type: string
@@ -228,10 +292,18 @@ definitions:
     type: object
   dtos.EnvelopeSignatoryRequest:
     properties:
+      auth_method:
+        enum:
+        - email
+        - icp_brasil
+        - auto_signature
+        type: string
       birthday:
         type: string
       communicate_events:
         $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      documentation:
+        type: string
       email:
         type: string
       group:
@@ -249,6 +321,63 @@ definitions:
     required:
     - email
     - name
+    type: object
+  dtos.EnvelopeV2CreateRequestDTO:
+    properties:
+      approved:
+        description: Indica se o envelope foi aprovado
+        type: boolean
+      auto_close:
+        type: boolean
+      deadline_at:
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      documents:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeDocumentRequest'
+        type: array
+      documents_ids:
+        items:
+          type: integer
+        type: array
+      message:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      provider:
+        enum:
+        - clicksign
+        - vert-sign
+        type: string
+      qualifiers:
+        description: Qualificadores para o envelope, como "sign", "agree", etc.
+        items:
+          $ref: '#/definitions/dtos.EnvelopeRequirementRequest'
+        type: array
+      remind_interval:
+        maximum: 30
+        minimum: 1
+        type: integer
+      requirements:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeRequirementRequest'
+        type: array
+      signatories:
+        items:
+          $ref: '#/definitions/dtos.EnvelopeSignatoryRequest'
+        type: array
+      signatory_emails:
+        items:
+          type: string
+        type: array
+    required:
+    - name
+    - provider
     type: object
   dtos.ErrorResponseDTO:
     properties:
@@ -272,6 +401,7 @@ definitions:
         enum:
         - email
         - icp_brasil
+        - auto_signature
         type: string
       document_id:
         type: string
@@ -341,6 +471,8 @@ definitions:
         type: string
       communicate_events:
         $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      documentation:
+        type: string
       email:
         type: string
       envelope_id:
@@ -375,9 +507,13 @@ definitions:
     properties:
       birthday:
         type: string
+      clicksign_key:
+        type: string
       communicate_events:
         $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
       created_at:
+        type: string
+      documentation:
         type: string
       email:
         type: string
@@ -404,6 +540,8 @@ definitions:
         type: string
       communicate_events:
         $ref: '#/definitions/dtos.SignatoryCommunicateEventsDTO'
+      documentation:
+        type: string
       email:
         type: string
       envelope_id:
@@ -420,6 +558,21 @@ definitions:
         type: string
       refusable:
         type: boolean
+    type: object
+  dtos.SignerInfoDTO:
+    properties:
+      birthday:
+        type: string
+      documentation:
+        type: string
+      email:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+    required:
+    - email
     type: object
   dtos.ValidationErrorDetail:
     properties:
@@ -848,6 +1001,167 @@ paths:
       summary: Update password
       tags:
       - User
+  /api/v1/auto-signature/terms:
+    get:
+      consumes:
+      - application/json
+      description: Get all auto signature terms
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of auto signature terms
+          schema:
+            $ref: '#/definitions/dtos.AutoSignatureTermListResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get all auto signature terms
+      tags:
+      - auto-signature-terms
+    post:
+      consumes:
+      - application/json
+      description: Create a new auto signature term in Clicksign. This endpoint creates
+        a term that allows automatic signature for a specific signer.
+      parameters:
+      - description: Provider name (clicksign|vert-sign). Defaults to clicksign
+        in: query
+        name: provider
+        type: string
+      - description: Auto signature term data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AutoSignatureTermCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Auto signature term created successfully
+          schema:
+            $ref: '#/definitions/dtos.AutoSignatureTermResponseDTO'
+        "400":
+          description: Validation error - invalid request data
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "409":
+          description: Conflict - term already exists for this signer and operator
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error - term creation failed
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Create auto signature term
+      tags:
+      - auto-signature-terms
+  /api/v1/auto-signature/terms/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an auto signature term by its ID
+      parameters:
+      - description: Auto signature term ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Auto signature term deleted successfully
+        "404":
+          description: Auto signature term not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete auto signature term
+      tags:
+      - auto-signature-terms
+    get:
+      consumes:
+      - application/json
+      description: Get an auto signature term by its ID
+      parameters:
+      - description: Auto signature term ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Auto signature term found
+          schema:
+            $ref: '#/definitions/dtos.AutoSignatureTermResponseDTO'
+        "404":
+          description: Auto signature term not found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get auto signature term by ID
+      tags:
+      - auto-signature-terms
+  /api/v1/auto-signature/terms/status:
+    get:
+      consumes:
+      - application/json
+      description: Check if the signer already has an active and signed auto signature
+        permission in the selected provider.
+      parameters:
+      - description: Provider name (clicksign|vert-sign)
+        in: query
+        name: provider
+        required: true
+        type: string
+      - description: Signer e-mail
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Auto signature status for the signer and provider
+          schema:
+            $ref: '#/definitions/dtos.AutoSignatureTermStatusResponseDTO'
+        "400":
+          description: Validation error - invalid query params
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "501":
+          description: Provider does not support e-mail based check
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "502":
+          description: Provider integration error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Check auto signature term status by provider and signer email
+      tags:
+      - auto-signature-terms
   /api/v1/documents:
     get:
       consumes:
@@ -1186,6 +1500,43 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Activate envelope
+      tags:
+      - envelopes
+  /api/v1/envelopes/{id}/events/check:
+    post:
+      consumes:
+      - application/json
+      description: Fallback endpoint that checks Clicksign events API when webhooks
+        fail. Processes sign events and triggers internal webhooks to maintain existing
+        workflow.
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.WebhookProcessResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Check signature events manually (webhook fallback)
       tags:
       - envelopes
   /api/v1/envelopes/{id}/notify:
@@ -1848,4 +2199,191 @@ paths:
       summary: Lista webhooks pendentes
       tags:
       - webhooks
+  /api/v2/envelopes:
+    get:
+      consumes:
+      - application/json
+      description: Get list of envelopes with optional filters
+      parameters:
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - description: Status filter
+        in: query
+        name: status
+        type: string
+      - description: Clicksign key filter
+        in: query
+        name: clicksign_key
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeListResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: List envelopes (v2)
+      tags:
+      - envelopes-v2
+    post:
+      consumes:
+      - application/json
+      description: Create a new envelope with provider selection. Supports multiple
+        providers (clicksign, vert-sign). The provider field is required.
+      parameters:
+      - description: Envelope data with provider field
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.EnvelopeV2CreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Envelope created successfully
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeResponseDTO'
+        "400":
+          description: Validation error or invalid provider
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponseDTO'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "501":
+          description: Provider not implemented
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Create envelope (v2)
+      tags:
+      - envelopes-v2
+  /api/v2/envelopes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get envelope by ID. The response includes clicksign_raw_data field
+        with the complete JSON response from provider API when available.
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Envelope data with optional clicksign_raw_data field containing
+            raw provider API response
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get envelope (v2)
+      tags:
+      - envelopes-v2
+  /api/v2/envelopes/{id}/activate:
+    post:
+      consumes:
+      - application/json
+      description: Activate envelope to start signing process using the provider that
+        created it
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Activate envelope (v2)
+      tags:
+      - envelopes-v2
+  /api/v2/envelopes/{id}/notify:
+    post:
+      consumes:
+      - application/json
+      description: Send notification to envelope signatories using the provider that
+        created it
+      parameters:
+      - description: Envelope ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Notification data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.EnvelopeNotificationRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.EnvelopeNotificationResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Notify envelope (v2)
+      tags:
+      - envelopes-v2
+  /api/v2/envelopes/by-key/:key/activate:
+    post:
+      responses: {}
+  /api/v2/envelopes/by-key/:key/notify:
+    post:
+      responses: {}
 swagger: "2.0"

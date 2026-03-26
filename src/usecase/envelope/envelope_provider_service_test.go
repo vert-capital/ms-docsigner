@@ -64,7 +64,7 @@ func TestUsecaseEnvelopeProviderService_CreateEnvelope(t *testing.T) {
 			Return(nil)
 
 		// Act
-		result, err := service.CreateEnvelope(envelope)
+		result, err := service.CreateEnvelope(context.Background(), envelope)
 
 		// Assert
 		assert.NoError(t, err)
@@ -82,7 +82,7 @@ func TestUsecaseEnvelopeProviderService_CreateEnvelope(t *testing.T) {
 		}
 
 		// Act
-		result, err := service.CreateEnvelope(envelope)
+		result, err := service.CreateEnvelope(context.Background(), envelope)
 
 		// Assert
 		assert.Error(t, err)
@@ -118,7 +118,7 @@ func TestUsecaseEnvelopeProviderService_CreateEnvelope(t *testing.T) {
 			Return(nil) // Best effort rollback
 
 		// Act
-		result, err := service.CreateEnvelope(envelope)
+		result, err := service.CreateEnvelope(context.Background(), envelope)
 
 		// Assert
 		assert.Error(t, err)
@@ -327,4 +327,3 @@ func TestUsecaseEnvelopeProviderService_CreateDocument(t *testing.T) {
 		assert.Equal(t, "doc-key-123", docKey)
 	})
 }
-

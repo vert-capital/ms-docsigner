@@ -13,7 +13,7 @@ type AutoSignatureTermCreateRequestDTO struct {
 
 // SignerInfoDTO representa as informações do signatário no DTO
 type SignerInfoDTO struct {
-	Documentation string `json:"documentation" binding:"omitempty,min=11,max=14"`
+	Documentation string `json:"documentation" binding:"omitempty"`
 	Birthday      string `json:"birthday" binding:"omitempty"`
 	Email         string `json:"email" binding:"required,email"`
 	Name          string `json:"name" binding:"omitempty,min=2,max=255"`
