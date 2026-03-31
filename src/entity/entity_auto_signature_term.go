@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"app/pkg/utils/brdoc"
 	"fmt"
 	"net/mail"
 	"time"
@@ -9,7 +10,7 @@ import (
 // EntityAutoSignatureTerm representa um termo de assinatura automática
 type EntityAutoSignatureTerm struct {
 	ID                  int       `json:"id" gorm:"primaryKey"`
-	SignerDocumentation string    `json:"signer_documentation" gorm:"column:signer_documentation;not null" validate:"required,min=11,max=14"`
+	SignerDocumentation string    `json:"signer_documentation" gorm:"column:signer_documentation;not null" validate:"required"`
 	SignerBirthday      string    `json:"signer_birthday" gorm:"column:signer_birthday;not null" validate:"required"`
 	SignerEmail         string    `json:"signer_email" gorm:"column:signer_email;not null" validate:"required,email"`
 	SignerName          string    `json:"signer_name" gorm:"column:signer_name;not null" validate:"required,min=2,max=255"`
@@ -23,7 +24,7 @@ type EntityAutoSignatureTerm struct {
 
 // SignerInfo representa as informações do signatário (para DTOs)
 type SignerInfo struct {
-	Documentation string `json:"documentation" validate:"required,min=11,max=14"`
+	Documentation string `json:"documentation" validate:"required"`
 	Birthday      string `json:"birthday" validate:"required"`
 	Email         string `json:"email" validate:"required,email"`
 	Name          string `json:"name" validate:"required,min=2,max=255"`
@@ -99,14 +100,8 @@ func (t *EntityAutoSignatureTerm) validateEmails() error {
 }
 
 func (t *EntityAutoSignatureTerm) validateDocumentation() error {
-	// Validar se a documentação tem pelo menos 11 caracteres (CPF mínimo)
-	if len(t.SignerDocumentation) < 11 {
-		return fmt.Errorf("documentation must have at least 11 characters")
-	}
-
-	// Validar se a documentação tem no máximo 14 caracteres (CPF/CNPJ)
-	if len(t.SignerDocumentation) > 14 {
-		return fmt.Errorf("documentation must have at most 14 characters")
+	if _, err := brdoc.Validate(t.SignerDocumentation); err != nil {
+		return err
 	}
 
 	return nil

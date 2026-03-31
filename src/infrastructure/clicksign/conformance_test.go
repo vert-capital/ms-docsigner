@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockClicksignClient é um mock do client Clicksign para testes
@@ -210,6 +211,7 @@ func TestSignerCreateRequestConformance(t *testing.T) {
 			Name:             "João Silva",
 			Email:            "joao.silva@example.com",
 			Birthday:         "1990-01-01",
+			Documentation:    stringPtr("12.abc.345/01de-35"),
 			HasDocumentation: true,
 			Refusable:        false,
 			Group:            1,
@@ -233,6 +235,8 @@ func TestSignerCreateRequestConformance(t *testing.T) {
 		assert.Equal(t, "João Silva", requestWrapper.Data.Attributes.Name)
 		assert.Equal(t, "joao.silva@example.com", requestWrapper.Data.Attributes.Email)
 		assert.Equal(t, "1990-01-01", requestWrapper.Data.Attributes.Birthday)
+		require.NotNil(t, requestWrapper.Data.Attributes.Documentation)
+		assert.Equal(t, "12.abc.345/01de-35", *requestWrapper.Data.Attributes.Documentation)
 		assert.True(t, requestWrapper.Data.Attributes.HasDocumentation)
 		assert.False(t, requestWrapper.Data.Attributes.Refusable)
 		assert.Equal(t, 1, requestWrapper.Data.Attributes.Group)

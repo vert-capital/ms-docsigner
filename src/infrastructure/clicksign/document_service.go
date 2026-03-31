@@ -92,10 +92,32 @@ func (s *DocumentService) CreateDocument(ctx context.Context, envelopeID string,
 	var createRequest *dto.DocumentCreateRequestWrapper
 	var err error
 
+	// Verificar se FilePath é uma URL (começa com http:// ou https://)
+	isURL := strings.HasPrefix(document.FilePath, "http://") || strings.HasPrefix(document.FilePath, "https://")
+
 	if document.IsFromBase64 {
 		createRequest, err = s.prepareBase64CreateRequest(document, internalEnvelopeID)
 		if err != nil {
 			return "", fmt.Errorf("failed to prepare base64 create request: %w", err)
+		}
+	} else if isURL {
+		// Se FilePath é uma URL, fazer download e converter para base64
+		fileInfo, err := utils.DownloadFileFromURL(document.FilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to download file from URL: %w", err)
+		}
+		defer utils.CleanupTempFile(fileInfo.TempPath)
+
+		// Criar documento temporário com base64 para processar
+		tempDoc := *document
+		tempDoc.FilePath = fileInfo.TempPath
+		tempDoc.FileSize = fileInfo.Size
+		tempDoc.MimeType = fileInfo.MimeType
+		tempDoc.IsFromBase64 = true
+
+		createRequest, err = s.prepareBase64CreateRequest(&tempDoc, internalEnvelopeID)
+		if err != nil {
+			return "", fmt.Errorf("failed to prepare base64 create request from URL: %w", err)
 		}
 	} else {
 		createRequest, err = s.prepareFilePathCreateRequest(document, internalEnvelopeID)

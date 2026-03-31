@@ -50,6 +50,21 @@ func (mr *MockIUsecaseEnvelopeMockRecorder) ActivateEnvelope(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateEnvelope", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).ActivateEnvelope), arg0)
 }
 
+// CheckEventsFromClicksignAPI mocks base method.
+func (m *MockIUsecaseEnvelope) CheckEventsFromClicksignAPI(arg0 context.Context, arg1 int) (*entity.EnvelopeCheckEventsResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckEventsFromClicksignAPI", arg0, arg1)
+	ret0, _ := ret[0].(*entity.EnvelopeCheckEventsResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckEventsFromClicksignAPI indicates an expected call of CheckEventsFromClicksignAPI.
+func (mr *MockIUsecaseEnvelopeMockRecorder) CheckEventsFromClicksignAPI(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckEventsFromClicksignAPI", reflect.TypeOf((*MockIUsecaseEnvelope)(nil).CheckEventsFromClicksignAPI), arg0, arg1)
+}
+
 // CreateDocument mocks base method.
 func (m *MockIUsecaseEnvelope) CreateDocument(arg0 context.Context, arg1 string, arg2 *entity.EntityDocument, arg3 int) (string, error) {
 	m.ctrl.T.Helper()

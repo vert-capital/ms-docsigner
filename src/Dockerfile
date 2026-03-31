@@ -17,6 +17,7 @@ FROM alpine:3.20
 
 WORKDIR /app
 
+
 COPY --from=builder /app/app_bin /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
