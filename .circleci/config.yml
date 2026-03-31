@@ -213,20 +213,10 @@ workflows:
               only:
                 - homolog
 
-      - deploy-to-production-approval:
-          type: approval
-          context: environment
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - build-deliver
-
       - deploy-to-production:
           context: environment
           requires:
-            - deploy-to-production-approval
+            - build-deliver
           filters:
             branches:
               only:
