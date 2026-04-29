@@ -130,6 +130,11 @@ func (s *DirectFlowService) createEnvelope(ctx context.Context, envelope *entity
 	if err != nil {
 		return nil, fmt.Errorf("failed to read vert-sign envelope creation response: %w", err)
 	}
+	s.logger.Infof(
+		"[VERT_SIGN_CREATE_ENVELOPE][DIRECT_FLOW_RESPONSE] status=%d body=%s",
+		resp.StatusCode,
+		string(body),
+	)
 
 	var envelopeResp directEnvelopeResponse
 	if err := json.Unmarshal(body, &envelopeResp); err != nil {
