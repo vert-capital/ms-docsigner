@@ -1,6 +1,7 @@
 package vertc_assinaturas
 
 import (
+	"app/entity"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -45,11 +46,18 @@ type DocumentDto struct {
 
 // QuickSendResponse representa a resposta do endpoint quick-send
 type QuickSendResponse struct {
-	Status     string        `json:"status"`
-	Message    string        `json:"message"`
-	EnvelopeID string        `json:"envelopeId"`
-	Documents  []interface{} `json:"documents"`
-	Signers    []interface{} `json:"signers"`
+	Status            string                      `json:"status"`
+	Message           string                      `json:"message"`
+	EnvelopeID        string                      `json:"envelopeId"`
+	Documents         []interface{}               `json:"documents"`
+	Signers           []interface{}               `json:"signers"`
+	ProviderDocuments []QuickSendProviderDocument `json:"provider_documents,omitempty"`
+}
+
+type QuickSendProviderDocument struct {
+	BackendDocumentID int    `json:"backend_document_id"`
+	ProviderDocumentID string `json:"provider_document_id"`
+	Name              string `json:"name,omitempty"`
 }
 
 // QuickSendService gerencia operações relacionadas ao quick-send
@@ -89,6 +97,11 @@ func (s *QuickSendService) QuickSend(ctx context.Context, data QuickSendData) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to read quick-send response: %w", err)
 	}
+	s.logger.Infof(
+		"[VERT_SIGN_CREATE_ENVELOPE][QUICK_SEND_RESPONSE] status=%d body=%s",
+		resp.StatusCode,
+		string(body),
+	)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return nil, &VertcAssinaturasError{
@@ -102,9 +115,72 @@ func (s *QuickSendService) QuickSend(ctx context.Context, data QuickSendData) (*
 	if err := json.Unmarshal(body, &quickSendResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal quick-send response: %w", err)
 	}
+	quickSendResp.ProviderDocuments = s.buildProviderDocumentMappings(quickSendResp.Documents, data.Documents)
 
 	s.logger.Debugf("Quick-send realizado com sucesso. Envelope ID: %s", quickSendResp.EnvelopeID)
 	return &quickSendResp, nil
+}
+
+func (s *QuickSendService) buildProviderDocumentMappings(
+	providerDocuments []interface{},
+	requestDocuments []*entity.EntityDocument,
+) []QuickSendProviderDocument {
+	mappings := make([]QuickSendProviderDocument, 0)
+
+	for index, providerDoc := range providerDocuments {
+		if index >= len(requestDocuments) {
+			break
+		}
+
+		providerDocMap, ok := providerDoc.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		providerDocumentID, _ := providerDocMap["id"].(string)
+		if providerDocumentID == "" {
+			continue
+		}
+
+		backendDocumentID := s.extractBackendDocumentIDFromMetadata(requestDocuments[index].Metadata)
+		if backendDocumentID <= 0 {
+			continue
+		}
+
+		name, _ := providerDocMap["name"].(string)
+		mappings = append(mappings, QuickSendProviderDocument{
+			BackendDocumentID: backendDocumentID,
+			ProviderDocumentID: providerDocumentID,
+			Name:              name,
+		})
+	}
+
+	return mappings
+}
+
+func (s *QuickSendService) extractBackendDocumentIDFromMetadata(metadata []byte) int {
+	if len(metadata) == 0 {
+		return 0
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata, &metadataMap); err != nil {
+		return 0
+	}
+
+	value, exists := metadataMap["backend_document_id"]
+	if !exists {
+		return 0
+	}
+
+	switch v := value.(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	default:
+		return 0
+	}
 }
 
 // mapToQuickSendRequest mapeia os dados internos para o formato quick-send
